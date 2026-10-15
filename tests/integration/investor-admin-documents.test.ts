@@ -9,7 +9,6 @@ describe('Investor & Admin Operations & Private R2 Documents Suite', () => {
   let inv1Token: string;
   let inv2Token: string;
   let inv1UserId: string;
-  let _inv2UserId: string;
   let investment1Id: string;
 
   beforeEach(async () => {
@@ -58,7 +57,7 @@ describe('Investor & Admin Operations & Private R2 Documents Suite', () => {
     inv1UserId = inv1Data.data.user_id;
 
     // Crear Inversionista 2 desde endpoint Admin
-    const createInv2 = await app.request('/api/admin/investors', {
+    await app.request('/api/admin/investors', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,8 +71,6 @@ describe('Investor & Admin Operations & Private R2 Documents Suite', () => {
         phone: '+525599887766'
       })
     }, env);
-    const inv2Data = await createInv2.json() as { data: { user_id: string } };
-    _inv2UserId = inv2Data.data.user_id;
 
     // Crear inversión para Inversionista 1
     const createInvRes = await app.request('/api/admin/investments', {
