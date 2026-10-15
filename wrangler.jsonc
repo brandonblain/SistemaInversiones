@@ -1,0 +1,76 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "portal-inversionistas-backend",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2025-02-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "portal-inversionistas-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "DOCS_BUCKET",
+      "bucket_name": "portal-inversionistas-docs-private"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 6 * * *"]
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "APP_BASE_URL": "http://localhost:8787",
+    "DEFAULT_CURRENCY": "MXN",
+    "EMAIL_FROM": "avisos@portal-inversionistas.privado"
+  },
+  "env": {
+    "staging": {
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "APP_BASE_URL": "https://staging.portal-inversionistas.com",
+        "DEFAULT_CURRENCY": "MXN",
+        "EMAIL_FROM": "avisos-staging@portal-inversionistas.com"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "portal-inversionistas-db-staging",
+          "database_id": "d1-staging-placeholder-uuid",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "DOCS_BUCKET",
+          "bucket_name": "portal-inversionistas-docs-staging"
+        }
+      ]
+    },
+    "production": {
+      "vars": {
+        "ENVIRONMENT": "production",
+        "APP_BASE_URL": "https://inversionistas.portal-privado.com",
+        "DEFAULT_CURRENCY": "MXN",
+        "EMAIL_FROM": "notificaciones@portal-privado.com"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "portal-inversionistas-db-prod",
+          "database_id": "d1-prod-placeholder-uuid",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "DOCS_BUCKET",
+          "bucket_name": "portal-inversionistas-docs-prod"
+        }
+      ]
+    }
+  }
+}
