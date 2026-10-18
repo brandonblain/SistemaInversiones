@@ -1,4 +1,4 @@
-// Servicio de Auditoría Inmutable
+// Servicio de Auditoría Inmutable (la tabla tiene triggers que impiden UPDATE/DELETE)
 import { generateSecureToken } from './crypto';
 
 export interface AuditLogEntry {
@@ -12,23 +12,26 @@ export interface AuditLogEntry {
   userAgent?: string | null;
 }
 
-export async function recordAuditLog(db: D1Database, entry: AuditLogEntry): Promise<void> {
-  const id = generateSecureToken('aud');
-  const oldValuesJson = entry.oldValues ? JSON.stringify(entry.oldValues) : null;
-  const newValuesJson = entry.newValues ? JSON.stringify(entry.newValues) : null;
+/** Sentencia preparada para incluir la auditoría en el mismo lote (transacción) que la operación. */
+export function auditStatement(db: D1Database, entry: AuditLogEntry): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, old_values_json, new_values_json, ip_address, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      generateSecureToken('aud'),
+      entry.userId || null,
+      entry.action,
+      entry.entityType,
+      entry.entityId,
+      entry.oldValues ? JSON.stringify(entry.oldValues) : null,
+      entry.newValues ? JSON.stringify(entry.newValues) : null,
+      entry.ipAddress || null,
+      entry.userAgent ? entry.userAgent.slice(0, 300) : null
+    );
+}
 
-  await db.prepare(
-    `INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, old_values_json, new_values_json, ip_address, user_agent)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    id,
-    entry.userId || null,
-    entry.action,
-    entry.entityType,
-    entry.entityId,
-    oldValuesJson,
-    newValuesJson,
-    entry.ipAddress || null,
-    entry.userAgent || null
-  ).run();
+export async function recordAuditLog(db: D1Database, entry: AuditLogEntry): Promise<void> {
+  await auditStatement(db, entry).run();
 }

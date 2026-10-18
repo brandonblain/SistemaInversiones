@@ -103,17 +103,28 @@ export async function generateTotpCode(secretBase32: string, timeStepSeconds = 3
 }
 
 export async function verifyTotpCode(secretBase32: string, token: string, window = 1): Promise<boolean> {
-  const epoch = Math.floor(Date.now() / 1000);
-  const currentCounter = Math.floor(epoch / 30);
-
-  for (let i = -window; i <= window; i++) {
-    const validCode = await computeHotp(secretBase32, currentCounter + i);
-    if (constantTimeCompare(validCode, token.trim())) {
-      return true;
-    }
-  }
-  return false;
+  return (await matchTotpCounter(secretBase32, token, window, 0)) !== null;
 }
+
+/**
+ * Devuelve el contador TOTP que coincide con el código, o null. Rechaza contadores <= lastUsedCounter
+ * para que un mismo código no pueda reutilizarse (anti-replay).
+ */
+export async function matchTotpCounter(secretBase32: string, token: string, window: number, lastUsedCounter: number): Promise<number | null> {
+  const clean = token.trim();
+  if (!/^\d{6}$/.test(clean) || !secretBase32) return null;
+  const currentCounter = Math.floor(Date.now() / 1000 / 30);
+  for (let i = -window; i <= window; i++) {
+    const counter = currentCounter + i;
+    if (counter <= lastUsedCounter) continue;
+    if (constantTimeCompare(await computeHotp(secretBase32, counter), clean)) return counter;
+  }
+  return null;
+}
+
+/** Hash señuelo para igualar el tiempo de respuesta cuando el correo no existe. */
+export const DUMMY_PASSWORD_HASH =
+  'pbkdf2:sha256:100000:00000000000000000000000000000000:0000000000000000000000000000000000000000000000000000000000000000';
 
 async function computeHotp(secretBase32: string, counter: number): Promise<string> {
   const keyBytes = base32ToBytes(secretBase32);
@@ -144,7 +155,7 @@ async function computeHotp(secretBase32: string, counter: number): Promise<strin
   return otp.toString().padStart(6, '0');
 }
 
-export function generateBase32Secret(length = 20): string {
+export function generateBase32Secret(length = 32): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   const bytes = crypto.getRandomValues(new Uint8Array(length));
   let result = '';

@@ -1,124 +1,93 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createTestD1Database } from '../helpers/d1-mock';
-import { processNotificationQueue, EmailSender } from '../../src/worker/services/notifications';
+import { describe, expect, it, vi } from 'vitest';
+import { addDays, todayInContractZone } from '../../src/worker/lib/dates';
+import { enqueueStatement, getEmailSender, processNotificationQueue } from '../../src/worker/services/notifications';
 import { runScheduledMaintenance } from '../../src/worker/services/scheduled-jobs';
+import { makeEnv, seedAdmin, seedInvestor } from '../helpers/app';
 
-describe('Notifications & Scheduled Cron Jobs Suite', () => {
-  let db: D1Database;
+async function seedInvestment(env: ReturnType<typeof makeEnv>, id: string, userId: string, start: string, maturity: string) {
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, start_date, maturity_date, initial_capital_cents, current_capital_cents)
+       VALUES (?, ?, ?, 'FAST_FOOD', ?, ?, 10000000, 10000000)`
+    ).bind(id, userId, `FICT-${id}`, start, maturity),
+    env.DB.prepare(
+      `INSERT INTO investment_terms (id, investment_id, fixed_annual_rate_bps, payout_frequency, effective_from) VALUES (?, ?, 1300, 'MONTHLY', ?)`
+    ).bind(`t_${id}`, id, start),
+    env.DB.prepare(
+      `INSERT INTO capital_movements (id, investment_id, movement_type, amount_cents, effective_date, recorded_by_user_id)
+       VALUES (?, ?, 'INITIAL_DEPOSIT', 10000000, ?, 'usr_admin')`
+    ).bind(`m_${id}`, id, start)
+  ]);
+}
 
-  beforeEach(async () => {
-    db = createTestD1Database();
-
-    // Crear inversionista y usuario
-    await db.prepare(
-      "INSERT INTO users (id, email, password_hash, role, is_active) VALUES ('u_inv', 'inversionista@privado.test', 'hash', 'INVESTOR', 1)"
-    ).run();
-
-    await db.prepare(
-      "INSERT INTO investor_profiles (id, user_id, full_name) VALUES ('p_inv', 'u_inv', 'Don Roberto Garza')"
-    ).run();
-
-    // Inversión que vence en 20 días (próxima a vencer)
-    const today = new Date();
-    const in20Days = new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    await db.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv_expiring', 'u_inv', 'INV-EXP-001', 'ACTIVE', 'MXN', '2025-01-01', ?, 50000000, 50000000)`
-    ).bind(in20Days).run();
-
-    await db.prepare(
-      `INSERT INTO investment_terms (id, investment_id, fixed_annual_rate_bps, payout_frequency, day_count_convention, effective_from)
-       VALUES ('term_exp', 'inv_expiring', 1300, 'MONTHLY', 'ACT_365', '2025-01-01')`
-    ).run();
+describe('Avisos por correo', () => {
+  it('reclamo atómico: dos procesos simultáneos no envían el mismo aviso dos veces', async () => {
+    const env = makeEnv();
+    const uid = await seedInvestor(env, { email: 'victoria.perez@ficticio.test' });
+    await enqueueStatement(env.DB, { userId: uid, email: 'victoria.perez@ficticio.test', type: 'PAYMENT_RECORDED', subject: 'Pago registrado', body: 'Se registró un pago.' }).run();
+    const sender = vi.fn(async () => ({ success: true }));
+    const [a, b] = await Promise.all([processNotificationQueue(env, sender), processNotificationQueue(env, sender)]);
+    expect(sender).toHaveBeenCalledTimes(1);
+    expect(a.successful + b.successful).toBe(1);
   });
 
-  it('should process notification queue and assert no balances or dollar amounts are leaked', async () => {
-    // 1. Insertar notificación de pago registrado
-    await db.prepare(
-      `INSERT INTO notification_events (id, user_id, event_type, recipient_email, subject, body_preview, status)
-       VALUES ('not_1', 'u_inv', 'PAYMENT_RECORDED', 'inversionista@privado.test', 'Aviso de pago registrado', 'Se ha registrado un pago externo en su inversión INV-EXP-001 con referencia SPEI-12345. Consulte su portal.', 'PENDING')`
-    ).run();
-
-    const sentEmails: Array<{ to: string; subject: string; text: string }> = [];
-    const mockSender: EmailSender = async (payload) => {
-      sentEmails.push(payload);
-      return { success: true };
-    };
-
-    const result = await processNotificationQueue(db, 'avisos@portal.test', mockSender);
-
-    expect(result.processed).toBe(1);
-    expect(result.successful).toBe(1);
-    expect(result.failed).toBe(0);
-
-    expect(sentEmails.length).toBe(1);
-    const email = sentEmails[0];
-    expect(email?.to).toBe('inversionista@privado.test');
-    expect(email?.subject).toBe('Aviso de pago registrado');
-
-    // Regla estricta: NO revelar saldos ni signos de pesos en el correo
-    expect(email?.text).not.toMatch(/\$\s*\d+/);
-    expect(email?.text).not.toContain('centavos');
-    expect(email?.text).not.toContain('50000000');
-
-    // Verificar que en base de datos quedó en estado SENT
-    const row = await db.prepare('SELECT status, attempts_count FROM notification_events WHERE id = ?').bind('not_1').first<{ status: string; attempts_count: number }>();
-    expect(row?.status).toBe('SENT');
-    expect(row?.attempts_count).toBe(1);
+  it('reintentos hasta 3 y luego FAILED con el error registrado', async () => {
+    const env = makeEnv();
+    const uid = await seedInvestor(env);
+    await enqueueStatement(env.DB, { userId: uid, email: 'x@ficticio.test', type: 'PASSWORD_CHANGED', subject: 'Aviso', body: 'Cambio de contraseña.' }).run();
+    const sender = vi.fn(async () => ({ success: false, error: 'Buzón no disponible' }));
+    for (let i = 0; i < 4; i++) await processNotificationQueue(env, sender);
+    expect(sender).toHaveBeenCalledTimes(3);
+    const row = await env.DB.prepare('SELECT status, attempts_count, error_message FROM notification_events').first<any>();
+    expect(row).toMatchObject({ status: 'FAILED', attempts_count: 3, error_message: 'Buzón no disponible' });
   });
 
-  it('should execute scheduled maintenance: detect expiring contracts and generate previews without irreversible changes', async () => {
-    // Verificar que antes de la ejecución no hay rendimientos confirmados ni movimientos
-    const yieldsBefore = await db.prepare('SELECT COUNT(*) as c FROM yield_entries').first<{ c: number }>();
-    expect(yieldsBefore?.c).toBe(0);
-
-    const result = await runScheduledMaintenance(db, 'avisos@portal.test');
-
-    expect(result.status).toBe('SUCCESS');
-    expect(result.expiringContractsFound).toBe(1);
-    expect(result.previewsGenerated).toBeGreaterThanOrEqual(1);
-
-    // Regla estricta: NO se deben haber generado devengos confirmados en la BD (solo previsualizaciones en details_json)
-    const yieldsAfter = await db.prepare('SELECT COUNT(*) as c FROM yield_entries').first<{ c: number }>();
-    expect(yieldsAfter?.c).toBe(0);
-
-    // Verificar que el log del job se registró en scheduled_job_runs
-    const jobLog = await db.prepare(
-      "SELECT job_name, status, details_json FROM scheduled_job_runs WHERE id = ?"
-    ).bind(result.jobId).first<{ job_name: string; status: string; details_json: string }>();
-
-    expect(jobLog?.job_name).toBe('DAILY_MAINTENANCE');
-    expect(jobLog?.status).toBe('SUCCESS');
-    expect(jobLog?.details_json).toContain('INV-EXP-001');
-
-    // Verificar que se encoló la notificación de vencimiento
-    const notif = await db.prepare(
-      "SELECT subject, body_preview FROM notification_events WHERE event_type = 'CONTRACT_EXPIRING_SOON'"
-    ).first<{ subject: string; body_preview: string }>();
-
-    expect(notif?.subject).toContain('Aviso de próximo vencimiento');
+  it('política de contenido: un aviso con importes nunca se envía', async () => {
+    const env = makeEnv();
+    const uid = await seedInvestor(env);
+    await enqueueStatement(env.DB, { userId: uid, email: 'x@ficticio.test', type: 'PAYMENT_RECORDED', subject: 'Pago', body: 'Se pagaron $5,000.00 MXN' }).run();
+    const sender = vi.fn(async () => ({ success: true }));
+    await processNotificationQueue(env, sender);
+    expect(sender).not.toHaveBeenCalled();
+    expect((await env.DB.prepare('SELECT status FROM notification_events').first<any>()).status).toBe('FAILED');
   });
 
-  it('should handle delivery failure and increment attempt count until marked FAILED', async () => {
-    await db.prepare(
-      `INSERT INTO notification_events (id, user_id, event_type, recipient_email, subject, body_preview, status, attempts_count)
-       VALUES ('not_fail', 'u_inv', 'PASSWORD_CHANGED', 'fail@test.com', 'Aviso de seguridad', 'Contraseña cambiada', 'PENDING', 2)`
-    ).run();
+  it('en producción sin proveedor configurado NO se marca como enviado', async () => {
+    const env = makeEnv({ ENVIRONMENT: 'production' });
+    expect(await getEmailSender(env)({ to: 'a@ficticio.test', from: 'b@ficticio.test', subject: 's', text: 't' })).toEqual({ success: false, error: 'EMAIL_PROVIDER_NOT_CONFIGURED' });
+  });
+});
 
-    const failingSender: EmailSender = async () => {
-      return { success: false, error: 'SMTP timeout 504' };
-    };
+describe('Trabajo programado', () => {
+  it('aviso de vencimiento por inversión (dos inversiones del mismo cliente → dos avisos), sin duplicar en 15 días', async () => {
+    const env = makeEnv();
+    await seedAdmin(env);
+    const uid = await seedInvestor(env, { email: 'hector.galeana@ficticio.test' });
+    const today = todayInContractZone();
+    await seedInvestment(env, 'a', uid, addDays(today, -300), addDays(today, 10));
+    await seedInvestment(env, 'b', uid, addDays(today, -300), addDays(today, 20));
+    await seedInvestment(env, 'c', uid, addDays(today, -300), addDays(today, 90));
+    const sender = vi.fn(async () => ({ success: true }));
+    const r1 = await runScheduledMaintenance(env, sender);
+    expect(r1.status).toBe('SUCCESS');
+    expect(r1.expiringContractsFound).toBe(2);
+    const r2 = await runScheduledMaintenance(env, sender);
+    expect(r2.expiringContractsFound).toBe(0);
+    const bodies = await env.DB.prepare("SELECT body_preview FROM notification_events WHERE event_type = 'CONTRACT_EXPIRING_SOON'").all<{ body_preview: string }>();
+    expect(bodies.results).toHaveLength(2);
+    for (const b of bodies.results) expect(b.body_preview).not.toMatch(/\$|MXN|retiro/i);
+  });
 
-    const result = await processNotificationQueue(db, 'avisos@portal.test', failingSender);
-
-    expect(result.processed).toBe(1);
-    expect(result.failed).toBe(1);
-
-    // Al llegar a 3 intentos, debe pasar a FAILED
-    const row = await db.prepare('SELECT status, attempts_count, error_message FROM notification_events WHERE id = ?').bind('not_fail').first<{ status: string; attempts_count: number; error_message: string }>();
-    expect(row?.status).toBe('FAILED');
-    expect(row?.attempts_count).toBe(3);
-    expect(row?.error_message).toContain('SMTP timeout');
+  it('solo genera vistas previas: nunca confirma rendimientos ni mueve capital', async () => {
+    const env = makeEnv();
+    await seedAdmin(env);
+    const uid = await seedInvestor(env);
+    const today = todayInContractZone();
+    await seedInvestment(env, 'p', uid, addDays(today, -70), addDays(today, 300));
+    const r = await runScheduledMaintenance(env, vi.fn(async () => ({ success: true })));
+    expect(r.previewsGenerated).toBeGreaterThan(0);
+    expect((r.details.previews as any[])[0].suggested_yield_cents).toBeGreaterThan(0);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM yield_entries').first<{ n: number }>())?.n).toBe(0);
+    expect((await env.DB.prepare('SELECT COUNT(*) AS n FROM capital_movements').first<{ n: number }>())?.n).toBe(1);
   });
 });

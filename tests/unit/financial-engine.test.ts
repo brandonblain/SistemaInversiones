@@ -1,300 +1,80 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createTestD1Database } from '../helpers/d1-mock';
-import {
-  calculateYieldDeterministic,
-  calculateDaysBetween,
-  getNextPeriodDates
-} from '../../src/worker/services/yield-calculator';
-import {
-  confirmYieldEntry,
-  recordManualYield,
-  reverseYieldEntry,
-  recordExternalPayment,
-  executeReinvestment,
-  getInvestmentFinancialSummary
-} from '../../src/worker/services/payment-ledger';
+import { describe, expect, it } from 'vitest';
+import { calculateDaysBetween, calculateYieldDeterministic, getNextPeriodDates } from '../../src/worker/services/yield-calculator';
+import { addMonthsClamped, isIsoDate, todayInContractZone } from '../../src/worker/lib/dates';
 
-describe('Financial Engine & Ledger Suite (No Floating Point)', () => {
-  let db: D1Database;
-
-  beforeEach(async () => {
-    db = createTestD1Database();
-
-    // Crear usuarios de prueba
-    await db.prepare(
-      "INSERT INTO users (id, email, password_hash, role, is_active) VALUES ('u_admin', 'admin@test.com', 'h', 'ADMIN', 1)"
-    ).run();
-
-    await db.prepare(
-      "INSERT INTO users (id, email, password_hash, role, is_active) VALUES ('u_inv', 'inv@test.com', 'h', 'INVESTOR', 1)"
-    ).run();
-
-    await db.prepare(
-      "INSERT INTO investor_profiles (id, user_id, full_name) VALUES ('p_inv', 'u_inv', 'Inversionista Prueba')"
-    ).run();
-
-    // Crear Inversión 1: $1,000,000.00 MXN (100,000,000 centavos) con tasa 12.00% anual (1200 bps), mensual, ACT_365, NONE
-    await db.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv_1', 'u_inv', 'INV-2026-001', 'ACTIVE', 'MXN', '2026-01-01', '2027-01-01', 100000000, 100000000)`
-    ).run();
-
-    await db.prepare(
-      `INSERT INTO investment_terms (id, investment_id, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from)
-       VALUES ('term_1', 'inv_1', 1200, 'MONTHLY', 'ACT_365', 'NONE', '2026-01-01')`
-    ).run();
-
-    // Crear Inversión 2: $500,000.00 MXN con política COMPOUND_TO_CAPITAL
-    await db.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv_compound', 'u_inv', 'INV-2026-002', 'ACTIVE', 'MXN', '2026-01-01', '2027-01-01', 50000000, 50000000)`
-    ).run();
-
-    await db.prepare(
-      `INSERT INTO investment_terms (id, investment_id, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from)
-       VALUES ('term_2', 'inv_compound', 1400, 'MONTHLY', 'ACT_365', 'COMPOUND_TO_CAPITAL', '2026-01-01')`
-    ).run();
+describe('Calculadora determinista (centavos enteros, BigInt)', () => {
+  it('interés simple ACT/365 con redondeo half-up exacto', () => {
+    // 50,000,000 × 1400 × 31 / (10000 × 365) = 594520.547… → 594521
+    const r = calculateYieldDeterministic({ capitalCents: 50_000_000, rateBps: 1400, startDate: '2026-01-15', endDate: '2026-02-15' });
+    expect(r.daysCount).toBe(31);
+    expect(r.yieldCents).toBe(594521);
+    expect(Number.isInteger(r.yieldCents)).toBe(true);
   });
 
-  it('should calculate exact yield in integer cents with deterministic rounding', () => {
-    // $1,000,000.00 MXN = 100,000,000 centavos
-    // Tasa 12.00% = 1200 bps
-    // Periodo: 31 días (enero 2026: 2026-01-01 a 2026-02-01)
-    // Formula ACT_365: 100000000 * 0.12 * (31 / 365) = 1,019,178.08219... centavos -> redondeado: 1019178 centavos ($10,191.78 MXN)
-    const res = calculateYieldDeterministic({
-      capitalCents: 100000000,
-      rateBps: 1200,
-      startDate: '2026-01-01',
-      endDate: '2026-02-01',
-      convention: 'ACT_365'
-    });
-
-    expect(res.daysCount).toBe(31);
-    expect(res.yieldCents).toBe(1019178);
-    expect(Number.isInteger(res.yieldCents)).toBe(true);
-
-    // ACT_360: 100000000 * 0.12 * (31 / 360) = 1,033,333.333... -> 1033333 centavos ($10,333.33 MXN)
-    const res360 = calculateYieldDeterministic({
-      capitalCents: 100000000,
-      rateBps: 1200,
-      startDate: '2026-01-01',
-      endDate: '2026-02-01',
-      convention: 'ACT_360'
-    });
-    expect(res360.yieldCents).toBe(1033333);
-
-    // THIRTY_360: 30 días -> 100000000 * 0.12 * (30 / 360) = 1000000 centavos ($10,000.00 MXN exacto)
-    const res30_360 = calculateYieldDeterministic({
-      capitalCents: 100000000,
-      rateBps: 1200,
-      startDate: '2026-01-01',
-      endDate: '2026-02-01',
-      convention: 'THIRTY_360'
-    });
-    expect(res30_360.yieldCents).toBe(1000000);
+  it('half-up: .5 exacto sube', () => {
+    // 365 × 10000 × 1 / (10000 × 365) × ... diseñado: capital 73, 5000 bps, 1 día → 73×5000/3650000 = 0.1 → 0
+    expect(calculateYieldDeterministic({ capitalCents: 73, rateBps: 5000, startDate: '2026-01-01', endDate: '2026-01-02' }).yieldCents).toBe(0);
+    // 7300 × 10000 × 1 / 3650000 = 20 exacto; 365 × 10000 × 1 / 3650000 = 1 exacto; 1825×10000/3650000 = 5
+    // 1825 × 1 bps × 1 día / 3650000 = 0.0005 → 0 ; 1825000 × 1 × 1 / 3650000 = 0.5 → 1
+    expect(calculateYieldDeterministic({ capitalCents: 1_825_000, rateBps: 1, startDate: '2026-01-01', endDate: '2026-01-02' }).yieldCents).toBe(1);
   });
 
-  it('should accurately handle leap years (año bisiesto)', () => {
-    // 2024 es bisiesto (febrero tiene 29 días: 2024-02-01 a 2024-03-01)
-    const leapDays = calculateDaysBetween('2024-02-01', '2024-03-01', 'ACT_365');
-    expect(leapDays).toBe(29);
-
-    // 2025 no es bisiesto (febrero tiene 28 días: 2025-02-01 a 2025-03-01)
-    const nonLeapDays = calculateDaysBetween('2025-02-01', '2025-03-01', 'ACT_365');
-    expect(nonLeapDays).toBe(28);
+  it('ACT/360 y 30/360 con la misma tasa anual', () => {
+    const base = { capitalCents: 36_000_000, rateBps: 1200, startDate: '2026-01-31', endDate: '2026-02-28' };
+    expect(calculateDaysBetween(base.startDate, base.endDate, 'ACT_365')).toBe(28);
+    expect(calculateYieldDeterministic({ ...base, convention: 'ACT_360' }).yieldCents).toBe(336_000);
+    // 30/360: 31 ene → 30; feb 28 → (2-1)*30 + (28-30) = 28 días
+    expect(calculateDaysBetween(base.startDate, base.endDate, 'THIRTY_360')).toBe(28);
   });
 
-  it('should generate periods correctly for monthly, semiannual and at-maturity', () => {
-    const monthly = getNextPeriodDates('2026-01-15', 'MONTHLY', '2027-01-15');
-    expect(monthly.periodStart).toBe('2026-01-15');
-    expect(monthly.periodEnd).toBe('2026-02-15');
-    expect(monthly.isMaturity).toBe(false);
-
-    const semiannual = getNextPeriodDates('2026-01-15', 'SEMIANNUAL', '2027-01-15');
-    expect(semiannual.periodEnd).toBe('2026-07-15');
-
-    const maturity = getNextPeriodDates('2026-01-15', 'AT_MATURITY', '2027-01-15');
-    expect(maturity.periodEnd).toBe('2027-01-15');
-    expect(maturity.isMaturity).toBe(true);
+  it('años bisiestos: 2028 tiene 366 días reales', () => {
+    expect(calculateDaysBetween('2028-01-01', '2029-01-01')).toBe(366);
+    expect(calculateDaysBetween('2028-02-28', '2028-03-01')).toBe(2);
+    expect(calculateDaysBetween('2026-02-28', '2026-03-01')).toBe(1);
   });
 
-  it('should idempotently confirm yields without duplicating on double-click', async () => {
-    const input = {
-      investmentId: 'inv_1',
-      periodStart: '2026-01-01',
-      periodEnd: '2026-02-01',
-      daysCount: 31,
-      referenceCapitalCents: 100000000,
-      rateBps: 1200,
-      amountCents: 1019178,
-      recordedByUserId: 'u_admin'
-    };
-
-    // 1er click
-    const res1 = await confirmYieldEntry(db, input);
-    expect(res1.isExisting).toBe(false);
-    expect(res1.amountCents).toBe(1019178);
-
-    // 2do click con los mismos parámetros (idempotencia)
-    const res2 = await confirmYieldEntry(db, input);
-    expect(res2.isExisting).toBe(true);
-    expect(res2.id).toBe(res1.id);
-
-    // Verificar en BD que solo existe 1 registro
-    const rows = await db.prepare(
-      "SELECT id FROM yield_entries WHERE investment_id = 'inv_1' AND period_start = '2026-01-01' AND status = 'CONFIRMED'"
-    ).all();
-    expect(rows.results.length).toBe(1);
+  it('cambio de año y fin de mes', () => {
+    expect(calculateDaysBetween('2026-12-15', '2027-01-15')).toBe(31);
   });
 
-  it('should support manual yields, reversals with contra-entries and preserve audit trail', async () => {
-    // 1. Crear rendimiento regular
-    const yield1 = await confirmYieldEntry(db, {
-      investmentId: 'inv_1',
-      periodStart: '2026-01-01',
-      periodEnd: '2026-02-01',
-      daysCount: 31,
-      referenceCapitalCents: 100000000,
-      rateBps: 1200,
-      amountCents: 1019178,
-      recordedByUserId: 'u_admin'
-    });
-
-    const summaryBefore = await getInvestmentFinancialSummary(db, 'inv_1');
-    expect(summaryBefore.rendimientoConfirmadoCents).toBe(1019178);
-    expect(summaryBefore.rendimientoPendienteCents).toBe(1019178);
-
-    // 2. Reversar rendimiento
-    const rev = await reverseYieldEntry(db, yield1.id, 'Corrección por fecha de corte errónea', 'u_admin');
-    expect(rev.reversalId).toBeDefined();
-
-    // 3. Verificar que el saldo confirmado neto sea 0
-    const summaryAfter = await getInvestmentFinancialSummary(db, 'inv_1');
-    expect(summaryAfter.rendimientoConfirmadoCents).toBe(0);
-    expect(summaryAfter.rendimientoPendienteCents).toBe(0);
-
-    // 4. Agregar rendimiento manual extraordinario
-    const manual = await recordManualYield(db, {
-      investmentId: 'inv_1',
-      periodStart: '2026-01-01',
-      periodEnd: '2026-02-01',
-      amountCents: 500000, // $5,000.00 MXN
-      reason: 'Bono extraordinario acordado en adenda 01',
-      recordedByUserId: 'u_admin'
-    });
-    expect(manual.id).toBeDefined();
-
-    const summaryManual = await getInvestmentFinancialSummary(db, 'inv_1');
-    expect(summaryManual.rendimientoConfirmadoCents).toBe(500000);
-    expect(summaryManual.rendimientoPendienteCents).toBe(500000);
+  it('rechaza capital/tasa no enteros o no positivos y periodos invertidos', () => {
+    expect(() => calculateYieldDeterministic({ capitalCents: 10.5, rateBps: 1200, startDate: '2026-01-01', endDate: '2026-02-01' })).toThrow();
+    expect(() => calculateYieldDeterministic({ capitalCents: 1000, rateBps: 0, startDate: '2026-01-01', endDate: '2026-02-01' })).toThrow();
+    expect(() => calculateYieldDeterministic({ capitalCents: 1000, rateBps: 100, startDate: '2026-02-01', endDate: '2026-02-01' })).toThrow();
   });
+});
 
-  it('should record external payments and handle partial allocations accurately', async () => {
-    // 1. Confirmar un rendimiento de $10,000.00 MXN (1,000,000 centavos)
-    const yieldEntry = await confirmYieldEntry(db, {
-      investmentId: 'inv_1',
-      periodStart: '2026-01-01',
-      periodEnd: '2026-02-01',
-      daysCount: 31,
-      referenceCapitalCents: 100000000,
-      rateBps: 1200,
-      amountCents: 1000000,
-      recordedByUserId: 'u_admin'
-    });
-
-    // 2. Pago parcial 1: $4,000.00 MXN (400,000 centavos)
-    const pay1 = await recordExternalPayment(db, {
-      investmentId: 'inv_1',
-      amountCents: 400000,
-      paidAt: '2026-02-05T12:00:00Z',
-      reference: 'SPEI-PARTIAL-001',
-      recordedByUserId: 'u_admin',
-      allocations: [{ yieldEntryId: yieldEntry.id, amountCents: 400000 }]
-    });
-    expect(pay1.paymentId).toBeDefined();
-
-    let balance = await getInvestmentFinancialSummary(db, 'inv_1');
-    expect(balance.rendimientoConfirmadoCents).toBe(1000000);
-    expect(balance.rendimientoPagadoCents).toBe(400000);
-    expect(balance.rendimientoPendienteCents).toBe(600000); // $6,000.00 MXN pendiente
-
-    // 3. Intentar sobre-asignar más del remanente (debe fallar)
-    await expect(
-      recordExternalPayment(db, {
-        investmentId: 'inv_1',
-        amountCents: 700000,
-        paidAt: '2026-02-10T12:00:00Z',
-        reference: 'SPEI-OVERFLOW',
-        recordedByUserId: 'u_admin',
-        allocations: [{ yieldEntryId: yieldEntry.id, amountCents: 700000 }]
-      })
-    ).rejects.toThrow(/excede el saldo pendiente/);
-
-    // 4. Pago parcial 2 liquidando el restante: $6,000.00 MXN (600,000 centavos)
-    await recordExternalPayment(db, {
-      investmentId: 'inv_1',
-      amountCents: 600000,
-      paidAt: '2026-02-10T12:00:00Z',
-      reference: 'SPEI-FINAL-002',
-      recordedByUserId: 'u_admin',
-      allocations: [{ yieldEntryId: yieldEntry.id, amountCents: 600000 }]
-    });
-
-    balance = await getInvestmentFinancialSummary(db, 'inv_1');
-    expect(balance.rendimientoConfirmadoCents).toBe(1000000);
-    expect(balance.rendimientoPagadoCents).toBe(1000000);
-    expect(balance.rendimientoPendienteCents).toBe(0);
+describe('Periodos de cobro anclados al inicio del contrato', () => {
+  it('mensual sin deriva de fin de mes (31 ene → 28 feb → 31 mar)', () => {
+    const p1 = getNextPeriodDates('2026-01-31', '2026-01-31', 'MONTHLY', '2027-01-31');
+    expect(p1.periodEnd).toBe('2026-02-28');
+    const p2 = getNextPeriodDates('2026-01-31', p1.periodEnd, 'MONTHLY', '2027-01-31');
+    expect(p2.periodEnd).toBe('2026-03-31');
   });
+  it('semestral, al vencimiento y tope en la fecha de vencimiento', () => {
+    expect(getNextPeriodDates('2026-01-15', '2026-01-15', 'SEMIANNUAL', '2027-01-15').periodEnd).toBe('2026-07-15');
+    const atMat = getNextPeriodDates('2026-01-15', '2026-01-15', 'AT_MATURITY', '2027-01-15');
+    expect(atMat).toEqual({ periodStart: '2026-01-15', periodEnd: '2027-01-15', isMaturity: true });
+    const last = getNextPeriodDates('2026-01-15', '2026-12-15', 'SEMIANNUAL', '2027-01-15');
+    expect(last.periodEnd).toBe('2027-01-15');
+    expect(last.isMaturity).toBe(true);
+  });
+});
 
-  it('should strictly enforce capitalization policy (reinvestment permitted vs denied)', async () => {
-    // 1. En inv_1, la política es 'NONE'. La reinversión debe ser denegada.
-    const yield1 = await confirmYieldEntry(db, {
-      investmentId: 'inv_1',
-      periodStart: '2026-01-01',
-      periodEnd: '2026-02-01',
-      daysCount: 31,
-      referenceCapitalCents: 100000000,
-      rateBps: 1200,
-      amountCents: 1000000,
-      recordedByUserId: 'u_admin'
-    });
-
-    await expect(
-      executeReinvestment(db, {
-        investmentId: 'inv_1',
-        yieldEntryId: yield1.id,
-        effectiveDate: '2026-02-01',
-        recordedByUserId: 'u_admin'
-      })
-    ).rejects.toThrow(/no permite la reinversión/);
-
-    // 2. En inv_compound, la política es 'COMPOUND_TO_CAPITAL'. La reinversión debe permitirse y sumar al capital.
-    const yield2 = await confirmYieldEntry(db, {
-      investmentId: 'inv_compound',
-      periodStart: '2026-01-01',
-      periodEnd: '2026-02-01',
-      daysCount: 31,
-      referenceCapitalCents: 50000000, // $500,000.00
-      rateBps: 1400,
-      amountCents: 594521, // Rendimiento
-      recordedByUserId: 'u_admin'
-    });
-
-    const reinvestRes = await executeReinvestment(db, {
-      investmentId: 'inv_compound',
-      yieldEntryId: yield2.id,
-      effectiveDate: '2026-02-01',
-      recordedByUserId: 'u_admin'
-    });
-
-    expect(reinvestRes.reinvestmentId).toBeDefined();
-    // Nuevo capital = 50,000,000 + 594,521 = 50,594,521 centavos
-    expect(reinvestRes.newCapitalCents).toBe(50594521);
-
-    const balanceCompound = await getInvestmentFinancialSummary(db, 'inv_compound');
-    expect(balanceCompound.capitalVigenteCents).toBe(50594521);
-    expect(balanceCompound.rendimientoConfirmadoCents).toBe(594521);
-    expect(balanceCompound.rendimientoReinvertidoCents).toBe(594521);
-    expect(balanceCompound.rendimientoPendienteCents).toBe(0);
+describe('Fechas', () => {
+  it('addMonthsClamped respeta meses cortos y bisiestos', () => {
+    expect(addMonthsClamped('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonthsClamped('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonthsClamped('2026-08-31', 6)).toBe('2027-02-28');
+    expect(addMonthsClamped('2026-11-15', 2)).toBe('2027-01-15');
+  });
+  it('isIsoDate rechaza fechas imposibles', () => {
+    expect(isIsoDate('2026-02-29')).toBe(false);
+    expect(isIsoDate('2028-02-29')).toBe(true);
+    expect(isIsoDate('2026-13-01')).toBe(false);
+    expect(isIsoDate('2026-1-01')).toBe(false);
+  });
+  it('“hoy” se calcula en America/Mexico_City', () => {
+    expect(todayInContractZone(new Date('2026-10-15T04:00:00Z'))).toBe('2026-10-14');
   });
 });

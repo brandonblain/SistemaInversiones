@@ -1,125 +1,130 @@
-# Guía de Operaciones, Despliegue y Seguridad — Backend Cloudflare v2.0
+# Guía de despliegue y operación — Portal de inversionistas (Cloudflare Workers Paid)
 
-**Servicio:** Portal Privado de Inversionistas (`portal-inversionistas-backend`)  
-**Stack:** Cloudflare Workers Paid, TypeScript, Hono, D1 (SQLite), R2 privado, Vitest  
-**Rama:** `feature/backend-financiero`  
+Un solo Worker sirve la API (Hono, `/api/*`) y el frontend compilado (`web/dist`, Static Assets). Las piezas son:
+- **D1:** datos.
+- **R2 privado:** documentos.
+- **Cron diario:** solo vistas previas y avisos.
 
----
+## 1. Entornos y variables (`wrangler.jsonc`)
 
-## 1. Configuración de Entornos y Variables (`wrangler.jsonc`)
+| Variable | Local | Staging | Producción | Uso |
+|---|---|---|---|---|
+| `ENVIRONMENT` | development | staging | production | Activa HSTS y las reglas estrictas de producción. |
+| `APP_BASE_URL` | http://localhost:8787 | URL de staging | Subdominio del cliente | Enlaces en correos y verificación de `Origin` (CSRF). |
+| `ALLOWED_ORIGINS` | http://localhost:5173 | vacío | vacío | Orígenes extra (servidor de Vite en desarrollo). |
+| `EMAIL_PROVIDER` | log | log | resend | `log` no envía; en producción **falla** para no marcar como enviado algo que no salió. |
+| `REQUIRE_ADMIN_MFA` | false | true | true | En producción el MFA siempre es obligatorio, sin importar esta variable. |
+| `FINANCIAL_RULES_APPROVED` | false | false | **false** | Ponerla en `true` solo con la aprobación escrita de las convenciones; mientras tanto, producción no confirma rendimientos (423). |
 
-El backend cuenta con tres entornos aislados:
-- **Local:** Simulación en memoria y D1 local para desarrollo y pruebas.
-- **Staging (`--env staging`):** Entorno de validación con datos ficticios (`staging.portal-inversionistas.com`).
-- **Production (`--env production`):** Entorno auditado de producción (`inversionistas.portal-privado.com`).
+Las variables **no se heredan** entre entornos: cada bloque `env.*` las define todas.
 
-### Secretos Requeridos (Configurar con `wrangler secret put`)
-Ejecutar por cada entorno (`staging` y `production`):
+### Secretos (nunca en el repositorio)
 ```bash
-# Secreto para firma criptográfica
-npx wrangler secret put JWT_SECRET --env production
-
-# Secreto maestro de recuperación MFA
-npx wrangler secret put ADMIN_MFA_SECRET --env production
-
-# Clave de API de Email (si se usa proveedor externo transaccional)
-npx wrangler secret put EMAIL_API_KEY --env production
+npx wrangler secret put EMAIL_API_KEY --env production   # clave del proveedor de correo (Resend u otro compatible)
+npx wrangler secret put EMAIL_API_KEY --env staging      # opcional, si staging debe enviar correos reales
 ```
-*Nota: Ningún secreto está hardcodeado en el código fuente ni en los archivos de migración.*
+La versión anterior de esta guía pedía `JWT_SECRET` y `ADMIN_MFA_SECRET`, pero el código no los usa: las sesiones son tokens aleatorios guardados como hash en D1, y cada administrador tiene su propio secreto MFA.
 
----
+### Correo
+1. Verifique el dominio remitente en el proveedor (SPF/DKIM). **No modifique los registros MX existentes del cliente.**
+2. Ponga `EMAIL_FROM` con una dirección de ese dominio.
+3. Los correos nunca incluyen montos: el servicio bloquea cualquier aviso con importes (`CONTENT_POLICY`).
 
-## 2. Migraciones Versionadas de Base de Datos (Cloudflare D1)
+## 2. Primer despliegue
 
-Las migraciones residen en `migrations/` y deben ejecutarse en orden:
 ```bash
-# 1. Aplicar en local
+# 0) Recursos (una vez por entorno)
+npx wrangler d1 create portal-inversionistas-db-prod          # copiar database_id a wrangler.jsonc
+npx wrangler r2 bucket create portal-inversionistas-docs-prod # bucket SIN acceso público
+
+# 1) Frontend
+cd web && npm ci && npm run build && cd ..                    # genera web/dist (sin datos ficticios)
+
+# 2) Migraciones
+npm run d1:migrate:prod                                       # 0001 + 0002
+
+# 3) Primer administrador (luego activa MFA en Administración › Seguridad)
+ADMIN_INITIAL_PASSWORD='...' npm run admin:sql -- admin@dominio.com "Nombre" > admin.sql
+npx wrangler d1 execute DB --env production --remote --file=admin.sql && rm admin.sql
+
+# 4) Despliegue
+npm run deploy:production
+```
+
+**Staging con datos ficticios.** Son los mismos usuarios del modo de ejemplo del frontend: Héctor Galeana, Cesar Daniel y Victoria Pérez.
+```bash
+SEED_PASSWORD='...' npm run seed:sql > seed.sql
+npx wrangler d1 execute DB --env staging --remote --file=seed.sql && rm seed.sql
+```
+
+**Desarrollo local:**
+```bash
 npm run d1:migrate:local
-
-# 2. Aplicar en staging
-npx wrangler d1 migrations apply portal-inversionistas-db-staging --env staging --remote
-
-# 3. Aplicar en producción
-npm run d1:migrate:prod
+SEED_PASSWORD='...' npm run seed:sql > seed.sql && npx wrangler d1 execute DB --local --file=seed.sql
+npm run dev              # API en :8787
+cd web && npm run dev    # UI en :5173 con proxy a /api
 ```
 
-### Tablas Auditadas Creadas:
-1. `users` (Roles `ADMIN`, `INVESTOR`, hash PBKDF2 WebCrypto, flags MFA)
-2. `investor_profiles` (Datos de contacto de solo lectura para el cliente en MVP)
-3. `investments` (Contratos, código único, capital inicial y vigente en centavos)
-4. `investment_terms` (Tasa fija en bps, frecuencia de cobro, convención de días, política de reinversión)
-5. `capital_movements` (Depósitos, aportaciones, retiros, créditos por reinversión)
-6. `yield_entries` (Partidas de devengo, manuales, ajustes y contra-asientos de reversión; índice único por periodo activo)
-7. `payment_records` (Pagos externos bancarios / SPEI registrados manualmente)
-8. `payment_allocations` (Asignación exacta y pagos parciales a partidas de rendimiento)
-9. `reinvestments` (Capitalización de rendimientos autorizada contractualmente)
-10. `investment_documents` (Metadatos de documentos privados almacenados en R2)
-11. `sessions` (Tokens seguros hash SHA-256 en cookies `HttpOnly; Secure; SameSite=Strict`)
-12. `password_reset_tokens` (Tokens de recuperación de 1 solo uso con expiración de 1 hora)
-13. `audit_logs` (Bitácora inmutable de eventos administrativos y financieros)
-14. `notification_events` (Cola de correos sin exposición de saldos con control de reintentos)
-15. `scheduled_job_runs` (Bitácora de ejecuciones del Cron Trigger con previsualizaciones)
+**Dominio:** use un *Custom Domain* del Worker (HTTPS automático) sobre el subdominio que defina el cliente.
 
----
+## 3. Seguridad implementada
 
-## 3. Almacenamiento Privado de Documentos (Cloudflare R2)
+- **Sesiones:** cookie `HttpOnly; Secure; SameSite=Strict`, con el token guardado como hash SHA-256. Se cierran las demás sesiones al cambiar la contraseña y todas al restablecerla.
+- **Contraseñas:** PBKDF2-SHA256 con 100k iteraciones. El login tarda lo mismo exista o no el correo.
+- **Bloqueo:** 5 fallos por correo o 30 por IP en 15 minutos.
+- **Administradores:** MFA TOTP obligatorio y anti-reutilización (no se acepta el mismo código dos veces). El secreto activo no se puede sobrescribir.
+- **Recuperación:** token de un solo uso que vence en 1 hora y solo existe en el correo.
+- **CSRF:** SameSite=Strict, verificación de `Origin` y rechazo de `Sec-Fetch-Site: cross-site`.
+- **Aislamiento:** toda consulta del inversionista filtra por `investor_user_id`. Lo ajeno responde 404.
+- **Documentos:** solo administración, R2 sin acceso público, firma real del archivo, archivado (no borrado) y respuestas `no-store`.
+- **Integridad en D1:** triggers para traslapes, saldos de asignación, reinversión y reversión; bitácora y movimientos de capital de solo inserción; referencia bancaria única por inversión.
 
-- El bucket `portal-inversionistas-docs-private` **NO tiene habilitado acceso público**.
-- Todos los documentos se descargan a través de la ruta autenticada `/api/investor/documents/:id/download`.
-- El servidor verifica la titularidad del usuario antes de emitir el streaming del archivo.
-- Cabeceras de protección activas: `Cache-Control: private, no-store, no-cache, must-revalidate`.
-- Tipos de archivo permitidos: `application/pdf`, `image/png`, `image/jpeg`. Tamaño máximo: `15 MB`.
+### Restablecer el MFA de un administrador (pérdida de dispositivo)
+1. Otro administrador verifica la identidad por un canal independiente.
+2. Ejecutar:
+   ```bash
+   npx wrangler d1 execute DB --env production --remote --command "UPDATE users SET mfa_enabled = 0, mfa_secret = NULL, mfa_pending_secret = NULL, mfa_last_counter = 0 WHERE email = 'admin@dominio.com'"
+   npx wrangler d1 execute DB --env production --remote --command "DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE email = 'admin@dominio.com')"
+   ```
+3. Registrar el evento en la bitácora operativa externa. El administrador vuelve a configurar MFA al entrar.
 
----
+## 4. Trabajo programado
 
-## 4. Cron Triggers y Trabajos Programados
+`0 6 * * *` (06:00 UTC = 00:00 en Ciudad de México):
+1. Encola avisos de vencimiento a 30 días, uno por inversión cada 15 días.
+2. Calcula **vistas previas** de los periodos terminados.
+3. Procesa la cola de correos con reclamo atómico y hasta 3 intentos.
 
-Configurado en `wrangler.jsonc`:
-```jsonc
-"triggers": {
-  "crons": ["0 6 * * *"] // Ejecución diaria a las 06:00 UTC
-}
+**Nunca** confirma rendimientos, pagos ni movimientos de capital. También se puede lanzar a mano con `POST /api/admin/jobs/run-maintenance`.
+
+## 5. Respaldos y recuperación
+
+1. **D1 Time Travel** (30 días en el plan Paid): `npx wrangler d1 time-travel restore portal-inversionistas-db-prod --env production --timestamp=<ISO>`.
+2. **Exportación externa semanal**, independiente de Cloudflare: `npx wrangler d1 export portal-inversionistas-db-prod --env production --remote --output=backups/d1_$(date +%Y%m%d).sql`. Guárdela cifrada fuera de Cloudflare.
+3. **R2:** sincronización periódica con `rclone` hacia almacenamiento secundario.
+4. **Ensayo de restauración trimestral** en staging.
+
+## 6. Reversión
+
+- **Código:** `npx wrangler rollback --env production`.
+- **Datos contables:** nunca se editan. Se corrigen con contra-asiento (`POST /api/admin/yields/:id/reverse`) o con un ajuste manual con motivo.
+
+## 7. Pruebas
+
+```bash
+npm test                 # 56 pruebas (unitarias + integración con D1 simulado sobre SQLite)
+npm run test:coverage
+npm run typecheck
 ```
-**Regla de Seguridad Financiera:**  
-El Cron Trigger **ÚNICAMENTE genera previsualizaciones informativas y detecta vencimientos próximos**; **NUNCA** confirma devengos definitivos ni ejecuta movimientos monetarios sin la intervención y confirmación expresa del administrador en la interfaz.
 
----
+La cobertura actual es de 94.6 % de líneas y 68.8 % de ramas. Las pruebas cubren lo que pide `docs/02-reglas-financieras.md`:
+- modalidades mensual, semestral y al vencimiento;
+- pagos parciales y completos;
+- capitalización;
+- años bisiestos;
+- doble clic y concurrencia;
+- reversiones;
+- aislamiento entre clientes;
+- documentos.
 
-## 5. Estrategia de Respaldos y Recuperación
-
-1. **D1 Time Travel:** En plan Workers Paid, Cloudflare conserva automáticamente hasta 30 días de Time Travel para restauración a un punto en el tiempo específico:
-   ```bash
-   npx wrangler d1 time-travel restore portal-inversionistas-db --timestamp="2026-10-14T20:00:00Z"
-   ```
-2. **Respaldo Externo Independiente (Recomendado semanal):**
-   ```bash
-   npx wrangler d1 export portal-inversionistas-db --remote --output="backups/d1_backup_$(date +%Y%m%d).sql"
-   ```
-3. **Respaldo de Documentos R2:**
-   Sincronización periódica mediante `rclone` o scripts Workers hacia almacenamiento secundario en frío.
-
----
-
-## 6. Procedimiento de Rollback (Plan de Reversión)
-
-Si se detecta una anomalía tras un despliegue:
-1. **Reversión de Código:**
-   ```bash
-   # Desplegar la versión previa mediante Wrangler deployments
-   npx wrangler rollback --env production
-   ```
-2. **Reversión Contable:**
-   No modificar registros cerrados; utilizar el endpoint de contra-asiento auditado `POST /api/admin/yields/:id/reverse` especificando el motivo del ajuste.
-
----
-
-## 7. Decisiones Contractuales Pendientes (Bloqueo Pre-Producción)
-
-Antes de iniciar el cálculo masivo definitivo con fondos reales, se requiere la confirmación formal por escrito de las siguientes 7 decisiones:
-1. **Definición de "A liquidación":** Confirmar si implica corte de rendimientos acumulados o liquidación total con retorno de capital.
-2. **Regla de capitalización en reinversiones:** Fecha efectiva a partir de la cual el rendimiento reinvertido genera nuevo interés compuesto.
-3. **Convención oficial de días:** Ratificación entre `ACT_365` (año civil exacto), `ACT_360` (año comercial bancario) o `30/360`.
-4. **Fechas de corte de periodos:** Aniversario del día de inicio vs. día fijo de mes (ej. día 1 o 15).
-5. **Catálogo de eventos de notificación:** Validar lista de correos que el cliente autoriza enviar automáticamente.
-6. **Migración de histórico:** Formato acordado para cargar inversiones y saldos previos de los 15 clientes.
-7. **Identidad corporativa:** Aprobación de logo oficial, paleta y subdominio final.
+Se validó además con `wrangler dev` sobre el motor D1 real: migraciones, triggers y el flujo completo de login → vista previa → confirmar → pagar.

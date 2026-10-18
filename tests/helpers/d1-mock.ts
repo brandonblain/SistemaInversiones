@@ -1,64 +1,63 @@
 import Database from 'better-sqlite3';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * D1 simulado sobre SQLite en memoria. Imita lo que importa para el backend:
+ * - aplica TODAS las migraciones en orden;
+ * - `batch()` es atómico (transacción) como en D1: si una sentencia falla, se revierte el lote;
+ * - los errores de RAISE(ABORT, ...) de los triggers se propagan con su mensaje.
+ */
 export function createTestD1Database(): D1Database {
   const sqlite = new Database(':memory:');
-  // Habilitar foreign keys en SQLite
   sqlite.pragma('foreign_keys = ON');
 
-  const migrationPath = join(process.cwd(), 'migrations', '0001_initial_schema.sql');
-  const migrationSql = readFileSync(migrationPath, 'utf8');
-  sqlite.exec(migrationSql);
+  const migrationsDir = join(process.cwd(), 'migrations');
+  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort()) {
+    sqlite.exec(readFileSync(join(migrationsDir, file), 'utf8'));
+  }
+
+  const runMeta = (changes: number, lastRowId: number) => ({
+    duration: 0,
+    rows_read: 0,
+    rows_written: changes,
+    last_row_id: lastRowId,
+    changed_db: changes > 0,
+    size_after: 0,
+    changes
+  });
+
+  const execute = (query: string, values: unknown[]) => {
+    const stmt = sqlite.prepare(query);
+    if (stmt.reader) {
+      const results = stmt.all(...values);
+      return { results, success: true, meta: { ...runMeta(0, 0), rows_read: results.length } };
+    }
+    const info = stmt.run(...values);
+    return { results: [], success: true, meta: runMeta(info.changes, Number(info.lastInsertRowid)) };
+  };
 
   const wrapPreparedStatement = (query: string, values: unknown[] = []): D1PreparedStatement => {
     return {
+      __query: query,
+      __values: values,
       bind(...newValues: unknown[]) {
         return wrapPreparedStatement(query, newValues);
       },
       async first<T = unknown>(colName?: string): Promise<T | null> {
-        const stmt = sqlite.prepare(query);
-        const row = stmt.get(...values) as Record<string, unknown> | undefined;
+        const row = sqlite.prepare(query).get(...values) as Record<string, unknown> | undefined;
         if (!row) return null;
         if (colName) return (row[colName] as T) ?? null;
         return row as T;
       },
       async all<T = unknown>(): Promise<D1Result<T>> {
-        const stmt = sqlite.prepare(query);
-        const results = stmt.all(...values) as T[];
-        return {
-          results,
-          success: true,
-          meta: {
-            duration: 0,
-            rows_read: results.length,
-            rows_written: 0,
-            last_row_id: 0,
-            changed_db: false,
-            size_after: 0,
-            changes: 0
-          }
-        };
+        return execute(query, values) as unknown as D1Result<T>;
       },
       async run(): Promise<D1Response> {
-        const stmt = sqlite.prepare(query);
-        const info = stmt.run(...values);
-        return {
-          success: true,
-          meta: {
-            duration: 0,
-            rows_read: 0,
-            rows_written: info.changes,
-            last_row_id: Number(info.lastInsertRowid),
-            changed_db: info.changes > 0,
-            size_after: 0,
-            changes: info.changes
-          }
-        };
+        return execute(query, values) as unknown as D1Response;
       },
       async raw<T = unknown[]>(): Promise<T[]> {
-        const stmt = sqlite.prepare(query);
-        return stmt.raw(true).all(...values) as T[];
+        return sqlite.prepare(query).raw(true).all(...values) as T[];
       }
     } as unknown as D1PreparedStatement;
   };
@@ -68,12 +67,13 @@ export function createTestD1Database(): D1Database {
       return wrapPreparedStatement(query, []);
     },
     async batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]> {
-      const results: D1Result<T>[] = [];
-      for (const stmt of statements) {
-        const res = await stmt.all<T>();
-        results.push(res);
-      }
-      return results;
+      const tx = sqlite.transaction((stmts: D1PreparedStatement[]) =>
+        stmts.map((st) => {
+          const { __query, __values } = st as unknown as { __query: string; __values: unknown[] };
+          return execute(__query, __values) as unknown as D1Result<T>;
+        })
+      );
+      return tx(statements);
     },
     async exec(query: string): Promise<D1ExecResult> {
       sqlite.exec(query);

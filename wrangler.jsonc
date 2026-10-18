@@ -1,9 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "portal-inversionistas-backend",
+  "name": "portal-inversionistas",
   "main": "src/worker/index.ts",
-  "compatibility_date": "2025-02-14",
+  "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+
+  // Frontend (React/Vite) compilado como archivos estáticos. El Worker atiende primero /api/*;
+  // cualquier otra ruta sirve la SPA (index.html) sin pasar por el Worker.
+  "assets": {
+    "directory": "./web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "observability": { "enabled": true },
+
   "d1_databases": [
     {
       "binding": "DB",
@@ -12,65 +23,70 @@
       "migrations_dir": "migrations"
     }
   ],
-  "r2_buckets": [
-    {
-      "binding": "DOCS_BUCKET",
-      "bucket_name": "portal-inversionistas-docs-private"
-    }
-  ],
-  "triggers": {
-    "crons": ["0 6 * * *"]
-  },
+  "r2_buckets": [{ "binding": "DOCS_BUCKET", "bucket_name": "portal-inversionistas-docs-private" }],
+
+  // 06:00 UTC = 00:00 en Ciudad de México (UTC-6). Solo genera vistas previas y avisos.
+  "triggers": { "crons": ["0 6 * * *"] },
+
+  // Desarrollo local (wrangler dev). Las variables NO se heredan entre entornos: cada entorno las define todas.
   "vars": {
     "ENVIRONMENT": "development",
     "APP_BASE_URL": "http://localhost:8787",
+    "ALLOWED_ORIGINS": "http://localhost:5173",
     "DEFAULT_CURRENCY": "MXN",
-    "EMAIL_FROM": "avisos@portal-inversionistas.privado"
+    "EMAIL_FROM": "avisos@portal-inversionistas.local",
+    "EMAIL_PROVIDER": "log",
+    "REQUIRE_ADMIN_MFA": "false",
+    "FINANCIAL_RULES_APPROVED": "false"
   },
+
   "env": {
     "staging": {
+      "name": "portal-inversionistas-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "APP_BASE_URL": "https://staging.portal-inversionistas.com",
+        "APP_BASE_URL": "https://staging.portal-inversionistas.example",
+        "ALLOWED_ORIGINS": "",
         "DEFAULT_CURRENCY": "MXN",
-        "EMAIL_FROM": "avisos-staging@portal-inversionistas.com"
+        "EMAIL_FROM": "avisos-staging@portal-inversionistas.example",
+        "EMAIL_PROVIDER": "log",
+        "REQUIRE_ADMIN_MFA": "true",
+        "FINANCIAL_RULES_APPROVED": "false"
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "portal-inversionistas-db-staging",
-          "database_id": "d1-staging-placeholder-uuid",
+          "database_id": "REEMPLAZAR-con-id-de-staging",
           "migrations_dir": "migrations"
         }
       ],
-      "r2_buckets": [
-        {
-          "binding": "DOCS_BUCKET",
-          "bucket_name": "portal-inversionistas-docs-staging"
-        }
-      ]
+      "r2_buckets": [{ "binding": "DOCS_BUCKET", "bucket_name": "portal-inversionistas-docs-staging" }],
+      "triggers": { "crons": ["0 6 * * *"] }
     },
     "production": {
+      "name": "portal-inversionistas-production",
       "vars": {
         "ENVIRONMENT": "production",
-        "APP_BASE_URL": "https://inversionistas.portal-privado.com",
+        "APP_BASE_URL": "https://REEMPLAZAR-subdominio-del-cliente",
+        "ALLOWED_ORIGINS": "",
         "DEFAULT_CURRENCY": "MXN",
-        "EMAIL_FROM": "notificaciones@portal-privado.com"
+        "EMAIL_FROM": "avisos@REEMPLAZAR-dominio-del-cliente",
+        "EMAIL_PROVIDER": "resend",
+        "REQUIRE_ADMIN_MFA": "true",
+        // Cambiar a "true" SOLO con la aprobación escrita de convenciones (docs/01, decisiones 1-4).
+        "FINANCIAL_RULES_APPROVED": "false"
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "portal-inversionistas-db-prod",
-          "database_id": "d1-prod-placeholder-uuid",
+          "database_id": "REEMPLAZAR-con-id-de-produccion",
           "migrations_dir": "migrations"
         }
       ],
-      "r2_buckets": [
-        {
-          "binding": "DOCS_BUCKET",
-          "bucket_name": "portal-inversionistas-docs-prod"
-        }
-      ]
+      "r2_buckets": [{ "binding": "DOCS_BUCKET", "bucket_name": "portal-inversionistas-docs-prod" }],
+      "triggers": { "crons": ["0 6 * * *"] }
     }
   }
 }

@@ -1,310 +1,189 @@
-# Contrato de API y Datos — Portal Privado de Inversionistas (Cloudflare v2.0)
+# Contrato de API — Portal Privado de Inversionistas (Verticimax)
 
-**Versión:** 1.0.0-draft  
-**Autor:** Codex (Backend)  
-**Destinatarios:** Claude (Frontend), Integración y Pruebas  
-**Moneda oficial:** `MXN` (Pesos Mexicanos)  
-**Huso horario contractual:** `America/Mexico_City` (Las fechas operativas se interpretan en este huso; las fechas ISO de auditoría se emiten en UTC con sufijo `Z`).  
+**Versión:** 1.1.0 · **Moneda:** MXN · **Huso contractual:** `America/Mexico_City`
+**Implementación:** `src/worker/routes/*` · **Consumidor:** `web/src/api/http.ts`
 
----
-
-## 1. Principios de diseño financiero y de transporte
-
-1. **Aritmética entera exacta:** Todos los importes monetarios se transmiten en **centavos enteros** (`amount_cents`). Ejemplo: `$150,000.50 MXN` = `15000050`. Queda estrictamente prohibido el envío o procesamiento de montos en tipo `number` flotante.
-2. **Tasas expresadas en unidades fijas:** Las tasas anuales fijas se transmiten en puntos básicos o diezmilésimos (`fixed_annual_rate_bps`, donde `1200` = `12.00%` anual = `0.12`).
-3. **Parámetros contractuales explícitos:**
-   - `day_count_convention`: `"ACT_365"` | `"ACT_360"` | `"THIRTY_360"`.
-   - `payout_frequency`: `"MONTHLY"` | `"SEMIANNUAL"` | `"AT_MATURITY"`.
-   - `capitalization_policy`: `"NONE"` (sin capitalización / pago a cuenta) | `"COMPOUND_TO_CAPITAL"` (incrementa capital base si el contrato lo estipula).
-4. **Respuestas uniformes:**
-   - Éxito: `{ "success": true, "data": ... }`
-   - Paginación: `{ "success": true, "data": [...], "pagination": { "page": 1, "pageSize": 20, "total": 15, "totalPages": 1 } }`
-   - Error: `{ "success": false, "error": { "code": "STRING_CODE", "message": "Mensaje legible", "details": null } }`
-5. **Seguridad y privacidad:**
-   - Sesión en cookie `HttpOnly; Secure; SameSite=Strict`.
-   - Header de autorización Bearer opcional para pruebas.
-   - Headers `Cache-Control: private, no-store, no-cache, must-revalidate` en todas las respuestas de datos financieros y documentos.
-   - Prohibido servir R2 públicamente.
+Cambios respecto a 1.0.0-draft:
+- **Nuevos campos:** ramo de inversión (`investment_type`) y beneficiarios.
+- **Documentos:** ahora son exclusivos de la administración; se eliminaron las rutas de documentos del inversionista.
+- **Endpoints que pidió el frontend:**
+  - Inversionista: serie de la gráfica y avisos.
+  - Administración: resumen, partidas, pagos, documentos y avisos.
+- **Formatos fijados:**
+  - el saldo desglosado (`balance`) en snake_case;
+  - el historial unificado con el total real de registros;
+  - los códigos de error estables.
 
 ---
 
-## 2. Autenticación y Perfil (`/api/auth`)
+## 1. Convenciones
 
-### `POST /api/auth/login`
-Inicia sesión con credenciales. Para administradores con MFA configurado, se requiere `mfa_token` (código TOTP de 6 dígitos).
+| Tema | Regla |
+|---|---|
+| Importes | Enteros en **centavos** (`*_cents`). Un importe con decimales se rechaza con 400. |
+| Tasas | Enteros en **puntos básicos**: `1400` = 14.00 % anual. Porcentajes de beneficiario: `5000` = 50.00 %. |
+| Fechas contractuales | `YYYY-MM-DD`, sin hora. Los periodos son `[period_start, period_end)`: incluyen el inicio y excluyen el fin. |
+| Marcas de tiempo | ISO 8601 en UTC (`…Z`), o el formato de SQLite `YYYY-MM-DD HH:MM:SS` en UTC. `paid_at` acepta cualquier zona y se guarda en UTC. |
+| Éxito | `{ "success": true, "data": … }` |
+| Lista paginada | `{ "success": true, "data": [...], "pagination": { "page", "pageSize", "total", "totalPages" } }`. Parámetros `?page=1&pageSize=20`; el máximo de `pageSize` es 50 (100 en la bitácora). |
+| Error | `{ "success": false, "error": { "code": "CODIGO", "message": "Texto en español", "details": … } }`. **Todos** los errores, incluidos 404 y 500, responden JSON. |
+| Sesión | Cookie `auth_session` con `HttpOnly; Secure; SameSite=Strict`. Dura 12 h para administración y 7 días para inversionistas. El token **no** viaja en el cuerpo de la respuesta salvo con `ENVIRONMENT` test/development. |
+| CSRF | Las escrituras que traen `Origin` deben venir de `APP_BASE_URL` (o de `ALLOWED_ORIGINS`); si no, responden 403 `CSRF_REJECTED`. |
+| Caché | Todas las respuestas llevan `Cache-Control: private, no-store`. |
 
-- **Request Body:**
-```json
-{
-  "email": "inversionista@ejemplo.com",
-  "password": "Password123!",
-  "mfa_token": "123456" // Requerido solo para ADMIN con MFA activo
-}
-```
-- **Response `200 OK`:**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "usr_01HXYZ...",
-      "email": "inversionista@ejemplo.com",
-      "role": "INVESTOR", // "ADMIN" | "INVESTOR"
-      "is_active": true,
-      "requires_mfa": false
-    },
-    "investor_profile": {
-      "id": "inv_01HXYZ...",
-      "full_name": "Juan Pérez",
-      "rfc": "PEAJ800101XYZ",
-      "phone": "+525500000000"
-    }
-  }
-}
-```
-- **Errores:**
-  - `401 INVALID_CREDENTIALS`: Correo o contraseña incorrectos.
-  - `401 MFA_REQUIRED`: Se requiere `mfa_token` para completar el acceso de administrador.
-  - `401 MFA_INVALID`: Código TOTP inválido o expirado.
-  - `403 ACCOUNT_INACTIVE`: Cuenta deshabilitada por el administrador.
+### Códigos de error frecuentes
 
-### `POST /api/auth/logout`
-Destruye la sesión activa y elimina cookies.
-- **Response `200 OK`:** `{ "success": true, "data": { "message": "Sesión cerrada correctamente." } }`
-
-### `GET /api/auth/me`
-Retorna el usuario y perfil actualmente autenticados.
-- **Response `200 OK`:** `{ "success": true, "data": { "user": ..., "investor_profile": ... } }`
-
-### `POST /api/auth/change-password`
-Permite al usuario cambiar su propia contraseña.
-- **Request Body:**
-```json
-{
-  "current_password": "Password123!",
-  "new_password": "NewSecurePassword456!"
-}
-```
-- **Response `200 OK`:** `{ "success": true, "data": { "message": "Contraseña actualizada exitosamente." } }`
-
-### `POST /api/auth/request-password-reset`
-Solicita token de recuperación enviado por correo electrónico.
-- **Request Body:** `{ "email": "inversionista@ejemplo.com" }`
-- **Response `200 OK`:** `{ "success": true, "data": { "message": "Si el correo está registrado, se ha enviado un enlace de recuperación." } }`
-
-### `POST /api/auth/reset-password`
-Aplica el restablecimiento con token seguro de recuperación.
-- **Request Body:** `{ "token": "rst_01HXYZ...", "new_password": "NewSecurePassword456!" }`
-- **Response `200 OK`:** `{ "success": true, "data": { "message": "Contraseña restablecida exitosamente." } }`
+| HTTP | Código | Cuándo |
+|---|---|---|
+| 400 | `INVALID_INPUT`, `WEAK_PASSWORD`, `INVALID_BENEFICIARIES`, `INVALID_PERIOD`, `PERIOD_OUTSIDE_CONTRACT`, `PAYMENT_IN_FUTURE`, `ALLOCATION_EXCEEDS_PAYMENT`, `INVALID_OR_EXPIRED_TOKEN` | La entrada no es válida (`details.field` indica el campo, cuando aplica). |
+| 401 | `UNAUTHORIZED`, `SESSION_EXPIRED`, `INVALID_CREDENTIALS`, `MFA_REQUIRED`, `MFA_INVALID` | Falta sesión o credenciales. |
+| 403 | `FORBIDDEN`, `ACCOUNT_INACTIVE`, `MFA_SETUP_REQUIRED`, `CSRF_REJECTED` | Sin permiso. |
+| 404 | `NOT_FOUND` | No existe **o no pertenece al usuario** (no se revela la diferencia). |
+| 409 | `YIELD_PERIOD_OVERLAP`, `PREVIEW_MISMATCH`, `PERIOD_CROSSES_CAPITAL_CHANGE`, `PERIOD_CROSSES_TERMS_CHANGE`, `ALLOCATION_EXCEEDS_PENDING`, `DUPLICATE_PAYMENT_REFERENCE`, `YIELD_HAS_SETTLEMENTS`, `ALREADY_REVERSED`, `REINVEST_NOT_ALLOWED`, `REINVEST_YIELD_NOT_ELIGIBLE`, `CAPITAL_CHANGE_IN_CLOSED_PERIOD`, `EMAIL_ALREADY_EXISTS`, `CODE_ALREADY_EXISTS`, `MFA_ALREADY_ENABLED` | Choca con el estado actual. |
+| 413 / 415 | `FILE_TOO_LARGE` / `UNSUPPORTED_FILE_TYPE` | Documento mayor a 15 MB, o que no es un PDF, PNG o JPEG real (se revisa la firma del archivo). |
+| 423 | `RULES_NOT_APPROVED` | En producción, si `FINANCIAL_RULES_APPROVED` no es `"true"`. |
+| 429 | `TOO_MANY_ATTEMPTS` | 5 fallos por correo, o 30 por IP, en 15 minutos. |
 
 ---
 
-## 3. Portal de Inversionista (`/api/investor`)
-*Rutas protegidas con rol `INVESTOR` o `ADMIN` en modo suplantación autorizada.*
+## 2. Autenticación (`/api/auth`)
 
-### `GET /api/investor/summary`
-Retorna el balance financiero consolidado del inversionista autenticado (suma de todas sus inversiones activas e históricas).
-- **Response `200 OK`:**
-```json
-{
-  "success": true,
-  "data": {
-    "currency": "MXN",
-    "total_capital_cents": 100000000,
-    "total_yield_generated_cents": 1200000,
-    "total_yield_confirmed_cents": 1200000,
-    "total_yield_paid_cents": 800000,
-    "total_yield_reinvested_cents": 0,
-    "total_yield_pending_cents": 400000,
-    "active_investments_count": 2,
-    "as_of_date": "2026-10-15"
-  }
-}
-```
+| Método | Ruta | Cuerpo | Respuesta `data` |
+|---|---|---|---|
+| POST | `/login` | `{ email, password, mfa_token? }` | `{ user, investor_profile }`; además fija la cookie |
+| POST | `/logout` | — | `{ message }` |
+| GET | `/me` | — | `{ user, investor_profile }` |
+| POST | `/change-password` | `{ current_password, new_password }` | `{ message }`. Cierra las demás sesiones. |
+| POST | `/request-password-reset` | `{ email }` | Respuesta constante. Envía un enlace `{APP_BASE_URL}/restablecer?token=…` que vence en 1 h y sirve una sola vez. |
+| POST | `/reset-password` | `{ token, new_password }` | `{ message }`. Cierra todas las sesiones. |
+| POST | `/admin/mfa/setup` | — | `{ secret, otpauth_url }`. Devuelve 409 si el MFA ya está activo. |
+| POST | `/admin/mfa/verify` | `{ token }` | `{ message }` |
 
-### `GET /api/investor/investments`
-Lista paginada de las inversiones asociadas al inversionista autenticado.
-- **Query Params:** `page=1&pageSize=10&status=ACTIVE`
-- **Response `200 OK`:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "inv_01",
-      "code": "INV-2026-001",
-      "status": "ACTIVE", // "DRAFT" | "ACTIVE" | "MATURED" | "CANCELLED"
-      "currency": "MXN",
-      "start_date": "2026-01-15",
-      "maturity_date": "2027-01-15",
-      "current_capital_cents": 50000000,
-      "terms": {
-        "fixed_annual_rate_bps": 1400, // 14.00%
-        "payout_frequency": "MONTHLY", // "MONTHLY" | "SEMIANNUAL" | "AT_MATURITY"
-        "day_count_convention": "ACT_365",
-        "capitalization_policy": "NONE"
-      },
-      "stats": {
-        "yield_confirmed_cents": 700000,
-        "yield_paid_cents": 700000,
-        "yield_pending_cents": 0
-      }
-    }
-  ],
-  "pagination": { "page": 1, "pageSize": 10, "total": 1, "totalPages": 1 }
-}
-```
+`user = { id, email, role: "ADMIN"|"INVESTOR", is_active, mfa_enabled, requires_mfa_setup }`
+`investor_profile = { id, full_name, rfc, phone, address } | null`
 
-### `GET /api/investor/investments/:id`
-Detalle completo de una inversión del inversionista autenticado.
-- **Response `200 OK`:** Retorna la inversión, términos contractuales vigentes y saldo desglosado.
+**Contraseñas:** de 10 a 128 caracteres, con letras y números.
 
-### `GET /api/investor/investments/:id/history`
-Historial de rendimientos devengados/confirmados y pagos externos asignados.
-- **Query Params:** `page=1&pageSize=20&type=ALL` (`ALL` | `YIELDS` | `PAYMENTS` | `CAPITAL`)
-- **Response `200 OK`:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "entry_type": "YIELD",
-      "id": "yid_01",
-      "effective_date": "2026-02-15",
-      "period_start": "2026-01-15",
-      "period_end": "2026-02-15",
-      "amount_cents": 583333,
-      "status": "CONFIRMED",
-      "paid_amount_cents": 583333,
-      "pending_amount_cents": 0,
-      "note": "Rendimiento devengado mensual enero-febrero"
-    },
-    {
-      "entry_type": "PAYMENT",
-      "id": "pay_01",
-      "effective_date": "2026-02-16",
-      "amount_cents": 583333,
-      "status": "CONFIRMED",
-      "reference": "SPEI-BBVA-839201",
-      "note": "Transferencia bancaria externa liquidando periodo 1"
-    }
-  ],
-  "pagination": { "page": 1, "pageSize": 20, "total": 2, "totalPages": 1 }
-}
-```
-
-### `GET /api/investor/investments/:id/documents`
-Lista de documentos y contratos disponibles para el inversionista.
-- **Response `200 OK`:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "doc_01",
-      "title": "Contrato Marco de Inversión 2026-001",
-      "document_type": "CONTRACT",
-      "original_filename": "Contrato_Marco_Firmado.pdf",
-      "size_bytes": 1048576,
-      "created_at": "2026-01-15T10:00:00Z"
-    }
-  ]
-}
-```
-
-### `GET /api/investor/documents/:id/download`
-Descarga privada autenticada en streaming directo desde Cloudflare R2 con headers `private, no-store`.
+**MFA de administradores:**
+- Toda ruta `/api/admin/*` exige MFA activo; si no lo está, responde 403 `MFA_SETUP_REQUIRED`.
+- Solo se puede desactivar fuera de producción, con `REQUIRE_ADMIN_MFA="false"`.
+- Un código TOTP no se acepta dos veces.
 
 ---
 
-## 4. Gestión Administrativa (`/api/admin`)
-*Rutas protegidas estrictamente con rol `ADMIN`.*
+## 3. Inversionista (`/api/investor`) — solo rol INVESTOR y solo sus datos
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| GET | `/summary` | `{ currency, total_capital_cents, total_yield_generated_cents, total_yield_confirmed_cents, total_yield_paid_cents, total_yield_reinvested_cents, total_yield_pending_cents, active_investments_count, as_of_date }` |
+| GET | `/investments?status=&page=&pageSize=` | Lista paginada de `InvestmentListItem` |
+| GET | `/investments/:id` | `{ investment: InvestmentDetail, balance: Balance }` |
+| GET | `/investments/:id/history?type=ALL\|YIELDS\|PAYMENTS\|CAPITAL&page=&pageSize=` | Lista paginada de `HistoryEntry` |
+| GET | `/investments/:id/series` | `{ as_of_date, capital_points: [{ date, capital_cents }], yield_periods: [{ period_start, period_end, confirmed_cents, paid_cents, reinvested_cents, pending_cents }] }` |
+| GET | `/notifications?page=&pageSize=` | Lista paginada de `{ id, event_type, subject, status, created_at }`, sin el cuerpo del correo |
+
+El inversionista **no tiene rutas de documentos**.
+
+**Cómo se calcula el resumen (`/summary`):**
+- `total_capital_cents` suma el capital de las inversiones **vigentes**.
+- Los rendimientos suman **todas** las inversiones, también las vencidas.
+
+```jsonc
+// InvestmentListItem
+{ "id", "code", "investment_type": "FAST_FOOD|MOBILITY|TRANSPORT", "status": "DRAFT|ACTIVE|MATURED|CANCELLED",
+  "currency": "MXN", "start_date", "maturity_date", "current_capital_cents",
+  "terms": { "fixed_annual_rate_bps", "payout_frequency": "MONTHLY|SEMIANNUAL|AT_MATURITY",
+             "day_count_convention": "ACT_365|ACT_360|THIRTY_360", "capitalization_policy": "NONE|COMPOUND_TO_CAPITAL" },
+  "stats": { "yield_confirmed_cents", "yield_paid_cents", "yield_reinvested_cents", "yield_pending_cents" } }
+
+// InvestmentDetail = campos de lista + initial_capital_cents (sin "stats")
+// Balance (sin doble conteo)
+{ "capital_cents", "yield_generated_cents", "yield_confirmed_cents", "yield_paid_cents", "yield_reinvested_cents", "yield_pending_cents" }
+
+// HistoryEntry
+{ "entry_type": "YIELD|PAYMENT|CAPITAL", "id", "effective_date",          // fecha en CDMX
+  "amount_cents", "status", "note",
+  // YIELD:   period_start, period_end, source, paid_amount_cents, pending_amount_cents
+  // PAYMENT: reference
+}
+```
+
+**Definiciones del saldo:**
+- **confirmado:** suma de las partidas confirmadas, incluidos los ajustes.
+- **generado:** igual al confirmado (no se guardan borradores).
+- **pagado:** suma de las asignaciones de pagos confirmados.
+- **reinvertido:** suma de las reinversiones confirmadas.
+- **pendiente:** `max(0, confirmado − pagado − reinvertido)`.
+
+---
+
+## 4. Administración (`/api/admin`) — rol ADMIN y MFA activo
+
+### Resumen
+- `GET /summary` → `{ investors_count, active_investments_count, total_capital_cents, yield_pending_cents, maturing_soon_count, notifications_failed_count, as_of_date }`
 
 ### Inversionistas
-- `GET /api/admin/investors`: Lista inversionistas con filtros y paginación.
-- `POST /api/admin/investors`: Crea cuenta de usuario y perfil de inversionista.
-- `GET /api/admin/investors/:id`: Detalle completo y lista de inversiones vinculadas.
+- `GET /investors?q=&active=1|0&page=&pageSize=`: `q` busca por nombre o correo. Cada fila trae `{ id, email, is_active, created_at, profile_id, full_name, rfc, phone, address, investments_count }`.
+- `POST /investors`: cuerpo `{ email, password, full_name, rfc?, phone?, address?, notes?, beneficiaries?: [{ full_name, relationship: "SPOUSE|CHILD|PARENT|SIBLING|OTHER", percentage_bps }] }`.
+  - Si hay beneficiarios, los porcentajes deben sumar **exactamente 10000**; si no, responde `INVALID_BENEFICIARIES`. El alta es atómica.
+  - Responde 201 con `{ user_id, profile_id, email, full_name }`.
+- `GET /investors/:id` → `{ user: { id, email, is_active, created_at }, profile, beneficiaries: [...], investments: InvestmentListItem[] }`
 
 ### Inversiones
-- `GET /api/admin/investments`: Lista general de contratos/inversiones.
-- `POST /api/admin/investments`: Da de alta un contrato con capital inicial, términos financieros y políticas.
-- `GET /api/admin/investments/:id`: Detalle administrativo y balance completo.
+- `GET /investments?q=&status=&page=&pageSize=`: `q` busca por código, nombre o correo. Cada fila trae `{ id, investor_user_id, code, investment_type, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, investor_name, investor_email, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy }`.
+- `POST /investments`: cuerpo `{ investor_user_id, code, investment_type, start_date, maturity_date, capital_cents, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy, notes? }`.
+  - **Todos son obligatorios** (no se suponen convenciones).
+  - Crea en una sola operación la inversión, sus términos, el capital inicial y la auditoría.
+  - Responde 201 con `{ investment_id, code, current_capital_cents }`.
+- `GET /investments/:id` → `{ investment: InvestmentDetail + { investor_user_id, investor_name, notes }, balance }`
+- `GET /investments/:id/yields?pending=1` → `[{ id, investment_id, period_start, period_end, amount_cents, status, source: "AUTO|MANUAL|ADJUSTMENT|REVERSAL", paid_cents, reinvested_cents, pending_cents, note, created_at }]`
 
-### Motor Financiero y Liquidación
-- `POST /api/admin/yields/preview`:
-  Calcula y devuelve la previsualización determinista del rendimiento de una inversión para un periodo específico, **sin persistir cambios** en la base de datos.
-  - **Request Body:**
-  ```json
-  {
-    "investment_id": "inv_01",
-    "period_start": "2026-02-15",
-    "period_end": "2026-03-15",
-    "day_count_convention": "ACT_365" // Opcional, hereda de los términos si se omite
-  }
-  ```
-  - **Response `200 OK`:**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "investment_id": "inv_01",
-      "period_start": "2026-02-15",
-      "period_end": "2026-03-15",
-      "days_in_period": 28,
-      "capital_cents": 50000000,
-      "annual_rate_bps": 1400,
-      "calculated_yield_cents": 536986,
-      "day_count_convention": "ACT_365",
-      "calculation_formula": "50000000 * (1400 / 10000) * (28 / 365)"
-    }
-  }
-  ```
+### Rendimientos
+- `POST /yields/preview`: cuerpo `{ investment_id, period_start, period_end }`. **No guarda nada.**
+  - Responde `{ investment_id, period_start, period_end, days_in_period, capital_cents, annual_rate_bps, calculated_yield_cents, day_count_convention, calculation_formula, calculation_version, rules_approved }`.
+  - El capital y la tasa son los **vigentes al inicio del periodo**.
+  - Si el capital o los términos cambian dentro del periodo, responde 409 y `details.split_at` indica la fecha en que debe dividirse.
+- `POST /yields/confirm`: cuerpo `{ investment_id, period_start, period_end, amount_cents?, note? }`.
+  - **Recalcular:** el servidor vuelve a calcular. Si `amount_cents` (lo que vio el administrador) no coincide, responde 409 `PREVIEW_MISMATCH`.
+  - **Idempotencia:** si el mismo periodo ya está confirmado, responde 200 con `is_existing: true`.
+  - **Traslape:** si el periodo se traslapa con otro confirmado, responde 409 `YIELD_PERIOD_OVERLAP`.
+  - **Éxito:** responde 201 con `{ yield_entry_id, is_existing, amount_cents }`.
+- `POST /yields/manual`: cuerpo `{ investment_id, period_start, period_end, amount_cents (≠0; negativo = ajuste), reason (5 caracteres o más) }`. Responde 201.
+- `POST /yields/:id/reverse`: cuerpo `{ reason }`. Crea un contra-asiento y responde 201 con `{ reversal_entry_id }`. Si la partida tiene pagos o reinversión, responde 409.
 
-- `POST /api/admin/yields/confirm`:
-  Genera o confirma un rendimiento devengado de forma idempotente con bloqueo de periodo duplicado.
-  - **Request Body:**
-  ```json
-  {
-    "investment_id": "inv_01",
-    "period_start": "2026-02-15",
-    "period_end": "2026-03-15",
-    "amount_cents": 536986,
-    "note": "Rendimiento devengado mensual ordinario"
-  }
-  ```
+### Pagos externos (el portal no mueve dinero)
+- `GET /payments?investment_id=&page=&pageSize=`: cada fila trae `{ id, investment_id, investment_code, investor_name, amount_cents, allocated_cents, paid_at, status, reference, notes }`.
+- `POST /payments`: cuerpo `{ investment_id, amount_cents, paid_at (ISO con zona, no futura), reference (única por inversión), notes?, allocations: [{ yield_entry_id, amount_cents }] }`.
+  - La suma asignada debe ser menor o igual al monto del pago.
+  - Cada asignación debe ser menor o igual al saldo pendiente de su partida. Lo garantiza la base de datos, aun con peticiones simultáneas.
+  - Avisa al inversionista **sin montos**.
+- `POST /investments/:id/reinvest`: cuerpo `{ yield_entry_id, effective_date, notes? }`.
+  - Solo procede si el contrato es `COMPOUND_TO_CAPITAL`.
+  - Reinvierte la partida completa y sin pagos.
+  - `effective_date` debe ser posterior o igual al `period_end` de la partida, y no puede caer dentro de un periodo ya confirmado.
+  - Responde 201 con `{ reinvestment_id, capital_movement_id, new_capital_cents }`.
 
-- `POST /api/admin/yields/manual`:
-  Registra un rendimiento manual o ajuste extraordinario con motivo obligatorio y firma de auditoría.
+### Documentos (solo administración)
+- `GET /documents?investment_id=&page=&pageSize=`: cada fila trae `{ id, investment_id, investment_code, title, document_type, original_filename, size_bytes, content_type, created_at }`.
+- `POST /investments/:id/documents`: `multipart/form-data` con `file`, `title` y `document_type` (`CONTRACT|ADDENDUM|ACCOUNT_STATEMENT|TAX_RECEIPT|OTHER`).
+  - Se valida la firma real del archivo (PDF, PNG o JPEG), con un máximo de 15 MB.
+  - Responde 201 con `{ id, size_bytes, content_type }`.
+- `GET /documents/:id/download`: descarga desde R2 privado con `Content-Disposition: attachment; filename*=UTF-8''…` y `no-store`.
+- `DELETE /documents/:id`: **archiva** el documento (el archivo se conserva para auditoría).
 
-- `POST /api/admin/yields/:id/reverse`:
-  Genera un contra-asiento de reversión auditado sin eliminar físicamente el registro original.
+### Avisos, bitácora y trabajos
+- `GET /notifications?status=PENDING|SENT|FAILED&page=&pageSize=`: cada fila trae `{ id, user_id, investment_id, event_type, recipient_email, subject, status, attempts_count, error_message, created_at }`.
+- `GET /audit-logs?action=&page=&pageSize=`: `action` filtra por texto parcial. Cada fila trae `{ id, user_id, actor_email, action, entity_type, entity_id, old_values_json, new_values_json, ip_address, created_at }`.
+- `POST /jobs/run-maintenance` (también `/jobs/run-preview`): ejecuta el mismo trabajo que el Cron. Solo genera vistas previas y avisos; nunca confirma rendimientos.
 
-- `POST /api/admin/payments`:
-  Registra un pago externo realizado al inversionista (ej. SPEI bancario) y asigna el monto parcial o total a las partidas de rendimiento pendientes (`payment_allocations`).
-  - **Request Body:**
-  ```json
-  {
-    "investment_id": "inv_01",
-    "amount_cents": 536986,
-    "paid_at": "2026-03-16T14:30:00Z",
-    "reference": "SPEI-BBVA-908123",
-    "notes": "Comprobante bancario 908123 verificado",
-    "allocations": [
-      {
-        "yield_entry_id": "yid_02",
-        "amount_cents": 536986
-      }
-    ]
-  }
-  ```
+---
 
-- `POST /api/admin/investments/:id/reinvest`:
-  Registra la reinversión de un rendimiento confirmado hacia el capital de la inversión (siempre que el contrato lo autorice), creando un movimiento de capital y cerrando el saldo pendiente del rendimiento.
+## 5. Decisiones contractuales pendientes (no implementadas como definitivas)
 
-### Documentos Privados R2
-- `POST /api/admin/investments/:id/documents`: Sube un archivo a R2 previa validación de tipo MIME (`application/pdf`, `image/png`, `image/jpeg`) y tamaño máximo (15 MB).
-- `DELETE /api/admin/documents/:id`: Archiva o elimina el documento y su registro en base de datos.
+El motor recibe estas convenciones como parámetros explícitos y deja la versión de cálculo en cada partida:
+- tasa nominal frente a efectiva, base de días y redondeo;
+- fecha de corte por aniversario o por día fijo de calendario (hoy se ancla al aniversario del inicio del contrato);
+- qué significa "a liquidación";
+- desde qué fecha capitaliza una reinversión (hoy la fija el administrador en `effective_date`).
 
-### Auditoría y Trabajos
-- `GET /api/admin/audit-logs`: Bitácora inmutable de eventos administrativos y financieros con paginación y filtros.
-- `POST /api/admin/jobs/run-preview`: Dispara manualmente el generador de previsualizaciones y avisos de vencimiento (emula la ejecución de Cron Triggers).
+En producción, la confirmación de rendimientos queda bloqueada (423) hasta poner `FINANCIAL_RULES_APPROVED="true"` con la aprobación escrita del cliente.
