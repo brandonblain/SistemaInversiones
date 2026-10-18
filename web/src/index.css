@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * TOKENS DE MARCA — VERTICIMAX MÉXICO STAR UP
+ * Azul marino oscuro como color de plataforma, con tonalidades para superficies y navegación.
+ * Los valores son canales RGB ("R G B") para que Tailwind pueda aplicar opacidad.
+ */
+:root {
+  color-scheme: light;
+  --brand: 13 42 92;           /* #0d2a5c azul marino */
+  --brand-strong: 7 26 61;     /* #071a3d azul marino profundo */
+  --brand-soft: 231 237 247;   /* #e7edf7 tinte de azul marino */
+  --brand-ink: 255 255 255;    /* texto sobre --brand */
+
+  /* Navegación lateral / encabezados */
+  --nav: 8 27 61;              /* #081b3d */
+  --nav-hover: 18 45 92;       /* #122d5c */
+  --nav-active: 27 63 122;     /* #1b3f7a */
+  --nav-ink: 199 212 235;      /* #c7d4eb */
+
+  --page: 243 246 250;
+  --surface: 255 255 255;
+  --sunken: 236 241 248;
+  --ink: 11 22 42;
+  --ink-2: 58 71 96;
+  --ink-muted: 92 105 129;
+  --line: 218 225 236;
+
+  --ok: 0 99 0;
+  --ok-soft: 230 244 230;
+  --warn: 140 88 0;
+  --warn-soft: 253 243 220;
+  --bad: 176 40 40;
+  --bad-soft: 252 235 235;
+  --info: 23 78 150;
+  --info-soft: 230 239 251;
+
+  /* Gráficas: paleta categórica validada (orden fijo, no cíclico) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --chart-grid: #e1e0d9;
+  --chart-axis: #898781;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --brand: 125 168 232;
+    --brand-strong: 165 196 242;
+    --brand-soft: 20 40 78;
+    --brand-ink: 5 12 26;
+    --nav: 5 14 32;
+    --nav-hover: 15 33 66;
+    --nav-active: 24 52 100;
+    --nav-ink: 184 199 225;
+    --page: 5 12 26;
+    --surface: 11 24 48;
+    --sunken: 17 33 62;
+    --ink: 236 240 247;
+    --ink-2: 184 196 216;
+    --ink-muted: 140 154 180;
+    --line: 34 52 86;
+    --ok: 12 163 12;
+    --ok-soft: 14 40 22;
+    --warn: 250 178 25;
+    --warn-soft: 50 38 10;
+    --bad: 230 103 103;
+    --bad-soft: 55 22 26;
+    --info: 120 170 230;
+    --info-soft: 18 36 66;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --chart-grid: #22344f;
+    --chart-axis: #8c9ab4;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --brand: 125 168 232;
+  --brand-strong: 165 196 242;
+  --brand-soft: 20 40 78;
+  --brand-ink: 5 12 26;
+  --nav: 5 14 32;
+  --nav-hover: 15 33 66;
+  --nav-active: 24 52 100;
+  --nav-ink: 184 199 225;
+  --page: 5 12 26;
+  --surface: 11 24 48;
+  --sunken: 17 33 62;
+  --ink: 236 240 247;
+  --ink-2: 184 196 216;
+  --ink-muted: 140 154 180;
+  --line: 34 52 86;
+  --ok: 12 163 12;
+  --ok-soft: 14 40 22;
+  --warn: 250 178 25;
+  --warn-soft: 50 38 10;
+  --bad: 230 103 103;
+  --bad-soft: 55 22 26;
+  --info: 120 170 230;
+  --info-soft: 18 36 66;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --chart-grid: #22344f;
+  --chart-axis: #8c9ab4;
+}
+
+html,
+body {
+  background: rgb(var(--page));
+  color: rgb(var(--ink));
+}
+
+body {
+  @apply font-sans antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .input {
+    @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-muted
+      focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:opacity-60;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-ink-2;
+  }
+}
