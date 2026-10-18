@@ -37,10 +37,25 @@ También funcionan los cambios que pidió el cliente:
 - **Inversiones ajenas:** si un inversionista abre una inversión que no es suya, la API responde **404** (no revela que existe). La interfaz muestra "No encontrado".
 - **Generado = confirmado:** el backend no guarda devengos en borrador, así que "Rendimiento generado" muestra lo mismo que "Rendimiento confirmado". Si el cliente quiere ver devengos aún no confirmados, hay que definir cómo calcularlos (decisiones contractuales).
 
+## Agregado en la versión 1.2 (pedido del cliente)
+
+- **Modalidades de cobro:** mensual, semestral, **anual** y a liquidación (al vencimiento).
+- **Moneda por inversión:** pesos (MXN) o dólares (USD). Los resúmenes muestran un bloque por moneda y nunca suman pesos con dólares.
+- **Inversión a CETES − 1 punto:**
+  - es tasa variable; la tasa aplicada es la tasa CETES vigente al inicio de cada periodo más el diferencial;
+  - la administración captura las tasas que publica Banxico en **Administración › Tasas CETES**;
+  - una tasa ya usada en un rendimiento confirmado queda bloqueada.
+- **Migración `0003`:** reconstruye `investments` e `investment_terms`, y se detiene sin tocar nada si la base ya tiene inversiones. Hay que aplicarla antes del primer despliegue; las bases locales se recrean con `npm run setup:local -- --reset`.
+
 ## Pendiente antes de producción
 
 1. **Aprobación por escrito de las convenciones:** base de días, fechas de corte, significado de "a liquidación" y fecha efectiva de la reinversión. Hasta entonces `FINANCIAL_RULES_APPROVED="false"` bloquea las confirmaciones en producción.
-2. **Modalidades de cobro:** el material comercial dice "Mensual / Fin del contrato / Reinversión CETES / Dólares", pero el alcance aprobado dice "mensual / semestral / a liquidación". Falta que el cliente confirme cuál aplica.
+2. **CETES:** confirmar con el cliente tres cosas:
+   - qué plazo aplica (28, 91, 182 o 364 días); en la interfaz se elige por inversión y el valor sugerido es 28;
+   - qué fecha de observación se usa (hoy: la tasa vigente al inicio de cada periodo);
+   - que "−1 punto" significa 100 puntos básicos.
+
+   Además, falta definir quién captura la tasa semanal; podría automatizarse con la API de Banxico (SIE), que requiere un token del cliente.
 3. **Correo:** definir proveedor y dominio remitente, verificar SPF/DKIM y guardar `EMAIL_API_KEY` como secreto.
 4. **Infraestructura:**
    - IDs reales de D1 y R2;

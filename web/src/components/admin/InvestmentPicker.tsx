@@ -14,7 +14,7 @@ export function InvestmentPicker({ value, onChange, label = 'Inversión' }: { va
           <option value="">Seleccione una inversión…</option>
           {res.data.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.code} · {investmentTypeLabel[r.investment_type]} · {r.investor_name ?? r.investor_email} · {investmentStatusLabel[r.status]}
+              {r.code} · {investmentTypeLabel[r.investment_type]} · {r.currency} · {r.investor_name ?? r.investor_email} · {investmentStatusLabel[r.status]}
             </option>
           ))}
         </SelectInput>

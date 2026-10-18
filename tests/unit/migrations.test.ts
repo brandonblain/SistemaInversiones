@@ -6,12 +6,12 @@ async function seedBase(db: D1Database) {
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES ('u_adm', 'a@ficticio.test', 'x', 'ADMIN')"),
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES ('u_inv', 'i@ficticio.test', 'x', 'INVESTOR')"),
     db.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, investment_type, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv1', 'u_inv', 'FICT-1', 'TRANSPORT', '2026-01-01', '2027-01-01', 1000000, 1000000)`
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
+       VALUES ('inv1', 'u_inv', 'FICT-1', 'TRANSPORT', 'MXN', '2026-01-01', '2027-01-01', 1000000, 1000000)`
     ),
     db.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv2', 'u_inv', 'FICT-2', '2026-01-01', '2027-01-01', 1000000, 1000000)`
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
+       VALUES ('inv2', 'u_inv', 'FICT-2', 'MOBILITY', 'USD', '2026-01-01', '2027-01-01', 1000000, 1000000)`
     )
   ]);
 }
@@ -20,22 +20,31 @@ const yieldSql = (id: string, inv: string, start: string, end: string, amount: n
   `INSERT INTO yield_entries (id, investment_id, period_start, period_end, days_count, reference_capital_cents, rate_bps, amount_cents, status, source, created_by_user_id)
    VALUES ('${id}', '${inv}', '${start}', '${end}', 31, 1000000, 1200, ${amount}, 'CONFIRMED', '${source}', 'u_adm')`;
 
-describe('Migraciones D1 0001 + 0002', () => {
+describe('Migraciones D1 0001 → 0003', () => {
   it('crea tablas nuevas, columnas y triggers', async () => {
     const db = createTestD1Database();
     const names = (await db.prepare("SELECT name, type FROM sqlite_master WHERE type IN ('table','trigger')").all<{ name: string }>()).results.map((r) => r.name);
-    for (const t of ['investor_beneficiaries', 'login_attempts', 'trg_allocation_validate', 'trg_yield_auto_no_overlap', 'trg_audit_no_update', 'trg_reinvestment_validate']) {
+    for (const t of ['investor_beneficiaries', 'login_attempts', 'reference_rates', 'trg_allocation_validate', 'trg_yield_auto_no_overlap', 'trg_audit_no_update', 'trg_reinvestment_validate', 'trg_reference_rate_locked_delete']) {
       expect(names).toContain(t);
     }
+    expect(names.some((n) => n.startsWith('_mig0003'))).toBe(false);
     await seedBase(db);
-    const inv2 = await db.prepare("SELECT investment_type FROM investments WHERE id = 'inv2'").first<{ investment_type: string }>();
-    expect(inv2?.investment_type).toBe('MOBILITY');
+    const inv2 = await db.prepare("SELECT currency FROM investments WHERE id = 'inv2'").first<{ currency: string }>();
+    expect(inv2?.currency).toBe('USD');
   });
 
   it('CHECK: tipo de inversión, parentesco y porcentaje', async () => {
     const db = createTestD1Database();
     await seedBase(db);
     await expect(db.prepare("UPDATE investments SET investment_type = 'CRYPTO' WHERE id = 'inv1'").run()).rejects.toThrow(/CHECK/);
+    await expect(db.prepare("UPDATE investments SET currency = 'EUR' WHERE id = 'inv1'").run()).rejects.toThrow(/CHECK/);
+    // CETES solo en pesos
+    await expect(db.prepare("UPDATE investments SET investment_type = 'CETES' WHERE id = 'inv2'").run()).rejects.toThrow(/CHECK/);
+    // Términos: tasa fija XOR referencia + diferencial; modalidad anual permitida
+    await db.prepare("INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, payout_frequency, effective_from) VALUES ('t1','inv1','FIXED',1200,'ANNUAL','2026-01-01')").run();
+    await db.prepare("INSERT INTO investment_terms (id, investment_id, rate_type, reference_rate_code, spread_bps, payout_frequency, effective_from) VALUES ('t2','inv1','REFERENCE','CETES_28',-100,'MONTHLY','2026-01-01')").run();
+    await expect(db.prepare("INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, reference_rate_code, spread_bps, payout_frequency, effective_from) VALUES ('t3','inv1','REFERENCE',1200,'CETES_28',-100,'MONTHLY','2026-01-01')").run()).rejects.toThrow(/CHECK/);
+    await expect(db.prepare("INSERT INTO investment_terms (id, investment_id, rate_type, payout_frequency, effective_from) VALUES ('t4','inv1','FIXED','MONTHLY','2026-01-01')").run()).rejects.toThrow(/CHECK/);
     await expect(
       db.prepare("INSERT INTO investor_beneficiaries (id, investor_user_id, full_name, relationship, percentage_bps, created_by_user_id) VALUES ('b1','u_inv','Persona FICTICIA','COUSIN',5000,'u_adm')").run()
     ).rejects.toThrow(/CHECK/);

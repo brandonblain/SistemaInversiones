@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../api';
 import type { AdminYieldEntry, CapitalizationPolicy } from '../../api/types';
-import { formatDate, formatMXN, formatPeriod, todayInContractZone } from '../../lib/format';
+import { formatDate, formatMoney, formatPeriod, todayInContractZone } from '../../lib/format';
 import { yieldSourceLabel } from '../../lib/labels';
 import { YieldStatusBadge } from '../badges';
 import { DataTable, type Column } from '../DataTable';
@@ -11,7 +11,8 @@ import { Alert, Badge, Button, EmptyState, errorMessage, TextArea, TextInput } f
 type Action = { kind: 'reverse' | 'reinvest'; entry: AdminYieldEntry } | null;
 
 /** Partidas de rendimiento de una inversión con acciones de reversión y reinversión (según contrato). */
-export function YieldEntriesTable({ entries, policy, investmentId, onChanged }: { entries: AdminYieldEntry[]; policy: CapitalizationPolicy; investmentId: string; onChanged: () => void }) {
+export function YieldEntriesTable({ entries, policy, investmentId, onChanged, currency = 'MXN' }: { entries: AdminYieldEntry[]; policy: CapitalizationPolicy; investmentId: string; onChanged: () => void; currency?: string }) {
+  const formatMXN = (c: number) => formatMoney(c, currency);
   const [action, setAction] = useState<Action>(null);
   const [reason, setReason] = useState('');
   const [date, setDate] = useState(todayInContractZone());

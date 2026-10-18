@@ -32,7 +32,8 @@ const TRIGGER_ERRORS: Record<string, AppError> = {
   REINVEST_YIELD_NOT_ELIGIBLE: conflict('REINVEST_YIELD_NOT_ELIGIBLE', 'La partida no puede reinvertirse: debe estar confirmada, completa y sin pagos.'),
   AUDIT_LOG_IMMUTABLE: conflict('AUDIT_LOG_IMMUTABLE', 'La bitácora es inmutable.'),
   CAPITAL_MOVEMENT_IMMUTABLE: conflict('CAPITAL_MOVEMENT_IMMUTABLE', 'Los movimientos de capital son inmutables.'),
-  PAYMENT_RECORD_IMMUTABLE: conflict('PAYMENT_RECORD_IMMUTABLE', 'Los pagos registrados no se eliminan.')
+  PAYMENT_RECORD_IMMUTABLE: conflict('PAYMENT_RECORD_IMMUTABLE', 'Los pagos registrados no se eliminan.'),
+  REFERENCE_RATE_IN_USE: conflict('REFERENCE_RATE_IN_USE', 'Esta tasa ya se usó en un rendimiento confirmado; no se puede modificar ni borrar.')
 };
 
 export function mapDbError(err: unknown): AppError | null {
@@ -54,6 +55,9 @@ export function mapDbError(err: unknown): AppError | null {
   }
   if (/UNIQUE constraint failed: investments\.code/i.test(msg)) {
     return conflict('CODE_ALREADY_EXISTS', 'Ya existe una inversión con ese código.');
+  }
+  if (/UNIQUE constraint failed: reference_rates/i.test(msg)) {
+    return conflict('REFERENCE_RATE_EXISTS', 'Ya existe una tasa capturada para ese plazo y fecha.');
   }
   if (/UNIQUE constraint failed: reinvestments/i.test(msg)) {
     return conflict('ALREADY_REINVESTED', 'Esta partida ya fue reinvertida.');

@@ -15,6 +15,7 @@ import { InvestorDetailPage } from './pages/admin/InvestorDetailPage';
 import { InvestorFormPage } from './pages/admin/InvestorFormPage';
 import { InvestorsPage } from './pages/admin/InvestorsPage';
 import { PaymentsPage } from './pages/admin/PaymentsPage';
+import { ReferenceRatesPage } from './pages/admin/ReferenceRatesPage';
 import { SecurityPage } from './pages/admin/SecurityPage';
 import { YieldsPage } from './pages/admin/YieldsPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
@@ -67,6 +68,7 @@ export function App() {
         <Route path="inversiones/:id" element={<AdminInvestmentDetailPage />} />
         <Route path="rendimientos" element={<YieldsPage />} />
         <Route path="pagos" element={<PaymentsPage />} />
+        <Route path="tasas" element={<ReferenceRatesPage />} />
         <Route path="documentos" element={<AdminDocumentsPage />} />
         <Route path="avisos" element={<AdminNotificationsPage />} />
         <Route path="bitacora" element={<AuditLogPage />} />

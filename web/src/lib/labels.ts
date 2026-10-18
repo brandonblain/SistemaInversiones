@@ -1,9 +1,12 @@
+import { formatRateBps, formatSpreadBps } from './format';
 import type {
   CapitalizationPolicy,
   DayCountConvention,
   DocumentType,
   InvestmentStatus,
+  InvestmentTerms,
   InvestmentType,
+  ReferenceRateCode,
   NotificationStatus,
   PayoutFrequency,
   Relationship,
@@ -22,6 +25,7 @@ export const investmentStatusLabel: Record<InvestmentStatus, string> = {
 export const payoutFrequencyLabel: Record<PayoutFrequency, string> = {
   MONTHLY: 'Mensual',
   SEMIANNUAL: 'Semestral',
+  ANNUAL: 'Anual',
   AT_MATURITY: 'Al vencimiento (liquidación)'
 };
 
@@ -84,14 +88,15 @@ export const kpiHelp = {
 export const investmentTypeLabel: Record<InvestmentType, string> = {
   FAST_FOOD: 'Fast Food',
   MOBILITY: 'Movilidad',
-  TRANSPORT: 'Transporte'
+  TRANSPORT: 'Transporte',
+  CETES: 'CETES'
 };
 
 /**
  * Condiciones de referencia publicadas por Verticimax (material comercial).
  * Solo prellenan el formulario; el contrato firmado manda.
  */
-export const investmentTypeReference: Record<InvestmentType, { capital_cents: number; months: number; rate_bps: number }> = {
+export const investmentTypeReference: Partial<Record<InvestmentType, { capital_cents: number; months: number; rate_bps: number }>> = {
   MOBILITY: { capital_cents: 25_000_000, months: 12, rate_bps: 1600 },
   TRANSPORT: { capital_cents: 40_000_000, months: 18, rate_bps: 2500 },
   FAST_FOOD: { capital_cents: 10_000_000, months: 12, rate_bps: 1300 }
@@ -104,3 +109,23 @@ export const relationshipLabel: Record<Relationship, string> = {
   SIBLING: 'Hermano(a)',
   OTHER: 'Otro'
 };
+
+export const currencyLabel: Record<string, string> = {
+  MXN: 'Pesos mexicanos (MXN)',
+  USD: 'Dólares estadounidenses (USD)'
+};
+
+export const referenceRateLabel: Record<ReferenceRateCode, string> = {
+  CETES_28: 'CETES 28 días',
+  CETES_91: 'CETES 91 días',
+  CETES_182: 'CETES 182 días',
+  CETES_364: 'CETES 364 días'
+};
+
+/** Descripción de la tasa: "16.00 % anual fija" o "CETES 28 días − 1.00 punto". */
+export function rateSummary(t: Pick<InvestmentTerms, 'rate_type' | 'fixed_annual_rate_bps' | 'reference_rate_code' | 'spread_bps'>): string {
+  if (t.rate_type === 'REFERENCE' && t.reference_rate_code) {
+    return `${referenceRateLabel[t.reference_rate_code]} ${formatSpreadBps(t.spread_bps)}`;
+  }
+  return `${formatRateBps(t.fixed_annual_rate_bps)} anual fija`;
+}

@@ -6,7 +6,7 @@
 import { addMonthsClamped } from '../lib/dates';
 
 export type DayCountConvention = 'ACT_365' | 'ACT_360' | 'THIRTY_360';
-export type PayoutFrequency = 'MONTHLY' | 'SEMIANNUAL' | 'AT_MATURITY';
+export type PayoutFrequency = 'MONTHLY' | 'SEMIANNUAL' | 'ANNUAL' | 'AT_MATURITY';
 export type CapitalizationPolicy = 'NONE' | 'COMPOUND_TO_CAPITAL';
 
 /** Versión del algoritmo; se guarda en cada partida para reproducir cálculos históricos. */
@@ -98,7 +98,7 @@ export function getNextPeriodDates(
 ): { periodStart: string; periodEnd: string; isMaturity: boolean } {
   let end = maturityDate;
   if (frequency !== 'AT_MATURITY') {
-    const step = frequency === 'MONTHLY' ? 1 : 6;
+    const step = frequency === 'MONTHLY' ? 1 : frequency === 'SEMIANNUAL' ? 6 : 12;
     for (let k = step; k <= 1200; k += step) {
       const candidate = addMonthsClamped(contractStart, k);
       if (candidate > fromDate) {

@@ -25,6 +25,15 @@ export function parsePercentToBps(input: string): number | null {
   return Number(intPart) * 100 + Number(fracPart.padEnd(2, '0'));
 }
 
+/** "-1" | "−0.5" | "+0.25" → puntos básicos con signo (-100, -50, 25). Para diferenciales sobre CETES. */
+export function parseSignedPercentToBps(input: string): number | null {
+  const cleaned = input.trim().replace(/\s/g, '').replace('−', '-').replace(/%$/, '');
+  const m = /^([+-]?)(\d{1,2})(?:\.(\d{1,2}))?$/.exec(cleaned);
+  if (!m) return null;
+  const bps = Number(m[2]) * 100 + Number((m[3] ?? '').padEnd(2, '0') || '0');
+  return m[1] === '-' ? -bps : bps;
+}
+
 /** Combina fecha y hora capturadas en Ciudad de México (UTC-6, sin horario de verano desde 2022) a ISO. */
 export function mexicoCityLocalToIso(date: string, time: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;

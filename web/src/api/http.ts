@@ -31,7 +31,7 @@ export function normalizeInvestmentDetail(raw: any): InvestmentDetail & Record<s
     yield_reinvested_cents: pick('yield_reinvested_cents', 'rendimientoReinvertidoCents'),
     yield_pending_cents: pick('yield_pending_cents', 'rendimientoPendienteCents')
   };
-  return { ...inv, balance };
+  return { ...inv, balance, current_reference_rate: raw?.current_reference_rate ?? null };
 }
 
 export const httpApi: PortalApi = {
@@ -106,6 +106,11 @@ export const httpApi: PortalApi = {
     },
     // PROPUESTO
     notifications: (q) => requestPage(`/api/admin/notifications${qs(q)}`),
-    auditLogs: (q) => requestPage(`/api/admin/audit-logs${qs(q)}`)
+    auditLogs: (q) => requestPage(`/api/admin/audit-logs${qs(q)}`),
+    referenceRates: (q) => requestPage(`/api/admin/reference-rates${qs(q)}`),
+    createReferenceRate: (input) => request('POST', '/api/admin/reference-rates', input),
+    deleteReferenceRate: async (id) => {
+      await request('DELETE', `/api/admin/reference-rates/${encodeURIComponent(id)}`);
+    }
   }
 };

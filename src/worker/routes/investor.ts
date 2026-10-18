@@ -7,12 +7,14 @@ import { todayInContractZone } from '../lib/dates';
 import { pageParams, pagination } from '../lib/validate';
 import {
   balancesFor,
+  currentReferenceRate,
   INVESTMENT_COLUMNS,
   investmentHistory,
   investmentSeries,
   TERMS_JOIN,
   toDetail,
   toListItem,
+  totalsByCurrency,
   type HistoryType,
   type InvestmentRow
 } from '../services/read-models';
@@ -36,28 +38,13 @@ async function ownInvestment(db: D1Database, userId: string, id: string): Promis
 // 1. Resumen consolidado (todas sus inversiones; el capital vigente solo cuenta inversiones vigentes)
 investorRoutes.get('/summary', async (c) => {
   const user = c.get('user');
-  const invs = await c.env.DB.prepare('SELECT id, status FROM investments WHERE investor_user_id = ?').bind(user.id).all<{ id: string; status: string }>();
+  const invs = await c.env.DB.prepare('SELECT id, status, currency FROM investments WHERE investor_user_id = ?').bind(user.id).all<{ id: string; status: string; currency: string }>();
   const balances = await balancesFor(c.env.DB, invs.results.map((i) => i.id));
-  const total = { capital: 0, confirmed: 0, paid: 0, reinvested: 0, pending: 0 };
-  for (const inv of invs.results) {
-    const b = balances.get(inv.id);
-    if (!b) continue;
-    if (inv.status === 'ACTIVE') total.capital += b.capital_cents;
-    total.confirmed += b.yield_confirmed_cents;
-    total.paid += b.yield_paid_cents;
-    total.reinvested += b.yield_reinvested_cents;
-    total.pending += b.yield_pending_cents;
-  }
   return c.json({
     success: true,
     data: {
-      currency: 'MXN',
-      total_capital_cents: total.capital,
-      total_yield_generated_cents: total.confirmed,
-      total_yield_confirmed_cents: total.confirmed,
-      total_yield_paid_cents: total.paid,
-      total_yield_reinvested_cents: total.reinvested,
-      total_yield_pending_cents: total.pending,
+      // Un bloque por moneda: pesos y dólares nunca se suman entre sí.
+      by_currency: totalsByCurrency(invs.results, balances),
       active_investments_count: invs.results.filter((i) => i.status === 'ACTIVE').length,
       as_of_date: todayInContractZone()
     }
@@ -90,7 +77,7 @@ investorRoutes.get('/investments', async (c) => {
 investorRoutes.get('/investments/:id', async (c) => {
   const row = await ownInvestment(c.env.DB, c.get('user').id, c.req.param('id'));
   const b = (await balancesFor(c.env.DB, [row.id])).get(row.id)!;
-  return c.json({ success: true, data: toDetail(row, b, null) });
+  return c.json({ success: true, data: { ...toDetail(row, b, null), current_reference_rate: await currentReferenceRate(c.env.DB, row) } });
 });
 
 // 4. Historial paginado (?type=ALL|YIELDS|PAYMENTS|CAPITAL)

@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api';
-import type { CapitalizationPolicy, DayCountConvention, InvestmentType, PayoutFrequency } from '../../api/types';
+import type { CapitalizationPolicy, Currency, DayCountConvention, InvestmentType, PayoutFrequency, ReferenceRateCode } from '../../api/types';
 import { Alert, Async, Button, Card, cx, errorMessage, PageHeader, SelectInput, TextArea, TextInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
-import { addMonthsToDate, centsToPlainPesos, formatMXN, formatRateBps, todayInContractZone } from '../../lib/format';
-import { capitalizationLabel, dayCountLabel, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel } from '../../lib/labels';
-import { parsePercentToBps, parsePesosToCents } from '../../lib/parse';
+import { addMonthsToDate, centsToPlainPesos, formatMoney, formatRateBps, formatSpreadBps, todayInContractZone } from '../../lib/format';
+import { capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel, referenceRateLabel } from '../../lib/labels';
+import { parsePercentToBps, parsePesosToCents, parseSignedPercentToBps } from '../../lib/parse';
 
-type Errors = Partial<Record<'type' | 'investor' | 'code' | 'capital' | 'rate' | 'start' | 'maturity', string>>;
+type Errors = Partial<Record<'type' | 'investor' | 'code' | 'capital' | 'rate' | 'spread' | 'start' | 'maturity', string>>;
 
 export function InvestmentFormPage() {
   const navigate = useNavigate();
@@ -18,6 +18,10 @@ export function InvestmentFormPage() {
   const [form, setForm] = useState({
     investor_user_id: params.get('cliente') ?? '',
     investment_type: '' as InvestmentType | '',
+    currency: 'MXN' as Currency,
+    reference_rate_code: 'CETES_28' as ReferenceRateCode,
+    // Diferencial sobre CETES en puntos porcentuales: "-1" = CETES − 1 punto
+    spread: '-1',
     code: '',
     capital: '',
     rate: '',
@@ -33,7 +37,7 @@ export function InvestmentFormPage() {
   const [reviewing, setReviewing] = useState(false);
   const [pending, setPending] = useState(false);
   const errorKey: Partial<Record<keyof typeof form, keyof Errors>> = {
-    investor_user_id: 'investor', code: 'code', capital: 'capital', rate: 'rate', start_date: 'start', maturity_date: 'maturity'
+    investor_user_id: 'investor', code: 'code', capital: 'capital', rate: 'rate', spread: 'spread', start_date: 'start', maturity_date: 'maturity'
   };
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -43,7 +47,11 @@ export function InvestmentFormPage() {
   };
 
   const capitalCents = parsePesosToCents(form.capital);
-  const reference = form.investment_type ? investmentTypeReference[form.investment_type] : null;
+  const isCetes = form.investment_type === 'CETES';
+  // Las condiciones de referencia del material comercial están en pesos
+  const reference = form.investment_type && form.currency === 'MXN' ? investmentTypeReference[form.investment_type] ?? null : null;
+  const spreadBps = parseSignedPercentToBps(form.spread);
+  const money = (c: number | null) => formatMoney(c, form.currency, { withCode: true });
 
   /** Prellena capital, tasa y vencimiento con las condiciones de referencia del ramo (editables). */
   const applyReference = () => {
@@ -66,7 +74,8 @@ export function InvestmentFormPage() {
     if (!form.investor_user_id) e.investor = 'Seleccione al inversionista.';
     if (!/^[A-Z0-9-]{3,30}$/i.test(form.code.trim())) e.code = 'Use de 3 a 30 letras, números o guiones.';
     if (capitalCents === null || capitalCents <= 0) e.capital = 'Escriba un monto válido, por ejemplo 500,000.00';
-    if (rateBps === null || rateBps <= 0) e.rate = 'Escriba la tasa anual, por ejemplo 14 o 14.25';
+    if (!isCetes && (rateBps === null || rateBps <= 0)) e.rate = 'Escriba la tasa anual, por ejemplo 14 o 14.25';
+    if (isCetes && spreadBps === null) e.spread = 'Escriba el diferencial en puntos, por ejemplo -1 o -0.50';
     if (!form.start_date) e.start = 'Indique la fecha de inicio.';
     if (!form.maturity_date) e.maturity = 'Indique la fecha de vencimiento.';
     else if (form.start_date && form.maturity_date <= form.start_date) e.maturity = 'Debe ser posterior a la fecha de inicio.';
@@ -86,9 +95,10 @@ export function InvestmentFormPage() {
       const res = await api.admin.createInvestment({
         investor_user_id: form.investor_user_id,
         investment_type: form.investment_type as InvestmentType,
+        currency: isCetes ? 'MXN' : form.currency,
         code: form.code.trim().toUpperCase(),
         capital_cents: capitalCents!,
-        fixed_annual_rate_bps: rateBps!,
+        ...(isCetes ? { reference_rate_code: form.reference_rate_code, spread_bps: spreadBps! } : { fixed_annual_rate_bps: rateBps! }),
         start_date: form.start_date,
         maturity_date: form.maturity_date,
         payout_frequency: form.payout_frequency,
@@ -114,7 +124,7 @@ export function InvestmentFormPage() {
 
           <fieldset className="sm:col-span-2">
             <legend className="label">Tipo de inversión</legend>
-            <div className="grid gap-3 sm:grid-cols-3" role="radiogroup">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" role="radiogroup">
               {(Object.keys(investmentTypeLabel) as InvestmentType[]).map((t) => {
                 const ref = investmentTypeReference[t];
                 const selected = form.investment_type === t;
@@ -132,13 +142,19 @@ export function InvestmentFormPage() {
                         name="investment_type"
                         value={t}
                         checked={selected}
-                        onChange={() => { setForm((f) => ({ ...f, investment_type: t })); setErrors((prev) => ({ ...prev, type: undefined })); setReviewing(false); }}
+                        onChange={() => {
+                          setForm((f) => ({ ...f, investment_type: t, currency: t === 'CETES' ? 'MXN' : f.currency }));
+                          setErrors((prev) => ({ ...prev, type: undefined }));
+                          setReviewing(false);
+                        }}
                         className="h-4 w-4 accent-[rgb(var(--brand))]"
                       />
                       <span className="font-semibold text-ink">{investmentTypeLabel[t]}</span>
                     </span>
                     <span className="mt-1 text-xs text-ink-muted">
-                      Referencia: {formatMXN(ref.capital_cents)} · {ref.months} meses · {formatRateBps(ref.rate_bps)}
+                      {ref
+                        ? `Referencia: ${formatMoney(ref.capital_cents, 'MXN')} · ${ref.months} meses · ${formatRateBps(ref.rate_bps)}`
+                        : 'Tasa variable: CETES más un diferencial (p. ej. − 1 punto). Solo en pesos.'}
                     </span>
                   </label>
                 );
@@ -166,22 +182,47 @@ export function InvestmentFormPage() {
           </div>
 
           <TextInput label="Código de contrato" value={form.code} onChange={set('code')} error={errors.code} hint="Ejemplo: INV-2026-001" />
+          <SelectInput
+            label="Moneda"
+            value={isCetes ? 'MXN' : form.currency}
+            onChange={set('currency')}
+            disabled={isCetes}
+            hint={isCetes ? 'Los CETES son instrumentos en pesos.' : 'Pesos y dólares se reportan por separado; nunca se suman.'}
+          >
+            {(['MXN', 'USD'] as Currency[]).map((c) => <option key={c} value={c}>{currencyLabel[c]}</option>)}
+          </SelectInput>
           <TextInput
-            label="Capital (MXN)"
+            label={`Capital (${isCetes ? 'MXN' : form.currency})`}
             inputMode="decimal"
             value={form.capital}
             onChange={set('capital')}
             error={errors.capital}
-            hint={capitalCents ? `Se registrará: ${formatMXN(capitalCents, { withCode: true })}` : 'Ejemplo: 500,000.00'}
+            hint={capitalCents ? `Se registrará: ${money(capitalCents)}` : 'Ejemplo: 500,000.00'}
           />
-          <TextInput
-            label="Tasa anual fija (%)"
-            inputMode="decimal"
-            value={form.rate}
-            onChange={set('rate')}
-            error={errors.rate}
-            hint={rateBps ? `Se registrará: ${formatRateBps(rateBps)} anual (${rateBps} pb)` : 'Ejemplo: 14 o 14.25'}
-          />
+          {isCetes ? (
+            <>
+              <SelectInput label="Tasa de referencia" value={form.reference_rate_code} onChange={set('reference_rate_code')} hint="Plazo pendiente de confirmar con el cliente.">
+                {(Object.keys(referenceRateLabel) as ReferenceRateCode[]).map((k) => <option key={k} value={k}>{referenceRateLabel[k]}</option>)}
+              </SelectInput>
+              <TextInput
+                label="Diferencial sobre CETES (puntos)"
+                inputMode="decimal"
+                value={form.spread}
+                onChange={set('spread')}
+                error={errors.spread}
+                hint={spreadBps !== null ? `Se registrará: ${referenceRateLabel[form.reference_rate_code]} ${formatSpreadBps(spreadBps)} (${spreadBps} pb)` : 'Ejemplo: -1 para CETES − 1 punto'}
+              />
+            </>
+          ) : (
+            <TextInput
+              label="Tasa anual fija (%)"
+              inputMode="decimal"
+              value={form.rate}
+              onChange={set('rate')}
+              error={errors.rate}
+              hint={rateBps ? `Se registrará: ${formatRateBps(rateBps)} anual (${rateBps} pb)` : 'Ejemplo: 14 o 14.25'}
+            />
+          )}
           <SelectInput label="Cobro del rendimiento" value={form.payout_frequency} onChange={set('payout_frequency')} hint={form.payout_frequency === 'AT_MATURITY' ? 'Pendiente de confirmar si incluye la devolución del capital.' : undefined}>
             {(Object.keys(payoutFrequencyLabel) as PayoutFrequency[]).map((k) => <option key={k} value={k}>{payoutFrequencyLabel[k]}</option>)}
           </SelectInput>
@@ -198,7 +239,8 @@ export function InvestmentFormPage() {
           {reviewing && (
             <div className="sm:col-span-2">
               <Alert tone="warn" title="Revise antes de guardar">
-                {investmentTypeLabel[form.investment_type as InvestmentType]}: {formatMXN(capitalCents, { withCode: true })} al {formatRateBps(rateBps)} anual fija, cobro {payoutFrequencyLabel[form.payout_frequency].toLowerCase()},
+                {investmentTypeLabel[form.investment_type as InvestmentType]}: {money(capitalCents)} a{' '}
+                {isCetes ? `${referenceRateLabel[form.reference_rate_code]} ${formatSpreadBps(spreadBps)}` : `${formatRateBps(rateBps)} anual fija`}, cobro {payoutFrequencyLabel[form.payout_frequency].toLowerCase()},
                 {' '}{capitalizationLabel[form.capitalization_policy].toLowerCase()}, del {form.start_date} al {form.maturity_date}. Si todo es correcto, presione “Confirmar y guardar”.
               </Alert>
             </div>

@@ -62,10 +62,68 @@ const emptyBalance = (): Balance => ({
 
 export const INVESTMENT_COLUMNS = `i.id, i.investor_user_id, i.code, i.investment_type, i.status, i.currency, i.start_date, i.maturity_date,
   i.initial_capital_cents, i.current_capital_cents, i.notes, i.created_at,
-  t.fixed_annual_rate_bps, t.payout_frequency, t.day_count_convention, t.capitalization_policy`;
+  t.rate_type, t.fixed_annual_rate_bps, t.reference_rate_code, t.spread_bps,
+  t.payout_frequency, t.day_count_convention, t.capitalization_policy`;
 export const TERMS_JOIN = 'LEFT JOIN investment_terms t ON t.investment_id = i.id AND t.effective_to IS NULL';
 
 export type InvestmentRow = Record<string, unknown> & { id: string };
+
+/** Términos contractuales: tasa fija, o tasa de referencia (CETES) + diferencial. */
+export function termsOf(row: Record<string, unknown>) {
+  return {
+    rate_type: row.rate_type,
+    fixed_annual_rate_bps: row.fixed_annual_rate_bps ?? null,
+    reference_rate_code: row.reference_rate_code ?? null,
+    spread_bps: row.spread_bps ?? null,
+    payout_frequency: row.payout_frequency,
+    day_count_convention: row.day_count_convention,
+    capitalization_policy: row.capitalization_policy
+  };
+}
+
+/** Tasa de referencia más reciente por código (para mostrar la tasa CETES vigente). */
+export async function latestReferenceRates(db: D1Database) {
+  const rows = await db
+    .prepare(
+      `SELECT r.rate_code, r.annual_rate_bps, r.effective_date FROM reference_rates r
+       WHERE r.effective_date = (SELECT MAX(effective_date) FROM reference_rates x WHERE x.rate_code = r.rate_code)`
+    )
+    .all<{ rate_code: string; annual_rate_bps: number; effective_date: string }>();
+  return rows.results;
+}
+
+/** Tasa de referencia vigente hoy para una inversión a CETES (null si es de tasa fija o no hay captura). */
+export async function currentReferenceRate(db: D1Database, row: Record<string, unknown>) {
+  if (row.rate_type !== 'REFERENCE' || !row.reference_rate_code) return null;
+  const r = await db
+    .prepare('SELECT rate_code, annual_rate_bps, effective_date FROM reference_rates WHERE rate_code = ? AND effective_date <= ? ORDER BY effective_date DESC LIMIT 1')
+    .bind(row.reference_rate_code, todayInContractZone())
+    .first<{ rate_code: string; annual_rate_bps: number; effective_date: string }>();
+  if (!r) return null;
+  return { ...r, applied_rate_bps: r.annual_rate_bps + Number(row.spread_bps ?? 0) };
+}
+
+/** Suma de saldos por moneda (nunca se mezclan pesos con dólares). */
+export function totalsByCurrency(rows: Array<{ id: string; status: string; currency: string }>, balances: Map<string, Balance>) {
+  const acc = new Map<string, { currency: string; total_capital_cents: number; total_yield_generated_cents: number; total_yield_confirmed_cents: number; total_yield_paid_cents: number; total_yield_reinvested_cents: number; total_yield_pending_cents: number; active_investments_count: number }>();
+  for (const r of rows) {
+    const b = balances.get(r.id);
+    if (!b) continue;
+    const t = acc.get(r.currency) ?? { currency: r.currency, total_capital_cents: 0, total_yield_generated_cents: 0, total_yield_confirmed_cents: 0, total_yield_paid_cents: 0, total_yield_reinvested_cents: 0, total_yield_pending_cents: 0, active_investments_count: 0 };
+    if (r.status === 'ACTIVE') {
+      t.total_capital_cents += b.capital_cents;
+      t.active_investments_count += 1;
+    }
+    t.total_yield_generated_cents += b.yield_generated_cents;
+    t.total_yield_confirmed_cents += b.yield_confirmed_cents;
+    t.total_yield_paid_cents += b.yield_paid_cents;
+    t.total_yield_reinvested_cents += b.yield_reinvested_cents;
+    t.total_yield_pending_cents += b.yield_pending_cents;
+    acc.set(r.currency, t);
+  }
+  // MXN primero, luego USD
+  return [...acc.values()].sort((a, b) => (a.currency === 'MXN' ? -1 : b.currency === 'MXN' ? 1 : a.currency.localeCompare(b.currency)));
+}
 
 /** Elemento de lista (forma del contrato: terms + stats). */
 export function toListItem(row: InvestmentRow, b: Balance = emptyBalance()) {
@@ -78,12 +136,7 @@ export function toListItem(row: InvestmentRow, b: Balance = emptyBalance()) {
     start_date: row.start_date,
     maturity_date: row.maturity_date,
     current_capital_cents: row.current_capital_cents,
-    terms: {
-      fixed_annual_rate_bps: row.fixed_annual_rate_bps,
-      payout_frequency: row.payout_frequency,
-      day_count_convention: row.day_count_convention,
-      capitalization_policy: row.capitalization_policy
-    },
+    terms: termsOf(row),
     stats: {
       yield_confirmed_cents: b.yield_confirmed_cents,
       yield_paid_cents: b.yield_paid_cents,
@@ -106,12 +159,7 @@ export function toDetail(row: InvestmentRow, b: Balance, includeInternal: { inve
       maturity_date: row.maturity_date,
       initial_capital_cents: row.initial_capital_cents,
       current_capital_cents: row.current_capital_cents,
-      terms: {
-        fixed_annual_rate_bps: row.fixed_annual_rate_bps,
-        payout_frequency: row.payout_frequency,
-        day_count_convention: row.day_count_convention,
-        capitalization_policy: row.capitalization_policy
-      },
+      terms: termsOf(row),
       ...(includeInternal
         ? { investor_user_id: row.investor_user_id, investor_name: includeInternal.investor_name, notes: row.notes ?? null }
         : {})

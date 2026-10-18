@@ -8,16 +8,16 @@ import { Async, Card, EmptyState, LinkButton, PageHeader, SelectInput, TextInput
 import { useAsync } from '../../hooks/useAsync';
 import { useDebounced } from '../../hooks/useDebounced';
 import { useListParams } from '../../hooks/useListParams';
-import { formatDate, formatMXN, formatRateBps } from '../../lib/format';
-import { capitalizationLabel, investmentTypeLabel, payoutFrequencyLabel } from '../../lib/labels';
+import { formatDate, formatMoney } from '../../lib/format';
+import { capitalizationLabel, investmentTypeLabel, payoutFrequencyLabel, rateSummary } from '../../lib/labels';
 
 const columns: Column<AdminInvestmentRow>[] = [
   { key: 'code', header: 'Código', primary: true, render: (r) => <span className="font-semibold text-brand">{r.code}</span> },
   { key: 'investor', header: 'Inversionista', render: (r) => r.investor_name ?? r.investor_email },
   { key: 'type', header: 'Ramo', render: (r) => investmentTypeLabel[r.investment_type] },
   { key: 'status', header: 'Estado', render: (r) => <InvestmentStatusBadge status={r.status} /> },
-  { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMXN(r.current_capital_cents) },
-  { key: 'rate', header: 'Tasa anual', align: 'right', render: (r) => formatRateBps(r.fixed_annual_rate_bps) },
+  { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMoney(r.current_capital_cents, r.currency) },
+  { key: 'rate', header: 'Tasa', render: (r) => rateSummary(r) },
   {
     key: 'freq',
     header: 'Cobro / destino',

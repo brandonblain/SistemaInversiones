@@ -9,7 +9,7 @@ describe('Área del inversionista', () => {
   it('muestra los seis indicadores por separado, con las cifras exactas de la API', async () => {
     renderApp('/app', { loginAs: INVESTOR_ID });
     await screen.findByTestId('kpi-capital');
-    const s = await api.investor.summary();
+    const s = (await api.investor.summary()).by_currency[0]!;
 
     const expectTile = (id: string, label: string, cents: number) => {
       const tile = screen.getByTestId(id);
@@ -40,7 +40,7 @@ describe('Área del inversionista', () => {
     expect((await screen.findAllByText('FICT-2026-001')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('FICT-2025-002').length).toBeGreaterThan(0);
     expect(screen.getAllByText('FICT-2025-003').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('16.00 %').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('16.00 % anual fija').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Semestral').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Al vencimiento (liquidación)').length).toBeGreaterThan(0);
 

@@ -5,15 +5,15 @@ import { InvestmentStatusBadge } from '../../components/badges';
 import { DataTable, Pagination, type Column } from '../../components/DataTable';
 import { Async, Card, EmptyState, PageHeader, SelectInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
-import { formatDate, formatMXN, formatRateBps } from '../../lib/format';
-import { capitalizationLabel, investmentTypeLabel, payoutFrequencyLabel } from '../../lib/labels';
+import { formatDate, formatMoney } from '../../lib/format';
+import { capitalizationLabel, investmentTypeLabel, payoutFrequencyLabel, rateSummary } from '../../lib/labels';
 
 const columns: Column<InvestmentListItem>[] = [
   { key: 'code', header: 'Inversión', primary: true, render: (r) => <span className="font-semibold text-brand">{r.code}</span> },
   { key: 'type', header: 'Ramo', render: (r) => investmentTypeLabel[r.investment_type] },
   { key: 'status', header: 'Estado', render: (r) => <InvestmentStatusBadge status={r.status} /> },
-  { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMXN(r.current_capital_cents) },
-  { key: 'rate', header: 'Tasa anual fija', align: 'right', render: (r) => formatRateBps(r.terms.fixed_annual_rate_bps) },
+  { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMoney(r.current_capital_cents, r.currency) },
+  { key: 'rate', header: 'Tasa', render: (r) => rateSummary(r.terms) },
   {
     key: 'freq',
     header: 'Cobro de rendimiento',
@@ -26,7 +26,7 @@ const columns: Column<InvestmentListItem>[] = [
   },
   { key: 'start', header: 'Inicio', render: (r) => formatDate(r.start_date) },
   { key: 'end', header: 'Vencimiento', render: (r) => formatDate(r.maturity_date) },
-  { key: 'pending', header: 'Pendiente de pago', align: 'right', render: (r) => formatMXN(r.stats.yield_pending_cents) }
+  { key: 'pending', header: 'Pendiente de pago', align: 'right', render: (r) => formatMoney(r.stats.yield_pending_cents, r.currency) }
 ];
 
 export function InvestmentsPage() {

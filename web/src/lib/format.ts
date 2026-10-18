@@ -26,6 +26,25 @@ export function formatMXN(cents: number | string | bigint | null | undefined, op
   return opts.withCode ? `${text} MXN` : text;
 }
 
+/**
+ * Centavos de la moneda indicada → texto. MXN: "$1,234.56"; USD: "US$1,234.56" (siempre distinguible).
+ */
+export function formatMoney(cents: number | string | bigint | null | undefined, currency: string = 'MXN', opts: { withCode?: boolean } = {}): string {
+  const base = formatMXN(cents);
+  if (base === '—') return base;
+  const text = currency === 'USD' ? base.replace('$', 'US$') : base;
+  return opts.withCode ? `${text.replace('US$', '$')} ${currency}` : text;
+}
+
+/** Diferencial en puntos básicos → "− 1.00 punto" / "+ 0.50 puntos". */
+export function formatSpreadBps(bps: number | null | undefined): string {
+  if (bps === null || bps === undefined) return '—';
+  const sign = bps < 0 ? '−' : '+';
+  const abs = Math.abs(bps);
+  const text = `${Math.trunc(abs / 100)}.${String(abs % 100).padStart(2, '0')}`;
+  return `${sign} ${text} ${abs === 100 ? 'punto' : 'puntos'}`;
+}
+
 /** Centavos → "1234.56" sin separadores (para rellenar campos de captura). */
 export function centsToPlainPesos(cents: number): string {
   const v = BigInt(cents);

@@ -3,7 +3,10 @@
 
 export type Role = 'ADMIN' | 'INVESTOR';
 export type InvestmentStatus = 'DRAFT' | 'ACTIVE' | 'MATURED' | 'CANCELLED';
-export type PayoutFrequency = 'MONTHLY' | 'SEMIANNUAL' | 'AT_MATURITY';
+export type PayoutFrequency = 'MONTHLY' | 'SEMIANNUAL' | 'ANNUAL' | 'AT_MATURITY';
+export type Currency = 'MXN' | 'USD';
+export type RateType = 'FIXED' | 'REFERENCE';
+export type ReferenceRateCode = 'CETES_28' | 'CETES_91' | 'CETES_182' | 'CETES_364';
 export type DayCountConvention = 'ACT_365' | 'ACT_360' | 'THIRTY_360';
 export type CapitalizationPolicy = 'NONE' | 'COMPOUND_TO_CAPITAL';
 export type DocumentType = 'CONTRACT' | 'ADDENDUM' | 'ACCOUNT_STATEMENT' | 'TAX_RECEIPT' | 'OTHER';
@@ -11,7 +14,7 @@ export type YieldStatus = 'DRAFT' | 'CONFIRMED' | 'REVERSED';
 export type YieldSource = 'AUTO' | 'MANUAL' | 'ADJUSTMENT' | 'REVERSAL';
 export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED';
 /** PROPUESTO: ramo del negocio en el que se apalanca la inversión. */
-export type InvestmentType = 'FAST_FOOD' | 'MOBILITY' | 'TRANSPORT';
+export type InvestmentType = 'FAST_FOOD' | 'MOBILITY' | 'TRANSPORT' | 'CETES';
 export type Relationship = 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER';
 
 /** PROPUESTO: beneficiario del inversionista. percentage_bps: 10000 = 100.00 %. */
@@ -66,8 +69,9 @@ export interface LoginInput {
   mfa_token?: string;
 }
 
-export interface InvestorSummary {
-  currency: 'MXN';
+/** Totales de una moneda. Pesos y dólares nunca se suman entre sí. */
+export interface CurrencyTotals {
+  currency: Currency;
   total_capital_cents: number;
   total_yield_generated_cents: number;
   total_yield_confirmed_cents: number;
@@ -75,11 +79,20 @@ export interface InvestorSummary {
   total_yield_reinvested_cents: number;
   total_yield_pending_cents: number;
   active_investments_count: number;
+}
+
+export interface InvestorSummary {
+  by_currency: CurrencyTotals[];
+  active_investments_count: number;
   as_of_date: string;
 }
 
+/** Tasa FIXED (anual fija) o REFERENCE (CETES + diferencial, p. ej. −100 pb = −1 punto). */
 export interface InvestmentTerms {
-  fixed_annual_rate_bps: number;
+  rate_type: RateType;
+  fixed_annual_rate_bps: number | null;
+  reference_rate_code: ReferenceRateCode | null;
+  spread_bps: number | null;
   payout_frequency: PayoutFrequency;
   day_count_convention: DayCountConvention;
   capitalization_policy: CapitalizationPolicy;
@@ -90,7 +103,7 @@ export interface InvestmentListItem {
   code: string;
   investment_type: InvestmentType;
   status: InvestmentStatus;
-  currency: 'MXN';
+  currency: Currency;
   start_date: string;
   maturity_date: string;
   current_capital_cents: number;
@@ -118,13 +131,40 @@ export interface InvestmentDetail {
   code: string;
   investment_type: InvestmentType;
   status: InvestmentStatus;
-  currency: 'MXN';
+  currency: Currency;
   start_date: string;
   maturity_date: string;
   initial_capital_cents: number;
   current_capital_cents: number;
   terms: InvestmentTerms;
   balance: InvestmentBalance;
+  /** Solo CETES: tasa de referencia vigente hoy y la tasa aplicada (referencia + diferencial). */
+  current_reference_rate?: CurrentReferenceRate | null;
+}
+
+export interface CurrentReferenceRate {
+  rate_code: ReferenceRateCode;
+  annual_rate_bps: number;
+  effective_date: string;
+  applied_rate_bps: number;
+}
+
+export interface ReferenceRate {
+  id: string;
+  rate_code: ReferenceRateCode;
+  effective_date: string;
+  annual_rate_bps: number;
+  source: string | null;
+  created_at: string;
+  created_by: string | null;
+  in_use: boolean;
+}
+
+export interface CreateReferenceRateInput {
+  rate_code: ReferenceRateCode;
+  effective_date: string;
+  annual_rate_bps: number;
+  source?: string;
 }
 
 export type HistoryType = 'ALL' | 'YIELDS' | 'PAYMENTS' | 'CAPITAL';
@@ -187,8 +227,8 @@ export interface NotificationEvent {
 export interface AdminSummary {
   investors_count: number;
   active_investments_count: number;
-  total_capital_cents: number;
-  yield_pending_cents: number;
+  by_currency: Array<{ currency: Currency; total_capital_cents: number; yield_pending_cents: number; active_investments_count: number }>;
+  reference_rates: Array<{ rate_code: ReferenceRateCode; annual_rate_bps: number; effective_date: string }>;
   maturing_soon_count: number;
   notifications_failed_count: number;
   as_of_date: string;
@@ -231,14 +271,17 @@ export interface AdminInvestmentRow {
   code: string;
   investment_type: InvestmentType;
   status: InvestmentStatus;
-  currency: 'MXN';
+  currency: Currency;
   start_date: string;
   maturity_date: string;
   initial_capital_cents: number;
   current_capital_cents: number;
   investor_name: string | null;
   investor_email: string;
-  fixed_annual_rate_bps: number;
+  rate_type: RateType;
+  fixed_annual_rate_bps: number | null;
+  reference_rate_code: ReferenceRateCode | null;
+  spread_bps: number | null;
   payout_frequency: PayoutFrequency;
   day_count_convention: DayCountConvention;
   capitalization_policy: CapitalizationPolicy;
@@ -248,10 +291,15 @@ export interface CreateInvestmentInput {
   investor_user_id: string;
   code: string;
   investment_type: InvestmentType;
+  currency: Currency;
   start_date: string;
   maturity_date: string;
   capital_cents: number;
-  fixed_annual_rate_bps: number;
+  /** Solo tasa fija */
+  fixed_annual_rate_bps?: number;
+  /** Solo CETES */
+  reference_rate_code?: ReferenceRateCode;
+  spread_bps?: number;
   payout_frequency: PayoutFrequency;
   day_count_convention: DayCountConvention;
   capitalization_policy: CapitalizationPolicy;
@@ -268,6 +316,13 @@ export interface YieldPreview {
   calculated_yield_cents: number;
   day_count_convention: DayCountConvention;
   calculation_formula: string;
+  currency?: Currency;
+  rate_type?: RateType;
+  reference_rate_code?: ReferenceRateCode | null;
+  reference_rate_bps?: number | null;
+  reference_rate_date?: string | null;
+  spread_bps?: number | null;
+  rules_approved?: boolean;
 }
 
 export interface YieldPreviewInput {
@@ -321,6 +376,7 @@ export interface AdminPaymentRow {
   id: string;
   investment_id: string;
   investment_code: string;
+  currency: Currency;
   investor_name: string | null;
   amount_cents: number;
   allocated_cents: number;

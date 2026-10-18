@@ -8,6 +8,7 @@ const nav: NavItem[] = [
   { to: '/admin/inversiones', label: 'Inversiones', icon: 'list' },
   { to: '/admin/rendimientos', label: 'Rendimientos', icon: 'percent' },
   { to: '/admin/pagos', label: 'Pagos externos', icon: 'cash' },
+  { to: '/admin/tasas', label: 'Tasas CETES', icon: 'chart' },
   { to: '/admin/documentos', label: 'Documentos', icon: 'file' },
   { to: '/admin/avisos', label: 'Avisos por correo', icon: 'bell' },
   { to: '/admin/bitacora', label: 'Bitácora', icon: 'clock' },

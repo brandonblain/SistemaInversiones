@@ -6,8 +6,8 @@ import { InvestmentPicker } from '../../components/admin/InvestmentPicker';
 import { YieldEntriesTable } from '../../components/admin/YieldEntriesTable';
 import { Alert, Async, Badge, Button, Card, DefinitionList, EmptyState, errorMessage, PageHeader, TextArea, TextInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
-import { formatMXN, formatPeriod, formatRateBps } from '../../lib/format';
-import { dayCountLabel } from '../../lib/labels';
+import { formatDate, formatMoney, formatPeriod, formatRateBps, formatSpreadBps } from '../../lib/format';
+import { dayCountLabel, referenceRateLabel } from '../../lib/labels';
 import { parsePesosToCents } from '../../lib/parse';
 
 export function YieldsPage() {
@@ -43,13 +43,13 @@ function YieldWorkspace({ investmentId }: { investmentId: string }) {
 
   return (
     <div className="mt-4 grid gap-4 lg:grid-cols-2">
-      <PreviewCard investmentId={investmentId} onConfirmed={refresh} />
-      <ManualCard investmentId={investmentId} onSaved={refresh} />
+      <PreviewCard investmentId={investmentId} currency={inv.data?.currency ?? 'MXN'} onConfirmed={refresh} />
+      <ManualCard investmentId={investmentId} currency={inv.data?.currency ?? 'MXN'} onSaved={refresh} />
       <Card title="Partidas de rendimiento" className="lg:col-span-2">
         <Async state={inv}>
           {(d) => (
             <Async state={entries}>
-              {(list) => <YieldEntriesTable entries={list} policy={d.terms.capitalization_policy} investmentId={investmentId} onChanged={refresh} />}
+              {(list) => <YieldEntriesTable entries={list} currency={d.currency} policy={d.terms.capitalization_policy} investmentId={investmentId} onChanged={refresh} />}
             </Async>
           )}
         </Async>
@@ -58,7 +58,8 @@ function YieldWorkspace({ investmentId }: { investmentId: string }) {
   );
 }
 
-function PreviewCard({ investmentId, onConfirmed }: { investmentId: string; onConfirmed: () => void }) {
+function PreviewCard({ investmentId, currency, onConfirmed }: { investmentId: string; currency: string; onConfirmed: () => void }) {
+  const formatMXN = (c: number) => formatMoney(c, currency);
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [preview, setPreview] = useState<YieldPreview | null>(null);
@@ -133,7 +134,13 @@ function PreviewCard({ investmentId, onConfirmed }: { investmentId: string; onCo
             items={[
               { label: 'Días del periodo', value: preview.days_in_period },
               { label: 'Capital de referencia', value: formatMXN(preview.capital_cents) },
-              { label: 'Tasa anual', value: formatRateBps(preview.annual_rate_bps) },
+              { label: 'Tasa anual aplicada', value: formatRateBps(preview.annual_rate_bps) },
+              ...(preview.rate_type === 'REFERENCE' && preview.reference_rate_code
+                ? [{
+                    label: 'Tasa de referencia',
+                    value: `${referenceRateLabel[preview.reference_rate_code]} ${formatRateBps(preview.reference_rate_bps)} (al ${formatDate(preview.reference_rate_date)}) ${formatSpreadBps(preview.spread_bps)}`
+                  }]
+                : []),
               { label: 'Convención', value: dayCountLabel[preview.day_count_convention] ?? preview.day_count_convention },
               { label: 'Fórmula aplicada por el servidor', value: <code className="break-all text-xs">{preview.calculation_formula}</code> },
               { label: 'Rendimiento calculado', value: <strong className="text-lg">{formatMXN(preview.calculated_yield_cents)}</strong> }
@@ -149,7 +156,8 @@ function PreviewCard({ investmentId, onConfirmed }: { investmentId: string; onCo
   );
 }
 
-function ManualCard({ investmentId, onSaved }: { investmentId: string; onSaved: () => void }) {
+function ManualCard({ investmentId, currency, onSaved }: { investmentId: string; currency: string; onSaved: () => void }) {
+  const formatMXN = (c: number) => formatMoney(c, currency);
   const [form, setForm] = useState({ start: '', end: '', amount: '', reason: '' });
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -190,7 +198,7 @@ function ManualCard({ investmentId, onSaved }: { investmentId: string; onSaved: 
           <TextInput label="Fin del periodo" type="date" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} />
         </div>
         <TextInput
-          label="Importe (MXN)"
+          label={`Importe (${currency})`}
           inputMode="decimal"
           value={form.amount}
           onChange={(e) => setForm({ ...form, amount: e.target.value })}

@@ -7,6 +7,7 @@ import type {
   AdminYieldEntry,
   AuditLogRow,
   ConfirmYieldInput,
+  CreateReferenceRateInput,
   CreateInvestmentInput,
   CreateInvestorInput,
   HistoryEntry,
@@ -24,6 +25,8 @@ import type {
   PageQuery,
   Paginated,
   RecordPaymentInput,
+  ReferenceRate,
+  ReferenceRateCode,
   ReinvestInput,
   Session,
   UploadDocumentInput,
@@ -73,5 +76,8 @@ export interface PortalApi {
     archiveDocument(id: string): Promise<void>;
     notifications(q: PageQuery & { status?: string }): Promise<Paginated<NotificationEvent>>;
     auditLogs(q: PageQuery & { action?: string }): Promise<Paginated<AuditLogRow>>;
+    referenceRates(q: PageQuery & { rate_code?: ReferenceRateCode | '' }): Promise<Paginated<ReferenceRate>>;
+    createReferenceRate(input: CreateReferenceRateInput): Promise<{ id: string }>;
+    deleteReferenceRate(id: string): Promise<void>;
   };
 }

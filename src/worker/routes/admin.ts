@@ -8,16 +8,18 @@ import { auditStatement } from '../services/audit';
 import { generateSecureToken, hashPassword } from '../services/crypto';
 import { archiveDocument, DOCUMENT_TYPES, getDocumentForAdmin, uploadPrivateDocument } from '../services/documents';
 import { confirmYield, executeReinvestment, previewYield, recordExternalPayment, recordManualYield, reverseYieldEntry } from '../services/payment-ledger';
-import { balancesFor, INVESTMENT_COLUMNS, TERMS_JOIN, toDetail, toListItem, yieldEntriesWithSettlement, type InvestmentRow } from '../services/read-models';
+import { balancesFor, currentReferenceRate, INVESTMENT_COLUMNS, latestReferenceRates, TERMS_JOIN, toDetail, toListItem, totalsByCurrency, yieldEntriesWithSettlement, type InvestmentRow } from '../services/read-models';
 import { runScheduledMaintenance } from '../services/scheduled-jobs';
 import type { Env, AppVariables } from '../index';
 
 export const adminRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 adminRoutes.use('*', authMiddleware, requireAdmin);
 
-const INVESTMENT_TYPES = ['FAST_FOOD', 'MOBILITY', 'TRANSPORT'] as const;
+const INVESTMENT_TYPES = ['FAST_FOOD', 'MOBILITY', 'TRANSPORT', 'CETES'] as const;
+const CURRENCIES = ['MXN', 'USD'] as const;
+const REFERENCE_RATES = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'] as const;
 const STATUSES = ['DRAFT', 'ACTIVE', 'MATURED', 'CANCELLED'] as const;
-const PAYOUTS = ['MONTHLY', 'SEMIANNUAL', 'AT_MATURITY'] as const;
+const PAYOUTS = ['MONTHLY', 'SEMIANNUAL', 'ANNUAL', 'AT_MATURITY'] as const;
 const CONVENTIONS = ['ACT_365', 'ACT_360', 'THIRTY_360'] as const;
 const CAP_POLICIES = ['NONE', 'COMPOUND_TO_CAPITAL'] as const;
 const RELATIONSHIPS = ['SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'OTHER'] as const;
@@ -34,17 +36,20 @@ adminRoutes.get('/summary', async (c) => {
       `SELECT
          (SELECT COUNT(*) FROM users WHERE role = 'INVESTOR') AS investors_count,
          (SELECT COUNT(*) FROM investments WHERE status = 'ACTIVE') AS active_investments_count,
-         (SELECT COALESCE(SUM(current_capital_cents), 0) FROM investments WHERE status = 'ACTIVE') AS total_capital_cents,
          (SELECT COUNT(*) FROM investments WHERE status = 'ACTIVE' AND maturity_date >= ? AND maturity_date <= ?) AS maturing_soon_count,
          (SELECT COUNT(*) FROM notification_events WHERE status = 'FAILED') AS notifications_failed_count`
     )
     .bind(today, addDays(today, 30))
     .first<Record<string, number>>();
-  const ids = await db.prepare('SELECT id FROM investments').all<{ id: string }>();
-  const balances = await balancesFor(db, ids.results.map((r) => r.id));
-  let pending = 0;
-  for (const b of balances.values()) pending += b.yield_pending_cents;
-  return c.json({ success: true, data: { ...counts, yield_pending_cents: pending, as_of_date: today } });
+  const rows = await db.prepare('SELECT id, status, currency FROM investments').all<{ id: string; status: string; currency: string }>();
+  const balances = await balancesFor(db, rows.results.map((r) => r.id));
+  const byCurrency = totalsByCurrency(rows.results, balances).map((t) => ({
+    currency: t.currency,
+    total_capital_cents: t.total_capital_cents,
+    yield_pending_cents: t.total_yield_pending_cents,
+    active_investments_count: t.active_investments_count
+  }));
+  return c.json({ success: true, data: { ...counts, by_currency: byCurrency, reference_rates: await latestReferenceRates(db), as_of_date: today } });
 });
 
 // ======================================================================
@@ -185,7 +190,8 @@ adminRoutes.get('/investments', async (c) => {
     .prepare(
       `SELECT i.id, i.investor_user_id, i.code, i.investment_type, i.status, i.currency, i.start_date, i.maturity_date,
               i.initial_capital_cents, i.current_capital_cents, p.full_name AS investor_name, u.email AS investor_email,
-              t.fixed_annual_rate_bps, t.payout_frequency, t.day_count_convention, t.capitalization_policy
+              t.rate_type, t.fixed_annual_rate_bps, t.reference_rate_code, t.spread_bps,
+              t.payout_frequency, t.day_count_convention, t.capitalization_policy
        ${from} WHERE ${where} ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
     )
     .bind(...binds, pageSize, offset)
@@ -200,11 +206,19 @@ adminRoutes.post('/investments', async (c) => {
   const code = str(body, 'code', 'Código de contrato', { min: 3, max: 30 }).toUpperCase();
   if (!/^[A-Z0-9-]{3,30}$/.test(code)) throw badRequest('INVALID_INPUT', 'El código solo admite letras, números y guiones.', { field: 'code' });
   const investmentType = oneOf(body, 'investment_type', 'Tipo de inversión', INVESTMENT_TYPES);
+  const currency = oneOf(body, 'currency', 'Moneda', CURRENCIES);
+  if (investmentType === 'CETES' && currency !== 'MXN') {
+    throw badRequest('INVALID_INPUT', 'Las inversiones a CETES solo pueden ser en pesos (MXN).', { field: 'currency' });
+  }
   const start = date(body, 'start_date', 'Fecha de inicio');
   const maturity = date(body, 'maturity_date', 'Fecha de vencimiento');
   if (maturity <= start) throw badRequest('INVALID_INPUT', 'El vencimiento debe ser posterior al inicio.', { field: 'maturity_date' });
   const capital = int(body, 'capital_cents', 'Capital (centavos)', { min: 1, max: MAX_CAPITAL_CENTS });
-  const rate = int(body, 'fixed_annual_rate_bps', 'Tasa anual (puntos básicos)', { min: 1, max: 10000 });
+  // CETES: tasa de referencia + diferencial (p. ej. −100 pb = −1 punto). Resto: tasa anual fija.
+  const isReference = investmentType === 'CETES';
+  const rate = isReference ? null : int(body, 'fixed_annual_rate_bps', 'Tasa anual (puntos básicos)', { min: 1, max: 10000 });
+  const referenceCode = isReference ? oneOf(body, 'reference_rate_code', 'Plazo de CETES', REFERENCE_RATES) : null;
+  const spread = isReference ? int(body, 'spread_bps', 'Diferencial sobre CETES (puntos básicos)', { min: -5000, max: 5000 }) : null;
   const payout = oneOf(body, 'payout_frequency', 'Modalidad de cobro', PAYOUTS);
   const convention = oneOf(body, 'day_count_convention', 'Convención de días', CONVENTIONS);
   const capPolicy = oneOf(body, 'capitalization_policy', 'Destino del rendimiento', CAP_POLICIES);
@@ -220,12 +234,12 @@ adminRoutes.post('/investments', async (c) => {
     db.batch([
       db.prepare(
         `INSERT INTO investments (id, investor_user_id, code, investment_type, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, notes)
-         VALUES (?, ?, ?, ?, 'ACTIVE', 'MXN', ?, ?, ?, ?, ?)`
-      ).bind(invId, investorId, code, investmentType, start, maturity, capital, capital, notes),
+         VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?)`
+      ).bind(invId, investorId, code, investmentType, currency, start, maturity, capital, capital, notes),
       db.prepare(
-        `INSERT INTO investment_terms (id, investment_id, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).bind(generateSecureToken('trm'), invId, rate, payout, convention, capPolicy, start),
+        `INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, reference_rate_code, spread_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(generateSecureToken('trm'), invId, isReference ? 'REFERENCE' : 'FIXED', rate, referenceCode, spread, payout, convention, capPolicy, start),
       db.prepare(
         `INSERT INTO capital_movements (id, investment_id, movement_type, amount_cents, effective_date, notes, recorded_by_user_id)
          VALUES (?, ?, 'INITIAL_DEPOSIT', ?, ?, 'Capital inicial según contrato', ?)`
@@ -236,11 +250,11 @@ adminRoutes.post('/investments', async (c) => {
         entityType: 'INVESTMENT',
         entityId: invId,
         ipAddress: clientIp(c),
-        newValues: { code, investment_type: investmentType, investor_user_id: investorId, capital_cents: capital, rate_bps: rate, payout_frequency: payout, day_count_convention: convention, capitalization_policy: capPolicy, start_date: start, maturity_date: maturity }
+        newValues: { code, investment_type: investmentType, currency, investor_user_id: investorId, capital_cents: capital, rate_bps: rate, reference_rate_code: referenceCode, spread_bps: spread, payout_frequency: payout, day_count_convention: convention, capitalization_policy: capPolicy, start_date: start, maturity_date: maturity }
       })
     ])
   );
-  return c.json({ success: true, data: { investment_id: invId, code, current_capital_cents: capital } }, 201);
+  return c.json({ success: true, data: { investment_id: invId, code, currency, current_capital_cents: capital } }, 201);
 });
 
 adminRoutes.get('/investments/:id', async (c) => {
@@ -250,7 +264,8 @@ adminRoutes.get('/investments/:id', async (c) => {
     .first<InvestmentRow>();
   if (!row) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
   const b = (await balancesFor(c.env.DB, [row.id])).get(row.id)!;
-  return c.json({ success: true, data: toDetail(row, b, { investor_name: (row.investor_name as string | null) ?? null }) });
+  const detail = toDetail(row, b, { investor_name: (row.investor_name as string | null) ?? null });
+  return c.json({ success: true, data: { ...detail, current_reference_rate: await currentReferenceRate(c.env.DB, row) } });
 });
 
 adminRoutes.get('/investments/:id/yields', async (c) => {
@@ -266,7 +281,8 @@ adminRoutes.get('/investments/:id/yields', async (c) => {
 adminRoutes.post('/yields/preview', async (c) => {
   const body = await readJson(c);
   const id = str(body, 'investment_id', 'Inversión');
-  return c.json({ success: true, data: await previewYield(c.env, id, date(body, 'period_start', 'Inicio del periodo'), date(body, 'period_end', 'Fin del periodo')) });
+  const { reference_rate_id: _internal, ...preview } = await previewYield(c.env, id, date(body, 'period_start', 'Inicio del periodo'), date(body, 'period_end', 'Fin del periodo'));
+  return c.json({ success: true, data: preview });
 });
 
 adminRoutes.post('/yields/confirm', async (c) => {
@@ -315,7 +331,7 @@ adminRoutes.get('/payments', async (c) => {
   const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM payment_records pr ${where}`).bind(...binds).first<{ n: number }>();
   const rows = await c.env.DB
     .prepare(
-      `SELECT pr.id, pr.investment_id, i.code AS investment_code, p.full_name AS investor_name, pr.amount_cents,
+      `SELECT pr.id, pr.investment_id, i.code AS investment_code, i.currency, p.full_name AS investor_name, pr.amount_cents,
               COALESCE((SELECT SUM(amount_cents) FROM payment_allocations a WHERE a.payment_record_id = pr.id), 0) AS allocated_cents,
               pr.paid_at, pr.status, pr.reference, pr.notes
        FROM payment_records pr JOIN investments i ON i.id = pr.investment_id
@@ -421,6 +437,77 @@ adminRoutes.get('/documents/:id/download', async (c) => {
 adminRoutes.delete('/documents/:id', async (c) => {
   await archiveDocument(c.env.DB, c.req.param('id'), c.get('user').id, clientIp(c));
   return c.json({ success: true, data: { message: 'Documento archivado.' } });
+});
+
+// ======================================================================
+// Tasas de referencia (CETES), capturadas desde publicaciones de Banxico
+// ======================================================================
+adminRoutes.get('/reference-rates', async (c) => {
+  const { page, pageSize, offset } = pageParams(c, 20);
+  const code = c.req.query('rate_code') ?? '';
+  if (code && !(REFERENCE_RATES as readonly string[]).includes(code)) throw badRequest('INVALID_INPUT', 'Código de tasa no válido.');
+  const where = code ? 'WHERE r.rate_code = ?' : '';
+  const binds = code ? [code] : [];
+  const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM reference_rates r ${where}`).bind(...binds).first<{ n: number }>();
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT r.id, r.rate_code, r.effective_date, r.annual_rate_bps, r.source, r.created_at, u.email AS created_by,
+              EXISTS (SELECT 1 FROM yield_entries y WHERE y.reference_rate_id = r.id) AS in_use
+       FROM reference_rates r LEFT JOIN users u ON u.id = r.created_by_user_id
+       ${where} ORDER BY r.effective_date DESC, r.rate_code LIMIT ? OFFSET ?`
+    )
+    .bind(...binds, pageSize, offset)
+    .all<Record<string, unknown>>();
+  return c.json({
+    success: true,
+    data: rows.results.map((r) => ({ ...r, in_use: Number(r.in_use) === 1 })),
+    pagination: pagination(page, pageSize, total?.n ?? 0)
+  });
+});
+
+adminRoutes.post('/reference-rates', async (c) => {
+  const admin = c.get('user');
+  const body = await readJson(c);
+  const code = oneOf(body, 'rate_code', 'Plazo de CETES', REFERENCE_RATES);
+  const effectiveDate = date(body, 'effective_date', 'Fecha de la tasa');
+  if (effectiveDate > todayInContractZone()) throw badRequest('INVALID_INPUT', 'No se capturan tasas con fecha futura.', { field: 'effective_date' });
+  const bps = int(body, 'annual_rate_bps', 'Tasa anual (puntos básicos)', { min: 1, max: 10000 });
+  const source = optStr(body, 'source', 'Fuente', 200);
+  const id = generateSecureToken('rrt');
+  const db = c.env.DB;
+  await withDb(() =>
+    db.batch([
+      db.prepare('INSERT INTO reference_rates (id, rate_code, effective_date, annual_rate_bps, source, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(id, code, effectiveDate, bps, source, admin.id),
+      auditStatement(db, {
+        userId: admin.id,
+        action: 'REFERENCE_RATE_RECORDED',
+        entityType: 'REFERENCE_RATE',
+        entityId: id,
+        ipAddress: clientIp(c),
+        newValues: { rate_code: code, effective_date: effectiveDate, annual_rate_bps: bps, source }
+      })
+    ])
+  );
+  return c.json({ success: true, data: { id } }, 201);
+});
+
+/** Corrige una captura equivocada. Una tasa ya usada en un rendimiento confirmado no se puede borrar (trigger). */
+adminRoutes.delete('/reference-rates/:id', async (c) => {
+  const admin = c.get('user');
+  const db = c.env.DB;
+  const row = await db
+    .prepare('SELECT id, rate_code, effective_date, annual_rate_bps FROM reference_rates WHERE id = ?')
+    .bind(c.req.param('id'))
+    .first<Record<string, unknown>>();
+  if (!row) throw new AppError(404, 'NOT_FOUND', 'Tasa no encontrada.');
+  await withDb(() =>
+    db.batch([
+      db.prepare('DELETE FROM reference_rates WHERE id = ?').bind(row.id),
+      auditStatement(db, { userId: admin.id, action: 'REFERENCE_RATE_DELETED', entityType: 'REFERENCE_RATE', entityId: String(row.id), ipAddress: clientIp(c), oldValues: row })
+    ])
+  );
+  return c.json({ success: true, data: { message: 'Tasa eliminada.' } });
 });
 
 // ======================================================================

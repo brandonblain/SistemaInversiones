@@ -8,8 +8,8 @@ import { DataTable, Pagination, type Column } from '../../components/DataTable';
 import { Icon } from '../../components/icons';
 import { Async, Badge, Card, DefinitionList, EmptyState, LoadingBlock, PageHeader, SelectInput, Tabs } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
-import { formatDate, formatMXN, formatPeriod, formatRateBps } from '../../lib/format';
-import { capitalizationLabel, investmentTypeLabel, payoutFrequencyLabel } from '../../lib/labels';
+import { formatDate, formatMoney, formatPeriod, formatRateBps } from '../../lib/format';
+import { capitalizationLabel, currencyLabel, investmentTypeLabel, payoutFrequencyLabel, rateSummary } from '../../lib/labels';
 
 const InvestmentCharts = lazy(() => import('../../charts/InvestmentCharts'));
 
@@ -38,7 +38,7 @@ export function InvestmentDetailPage() {
           <PageHeader
             back={back}
             title={<span className="flex flex-wrap items-center gap-3">{d.code} <InvestmentStatusBadge status={d.status} /></span>}
-            subtitle={`${investmentTypeLabel[d.investment_type]} · ${formatRateBps(d.terms.fixed_annual_rate_bps)} anual fija · cobro ${payoutFrequencyLabel[d.terms.payout_frequency].toLowerCase()} · ${formatDate(d.start_date)} – ${formatDate(d.maturity_date)}`}
+            subtitle={`${investmentTypeLabel[d.investment_type]} · ${d.currency} · ${rateSummary(d.terms)} · cobro ${payoutFrequencyLabel[d.terms.payout_frequency].toLowerCase()} · ${formatDate(d.start_date)} – ${formatDate(d.maturity_date)}`}
           />
           <Tabs label="Secciones de la inversión" tabs={tabs} value={tab} onChange={setTab} />
 
@@ -46,6 +46,7 @@ export function InvestmentDetailPage() {
             {tab === 'resumen' && (
               <div className="space-y-6">
                 <BalanceTiles
+                  currency={d.currency}
                   v={{
                     capital: d.balance.capital_cents,
                     generated: d.balance.yield_generated_cents,
@@ -59,8 +60,15 @@ export function InvestmentDetailPage() {
                   <DefinitionList
                     items={[
                       { label: 'Ramo', value: investmentTypeLabel[d.investment_type] },
-                      { label: 'Capital inicial', value: formatMXN(d.initial_capital_cents) },
-                      { label: 'Tasa anual fija', value: formatRateBps(d.terms.fixed_annual_rate_bps) },
+                      { label: 'Moneda', value: currencyLabel[d.currency] ?? d.currency },
+                      { label: 'Capital inicial', value: formatMoney(d.initial_capital_cents, d.currency) },
+                      { label: 'Tasa', value: rateSummary(d.terms) },
+                      ...(d.current_reference_rate
+                        ? [{
+                            label: 'Tasa aplicable hoy',
+                            value: `${formatRateBps(d.current_reference_rate.applied_rate_bps)} anual (CETES ${formatRateBps(d.current_reference_rate.annual_rate_bps)} al ${formatDate(d.current_reference_rate.effective_date)})`
+                          }]
+                        : []),
                       { label: 'Cobro de rendimiento', value: payoutFrequencyLabel[d.terms.payout_frequency] },
                       { label: 'Destino del rendimiento', value: capitalizationLabel[d.terms.capitalization_policy] },
                       { label: 'Fecha de inicio', value: formatDate(d.start_date, 'long') },
@@ -70,8 +78,8 @@ export function InvestmentDetailPage() {
                 </Card>
               </div>
             )}
-            {tab === 'evolucion' && <EvolutionTab id={id} />}
-            {tab === 'movimientos' && <HistoryTab id={id} />}
+            {tab === 'evolucion' && <EvolutionTab id={id} currency={d.currency} />}
+            {tab === 'movimientos' && <HistoryTab id={id} currency={d.currency} />}
           </div>
         </>
       )}
@@ -79,14 +87,14 @@ export function InvestmentDetailPage() {
   );
 }
 
-function EvolutionTab({ id }: { id: string }) {
+function EvolutionTab({ id, currency }: { id: string; currency: string }) {
   const series = useAsync(() => api.investor.series(id), [id]);
   return (
     <Card>
       <Async state={series} loading={<LoadingBlock rows={8} label="Cargando gráficas…" />}>
         {(s) => (
           <Suspense fallback={<LoadingBlock rows={8} label="Cargando gráficas…" />}>
-            <InvestmentCharts series={s} />
+            <InvestmentCharts series={s} currency={currency} />
           </Suspense>
         )}
       </Async>
@@ -100,7 +108,7 @@ const typeLabel: Record<HistoryEntry['entry_type'], { text: string; tone: 'ok' |
   CAPITAL: { text: 'Capital', tone: 'info' }
 };
 
-const historyColumns: Column<HistoryEntry>[] = [
+const historyColumns = (currency: string): Column<HistoryEntry>[] => [
   { key: 'date', header: 'Fecha', primary: true, render: (r) => formatDate(r.effective_date) },
   { key: 'type', header: 'Tipo', render: (r) => <Badge tone={typeLabel[r.entry_type].tone}>{typeLabel[r.entry_type].text}</Badge> },
   {
@@ -114,16 +122,16 @@ const historyColumns: Column<HistoryEntry>[] = [
       </span>
     )
   },
-  { key: 'amount', header: 'Importe', align: 'right', render: (r) => formatMXN(r.amount_cents) },
+  { key: 'amount', header: 'Importe', align: 'right', render: (r) => formatMoney(r.amount_cents, currency) },
   {
     key: 'pending',
     header: 'Pendiente de pago',
     align: 'right',
-    render: (r) => (r.entry_type === 'YIELD' && r.pending_amount_cents !== undefined ? formatMXN(r.pending_amount_cents) : '—')
+    render: (r) => (r.entry_type === 'YIELD' && r.pending_amount_cents !== undefined ? formatMoney(r.pending_amount_cents, currency) : '—')
   }
 ];
 
-function HistoryTab({ id }: { id: string }) {
+function HistoryTab({ id, currency }: { id: string; currency: string }) {
   const [type, setType] = useState<HistoryType>('ALL');
   const [page, setPage] = useState(1);
   const history = useAsync(() => api.investor.history(id, { type, page, pageSize: 10 }), [id, type, page]);
@@ -143,7 +151,7 @@ function HistoryTab({ id }: { id: string }) {
           <>
             <DataTable
               caption="Historial de rendimientos y pagos"
-              columns={historyColumns}
+              columns={historyColumns(currency)}
               rows={res.data}
               rowKey={(r) => `${r.entry_type}-${r.id}`}
               empty={<EmptyState title="Sin movimientos registrados">Los rendimientos confirmados y los pagos realizados aparecerán aquí.</EmptyState>}

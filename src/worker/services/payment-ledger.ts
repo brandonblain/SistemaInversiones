@@ -12,6 +12,12 @@ import { CALCULATION_VERSION, calculateYieldDeterministic } from './yield-calcul
 
 export const rulesApproved = (env: Env) => env.FINANCIAL_RULES_APPROVED === 'true';
 
+/** Etiqueta reproducible del cálculo: algoritmo, convención y, si aplica, tasa de referencia usada. */
+const versionTag = (p: YieldPreview) =>
+  p.rate_type === 'REFERENCE'
+    ? `${CALCULATION_VERSION}:${p.day_count_convention}:${p.reference_rate_code}@${p.reference_rate_date}=${p.reference_rate_bps}${p.spread_bps! < 0 ? '' : '+'}${p.spread_bps}`
+    : `${CALCULATION_VERSION}:${p.day_count_convention}`;
+
 export interface YieldPreview {
   investment_id: string;
   period_start: string;
@@ -23,14 +29,27 @@ export interface YieldPreview {
   day_count_convention: string;
   calculation_formula: string;
   calculation_version: string;
+  currency: string;
+  /** FIXED | REFERENCE (CETES + diferencial). Para REFERENCE se informa la tasa usada y su fecha. */
+  rate_type: 'FIXED' | 'REFERENCE';
+  reference_rate_code: string | null;
+  reference_rate_bps: number | null;
+  reference_rate_date: string | null;
+  spread_bps: number | null;
   /** false mientras el cliente no apruebe por escrito las convenciones de cálculo. */
   rules_approved: boolean;
+  /** Uso interno (no se expone): id de la tasa de referencia aplicada. */
+  reference_rate_id?: string | null;
 }
 
 /** Vista previa sin persistir: capital y tasa VIGENTES EN EL PERIODO (no los de hoy). */
 export async function previewYield(env: Env, investmentId: string, start: string, end: string): Promise<YieldPreview> {
   const ctx = await resolveCalculationContext(env.DB, investmentId, start, end);
   const calc = calculateYieldDeterministic({ capitalCents: ctx.capitalCents, rateBps: ctx.rateBps, startDate: start, endDate: end, convention: ctx.convention });
+  const r = ctx.rate;
+  const formula = r.rateType === 'REFERENCE'
+    ? `${calc.capitalCents} * ((${r.referenceRateBps} ${r.spreadBps! < 0 ? '-' : '+'} ${Math.abs(r.spreadBps!)}) / 10000) * (${calc.daysCount} / ${calc.convention === 'ACT_365' ? 365 : 360})`
+    : calc.formulaDescription;
   return {
     investment_id: investmentId,
     period_start: start,
@@ -40,9 +59,16 @@ export async function previewYield(env: Env, investmentId: string, start: string
     annual_rate_bps: calc.rateBps,
     calculated_yield_cents: calc.yieldCents,
     day_count_convention: calc.convention,
-    calculation_formula: calc.formulaDescription,
+    calculation_formula: formula,
     calculation_version: CALCULATION_VERSION,
-    rules_approved: rulesApproved(env)
+    currency: ctx.investment.currency,
+    rate_type: r.rateType,
+    reference_rate_code: r.referenceRateCode,
+    reference_rate_bps: r.referenceRateBps,
+    reference_rate_date: r.referenceRateDate,
+    spread_bps: r.spreadBps,
+    rules_approved: rulesApproved(env),
+    reference_rate_id: r.referenceRateId
   };
 }
 
@@ -85,11 +111,11 @@ export async function confirmYield(
     await db.batch([
       db.prepare(
         `INSERT INTO yield_entries (id, investment_id, period_start, period_end, days_count, reference_capital_cents, rate_bps,
-                                    amount_cents, status, source, calculation_version, note, created_by_user_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', 'AUTO', ?, ?, ?)`
+                                    amount_cents, status, source, calculation_version, note, reference_rate_id, created_by_user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', 'AUTO', ?, ?, ?, ?)`
       ).bind(
         id, input.investmentId, input.start, input.end, preview.days_in_period, preview.capital_cents, preview.annual_rate_bps,
-        preview.calculated_yield_cents, `${CALCULATION_VERSION}:${preview.day_count_convention}`, input.note, input.adminId
+        preview.calculated_yield_cents, versionTag(preview), input.note, preview.reference_rate_id ?? null, input.adminId
       ),
       auditStatement(db, {
         userId: input.adminId,
@@ -105,6 +131,8 @@ export async function confirmYield(
           capital_cents: preview.capital_cents,
           rate_bps: preview.annual_rate_bps,
           formula: preview.calculation_formula,
+          rate_type: preview.rate_type,
+          reference_rate: preview.reference_rate_code ? { code: preview.reference_rate_code, bps: preview.reference_rate_bps, date: preview.reference_rate_date, spread_bps: preview.spread_bps } : null,
           rules_approved: preview.rules_approved
         }
       })
@@ -132,11 +160,11 @@ export async function recordManualYield(
     db.batch([
       db.prepare(
         `INSERT INTO yield_entries (id, investment_id, period_start, period_end, days_count, reference_capital_cents, rate_bps,
-                                    amount_cents, status, source, calculation_version, note, created_by_user_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, 'manual', ?, ?)`
+                                    amount_cents, status, source, calculation_version, note, reference_rate_id, created_by_user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, 'manual', ?, ?, ?)`
       ).bind(
         id, input.investmentId, input.start, input.end, days, ctx.capitalCents, ctx.rateBps, input.amountCents,
-        input.amountCents < 0 ? 'ADJUSTMENT' : 'MANUAL', input.reason, input.adminId
+        input.amountCents < 0 ? 'ADJUSTMENT' : 'MANUAL', input.reason, ctx.rate.referenceRateId, input.adminId
       ),
       auditStatement(db, {
         userId: input.adminId,

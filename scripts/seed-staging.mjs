@@ -32,12 +32,19 @@ const investors = [
   {
     id: 'usr_fict_02', email: 'cesar.daniel@ficticio.test', name: 'Cesar Daniel', phone: '+52 33 0000 0002', address: 'Domicilio FICTICIO, Guadalajara, Jalisco',
     beneficiaries: [['Beneficiaria FICTICIA Daniel', 'PARENT', 10000]],
-    investments: [{ code: 'FICT-2026-004', type: 'TRANSPORT', start: '2026-03-01', end: '2027-09-01', capital: 40_000_000, bps: 2500, freq: 'MONTHLY', cap: 'NONE' }]
+    investments: [
+      { code: 'FICT-2026-004', type: 'TRANSPORT', start: '2026-03-01', end: '2027-09-01', capital: 40_000_000, bps: 2500, freq: 'MONTHLY', cap: 'NONE' },
+      { code: 'FICT-2026-006', type: 'TRANSPORT', currency: 'USD', start: '2026-04-01', end: '2028-04-01', capital: 2_000_000, bps: 1200, freq: 'ANNUAL', cap: 'NONE' }
+    ]
   },
   {
     id: 'usr_fict_03', email: 'victoria.perez@ficticio.test', name: 'Victoria Pérez', phone: '+52 222 000 0003', address: 'Domicilio FICTICIO, Puebla, Puebla',
     beneficiaries: [['Beneficiario FICTICIO Pérez', 'CHILD', 5000], ['Beneficiaria FICTICIA Pérez', 'CHILD', 5000]],
-    investments: [{ code: 'FICT-2026-005', type: 'FAST_FOOD', start: '2026-05-01', end: '2027-05-01', capital: 10_000_000, bps: 1300, freq: 'MONTHLY', cap: 'NONE' }]
+    investments: [
+      { code: 'FICT-2026-005', type: 'FAST_FOOD', start: '2026-05-01', end: '2027-05-01', capital: 10_000_000, bps: 1300, freq: 'MONTHLY', cap: 'NONE' },
+      // CETES 28 días − 1 punto (−100 pb)
+      { code: 'FICT-2026-007', type: 'CETES', start: '2026-06-01', end: '2027-06-01', capital: 20_000_000, cetes: 'CETES_28', spread: -100, freq: 'MONTHLY', cap: 'NONE' }
+    ]
   }
 ];
 
@@ -54,15 +61,24 @@ for (const inv of investors) {
   for (const i of inv.investments) {
     const invId = id('inv');
     out.push(
-      `INSERT INTO investments (id, investor_user_id, code, investment_type, status, start_date, maturity_date, initial_capital_cents, current_capital_cents, notes) VALUES (${q(invId)}, ${q(inv.id)}, ${q(i.code)}, ${q(i.type)}, ${q(i.status ?? 'ACTIVE')}, ${q(i.start)}, ${q(i.end)}, ${i.capital}, ${i.capital}, 'Contrato FICTICIO de staging');`
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, status, start_date, maturity_date, initial_capital_cents, current_capital_cents, notes) VALUES (${q(invId)}, ${q(inv.id)}, ${q(i.code)}, ${q(i.type)}, ${q(i.currency ?? 'MXN')}, ${q(i.status ?? 'ACTIVE')}, ${q(i.start)}, ${q(i.end)}, ${i.capital}, ${i.capital}, 'Contrato FICTICIO de staging');`
     );
     out.push(
-      `INSERT INTO investment_terms (id, investment_id, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from) VALUES (${q(id('trm'))}, ${q(invId)}, ${i.bps}, ${q(i.freq)}, 'ACT_365', ${q(i.cap)}, ${q(i.start)});`
+      i.cetes
+        ? `INSERT INTO investment_terms (id, investment_id, rate_type, reference_rate_code, spread_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from) VALUES (${q(id('trm'))}, ${q(invId)}, 'REFERENCE', ${q(i.cetes)}, ${i.spread}, ${q(i.freq)}, 'ACT_365', ${q(i.cap)}, ${q(i.start)});`
+        : `INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from) VALUES (${q(id('trm'))}, ${q(invId)}, 'FIXED', ${i.bps}, ${q(i.freq)}, 'ACT_365', ${q(i.cap)}, ${q(i.start)});`
     );
     out.push(
       `INSERT INTO capital_movements (id, investment_id, movement_type, amount_cents, effective_date, notes, recorded_by_user_id) VALUES (${q(id('mov'))}, ${q(invId)}, 'INITIAL_DEPOSIT', ${i.capital}, ${q(i.start)}, 'Capital inicial FICTICIO', ${q(adminId)});`
     );
   }
+}
+
+// Tasas CETES 28 días FICTICIAS (capturar las reales desde Banxico en Administración › Tasas de referencia).
+for (const [date, bps] of [['2026-05-28', 745], ['2026-06-25', 740], ['2026-07-30', 730], ['2026-08-27', 725], ['2026-09-24', 720]]) {
+  out.push(
+    `INSERT INTO reference_rates (id, rate_code, effective_date, annual_rate_bps, source, created_by_user_id) VALUES (${q(id('rrt'))}, 'CETES_28', ${q(date)}, ${bps}, 'Tasa FICTICIA de staging', ${q(adminId)});`
+  );
 }
 
 console.log(out.join('\n'));

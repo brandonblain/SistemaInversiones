@@ -23,8 +23,8 @@ Abra **http://localhost:8787** y entre con cualquiera de estos usuarios (contras
 |---|---|---|
 | `admin@ficticio.test` | Administración | Calcular y confirmar rendimientos, registrar pagos, dar de alta clientes con beneficiarios e inversiones por ramo, subir documentos, revisar la bitácora |
 | `hector.galeana@ficticio.test` | Inversionista | Tres inversiones: Movilidad, Transporte con reinversión y Fast Food vencida |
-| `cesar.daniel@ficticio.test` | Inversionista | Transporte mensual |
-| `victoria.perez@ficticio.test` | Inversionista | Fast Food mensual |
+| `cesar.daniel@ficticio.test` | Inversionista | Transporte mensual en pesos y Transporte anual en **dólares** |
+| `victoria.perez@ficticio.test` | Inversionista | Fast Food mensual e inversión a **CETES − 1 punto** |
 
 **Flujo sugerido:**
 1. Como administración, en **Rendimientos**, elija `FICT-2026-001`, calcule el periodo 2026-01-15 → 2026-02-15 y confírmelo.
@@ -46,7 +46,7 @@ La interfaz también funciona sin backend, con datos de ejemplo: `npm --prefix w
 ## Pruebas
 
 ```bash
-npm run test:all   # 56 pruebas del backend + 39 de la interfaz
+npm run test:all   # 60 pruebas del backend + 47 de la interfaz
 npm run typecheck  # backend y frontend
 ```
 

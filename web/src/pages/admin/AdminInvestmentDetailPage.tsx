@@ -10,16 +10,16 @@ import { DocumentList } from '../../components/DocumentList';
 import { Icon } from '../../components/icons';
 import { Async, Card, DefinitionList, EmptyState, LinkButton, PageHeader, Tabs } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
-import { formatDate, formatDateTime, formatMXN, formatRateBps } from '../../lib/format';
-import { capitalizationLabel, dayCountLabel, investmentTypeLabel, payoutFrequencyLabel } from '../../lib/labels';
+import { formatDate, formatDateTime, formatMoney, formatRateBps } from '../../lib/format';
+import { capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeLabel, payoutFrequencyLabel, rateSummary } from '../../lib/labels';
 
 type TabId = 'resumen' | 'rendimientos' | 'pagos' | 'documentos';
 
 const paymentColumns: Column<AdminPaymentRow>[] = [
   { key: 'date', header: 'Fecha de pago', primary: true, render: (r) => formatDateTime(r.paid_at) },
   { key: 'ref', header: 'Referencia', render: (r) => r.reference },
-  { key: 'amount', header: 'Monto', align: 'right', render: (r) => formatMXN(r.amount_cents) },
-  { key: 'alloc', header: 'Asignado', align: 'right', render: (r) => formatMXN(r.allocated_cents) },
+  { key: 'amount', header: 'Monto', align: 'right', render: (r) => formatMoney(r.amount_cents, r.currency) },
+  { key: 'alloc', header: 'Asignado', align: 'right', render: (r) => formatMoney(r.allocated_cents, r.currency) },
   { key: 'notes', header: 'Notas', hideOnMobile: true, render: (r) => r.notes ?? '—' }
 ];
 
@@ -69,6 +69,7 @@ export function AdminInvestmentDetailPage() {
             {tab === 'resumen' && (
               <div className="space-y-6">
                 <BalanceTiles
+                  currency={d.currency}
                   v={{
                     capital: d.balance.capital_cents,
                     generated: d.balance.yield_generated_cents,
@@ -82,8 +83,12 @@ export function AdminInvestmentDetailPage() {
                   <DefinitionList
                     items={[
                       { label: 'Ramo', value: investmentTypeLabel[d.investment_type] },
-                      { label: 'Capital inicial', value: formatMXN(d.initial_capital_cents) },
-                      { label: 'Tasa anual fija', value: `${formatRateBps(d.terms.fixed_annual_rate_bps)} (${d.terms.fixed_annual_rate_bps} pb)` },
+                      { label: 'Moneda', value: currencyLabel[d.currency] ?? d.currency },
+                      { label: 'Capital inicial', value: formatMoney(d.initial_capital_cents, d.currency) },
+                      { label: 'Tasa', value: d.terms.rate_type === 'FIXED' ? `${rateSummary(d.terms)} (${d.terms.fixed_annual_rate_bps} pb)` : `${rateSummary(d.terms)} (${d.terms.spread_bps} pb)` },
+                      ...(d.current_reference_rate
+                        ? [{ label: 'Tasa CETES vigente', value: `${formatRateBps(d.current_reference_rate.annual_rate_bps)} al ${formatDate(d.current_reference_rate.effective_date)} → aplicada ${formatRateBps(d.current_reference_rate.applied_rate_bps)}` }]
+                        : []),
                       { label: 'Cobro del rendimiento', value: payoutFrequencyLabel[d.terms.payout_frequency] },
                       { label: 'Destino del rendimiento', value: capitalizationLabel[d.terms.capitalization_policy] },
                       { label: 'Convención de días', value: `${dayCountLabel[d.terms.day_count_convention]} · pendiente de aprobación` },
@@ -93,7 +98,7 @@ export function AdminInvestmentDetailPage() {
                 </Card>
               </div>
             )}
-            {tab === 'rendimientos' && <YieldsTab id={d.id} policy={d.terms.capitalization_policy} onChanged={inv.reload} />}
+            {tab === 'rendimientos' && <YieldsTab id={d.id} currency={d.currency} policy={d.terms.capitalization_policy} onChanged={inv.reload} />}
             {tab === 'pagos' && <PaymentsTab id={d.id} />}
             {tab === 'documentos' && <DocsTab id={d.id} />}
           </div>
@@ -103,12 +108,12 @@ export function AdminInvestmentDetailPage() {
   );
 }
 
-function YieldsTab({ id, policy, onChanged }: { id: string; policy: Parameters<typeof YieldEntriesTable>[0]['policy']; onChanged: () => void }) {
+function YieldsTab({ id, currency, policy, onChanged }: { id: string; currency: string; policy: Parameters<typeof YieldEntriesTable>[0]['policy']; onChanged: () => void }) {
   const ys = useAsync(() => api.admin.yields(id), [id]);
   return (
     <Card>
       <Async state={ys}>
-        {(list) => <YieldEntriesTable entries={list} policy={policy} investmentId={id} onChanged={() => { ys.reload(); onChanged(); }} />}
+        {(list) => <YieldEntriesTable entries={list} currency={currency} policy={policy} investmentId={id} onChanged={() => { ys.reload(); onChanged(); }} />}
       </Async>
     </Card>
   );

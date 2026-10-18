@@ -6,6 +6,7 @@ import type { PortalApi } from '../portal-api';
 import type {
   AdminInvestmentRow,
   AdminYieldEntry,
+  CurrencyTotals,
   HistoryEntry,
   InvestmentDetail,
   InvestmentListItem,
@@ -19,6 +20,7 @@ import {
   daysBetween,
   fictitiousPdf,
   MOCK_MFA_CODE,
+  mockRateAt,
   mockYieldAmount,
   nextId,
   type MockDb,
@@ -119,7 +121,10 @@ function balance(inv: MockInvestment) {
 }
 
 const terms = (inv: MockInvestment) => ({
+  rate_type: inv.rate_type,
   fixed_annual_rate_bps: inv.rate_bps,
+  reference_rate_code: inv.reference_rate_code,
+  spread_bps: inv.spread_bps,
   payout_frequency: inv.payout_frequency,
   day_count_convention: inv.day_count_convention,
   capitalization_policy: inv.capitalization_policy
@@ -128,7 +133,7 @@ const terms = (inv: MockInvestment) => ({
 function listItem(inv: MockInvestment): InvestmentListItem {
   const b = balance(inv);
   return {
-    id: inv.id, code: inv.code, investment_type: inv.investment_type, status: inv.status, currency: 'MXN', start_date: inv.start_date,
+    id: inv.id, code: inv.code, investment_type: inv.investment_type, status: inv.status, currency: inv.currency, start_date: inv.start_date,
     maturity_date: inv.maturity_date, current_capital_cents: inv.current_capital_cents, terms: terms(inv),
     stats: {
       yield_confirmed_cents: b.yield_confirmed_cents,
@@ -141,10 +146,46 @@ function listItem(inv: MockInvestment): InvestmentListItem {
 
 function detail(inv: MockInvestment): InvestmentDetail {
   return {
-    id: inv.id, code: inv.code, investment_type: inv.investment_type, status: inv.status, currency: 'MXN', start_date: inv.start_date,
+    id: inv.id, code: inv.code, investment_type: inv.investment_type, status: inv.status, currency: inv.currency, start_date: inv.start_date,
     maturity_date: inv.maturity_date, initial_capital_cents: inv.initial_capital_cents,
-    current_capital_cents: inv.current_capital_cents, terms: terms(inv), balance: balance(inv)
+    current_capital_cents: inv.current_capital_cents, terms: terms(inv), balance: balance(inv),
+    current_reference_rate: currentRate(inv)
   };
+}
+
+function refIdFor(investmentId: string, start: string) {
+  const inv = db.investments.find((i) => i.id === investmentId);
+  if (!inv || inv.rate_type !== 'REFERENCE' || !inv.reference_rate_code) return undefined;
+  return mockRateAt(db, inv.reference_rate_code, start)?.id;
+}
+
+function currentRate(inv: MockInvestment) {
+  if (inv.rate_type !== 'REFERENCE' || !inv.reference_rate_code) return null;
+  const r = mockRateAt(db, inv.reference_rate_code, today());
+  return r ? { rate_code: r.rate_code, annual_rate_bps: r.annual_rate_bps, effective_date: r.effective_date, applied_rate_bps: r.annual_rate_bps + (inv.spread_bps ?? 0) } : null;
+}
+
+/** Totales por moneda (el servidor simulado nunca mezcla pesos con dólares). */
+function totalsByCurrency(invs: MockInvestment[]) {
+  const acc = new Map<string, CurrencyTotals>();
+  for (const inv of invs) {
+    const b = balance(inv);
+    const t = acc.get(inv.currency) ?? {
+      currency: inv.currency, total_capital_cents: 0, total_yield_generated_cents: 0, total_yield_confirmed_cents: 0,
+      total_yield_paid_cents: 0, total_yield_reinvested_cents: 0, total_yield_pending_cents: 0, active_investments_count: 0
+    };
+    if (inv.status === 'ACTIVE') {
+      t.total_capital_cents += b.capital_cents;
+      t.active_investments_count += 1;
+    }
+    t.total_yield_generated_cents += b.yield_generated_cents;
+    t.total_yield_confirmed_cents += b.yield_confirmed_cents;
+    t.total_yield_paid_cents += b.yield_paid_cents;
+    t.total_yield_reinvested_cents += b.yield_reinvested_cents;
+    t.total_yield_pending_cents += b.yield_pending_cents;
+    acc.set(inv.currency, t);
+  }
+  return [...acc.values()].sort((a, b) => (a.currency === 'MXN' ? -1 : b.currency === 'MXN' ? 1 : 0));
 }
 
 function adminYield(y: MockDb['yields'][number]): AdminYieldEntry {
@@ -239,24 +280,8 @@ export const mockApi: PortalApi = {
     async summary() {
       const u = requireInvestorAccess();
       const invs = db.investments.filter((i) => i.investor_user_id === u.id);
-      const acc = { capital: 0, gen: 0, conf: 0, paid: 0, reinv: 0, pend: 0 };
-      for (const inv of invs) {
-        const b = balance(inv);
-        if (inv.status === 'ACTIVE') acc.capital += b.capital_cents;
-        acc.gen += b.yield_generated_cents;
-        acc.conf += b.yield_confirmed_cents;
-        acc.paid += b.yield_paid_cents;
-        acc.reinv += b.yield_reinvested_cents;
-        acc.pend += b.yield_pending_cents;
-      }
       return {
-        currency: 'MXN',
-        total_capital_cents: acc.capital,
-        total_yield_generated_cents: acc.gen,
-        total_yield_confirmed_cents: acc.conf,
-        total_yield_paid_cents: acc.paid,
-        total_yield_reinvested_cents: acc.reinv,
-        total_yield_pending_cents: acc.pend,
+        by_currency: totalsByCurrency(invs),
         active_investments_count: invs.filter((i) => i.status === 'ACTIVE').length,
         as_of_date: today()
       };
@@ -348,8 +373,13 @@ export const mockApi: PortalApi = {
       return {
         investors_count: db.users.filter((u) => u.role === 'INVESTOR').length,
         active_investments_count: active.length,
-        total_capital_cents: active.reduce((s, i) => s + i.current_capital_cents, 0),
-        yield_pending_cents: db.investments.reduce((s, i) => s + balance(i).yield_pending_cents, 0),
+        by_currency: totalsByCurrency(db.investments).map((t) => ({
+          currency: t.currency, total_capital_cents: t.total_capital_cents, yield_pending_cents: t.total_yield_pending_cents, active_investments_count: t.active_investments_count
+        })),
+        reference_rates: (['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'] as const)
+          .map((code) => mockRateAt(db, code, today()))
+          .filter((r): r is NonNullable<typeof r> => !!r)
+          .map((r) => ({ rate_code: r.rate_code, annual_rate_bps: r.annual_rate_bps, effective_date: r.effective_date })),
         maturing_soon_count: active.filter((i) => i.maturity_date >= today() && i.maturity_date <= in30).length,
         notifications_failed_count: db.notifications.filter((n) => n.status === 'FAILED').length,
         as_of_date: today()
@@ -407,11 +437,12 @@ export const mockApi: PortalApi = {
         .filter((i) => !term || i.code.toLowerCase().includes(term) || (investorName(i.investor_user_id) ?? '').toLowerCase().includes(term))
         .sort(byDesc((i) => i.created_at))
         .map((i) => ({
-          id: i.id, investor_user_id: i.investor_user_id, code: i.code, investment_type: i.investment_type, status: i.status, currency: 'MXN',
+          id: i.id, investor_user_id: i.investor_user_id, code: i.code, investment_type: i.investment_type, status: i.status, currency: i.currency,
           start_date: i.start_date, maturity_date: i.maturity_date, initial_capital_cents: i.initial_capital_cents,
           current_capital_cents: i.current_capital_cents, investor_name: investorName(i.investor_user_id),
           investor_email: db.users.find((u) => u.id === i.investor_user_id)?.email ?? '',
-          fixed_annual_rate_bps: i.rate_bps, payout_frequency: i.payout_frequency,
+          rate_type: i.rate_type, fixed_annual_rate_bps: i.rate_bps, reference_rate_code: i.reference_rate_code, spread_bps: i.spread_bps,
+          payout_frequency: i.payout_frequency,
           day_count_convention: i.day_count_convention, capitalization_policy: i.capitalization_policy
         }));
       return paginate(rows, q);
@@ -425,11 +456,14 @@ export const mockApi: PortalApi = {
     async createInvestment(input) {
       requireAdmin();
       if (db.investments.some((i) => i.code === input.code.trim())) return fail(409, 'CODE_ALREADY_EXISTS', 'Ya existe una inversión con ese código.');
+      if (input.investment_type === 'CETES' && input.currency !== 'MXN') return fail(400, 'INVALID_INPUT', 'Las inversiones a CETES solo pueden ser en pesos (MXN).');
+      const isRef = input.investment_type === 'CETES';
       const id = nextId(db, 'inv');
       db.investments.push({
-        id, investor_user_id: input.investor_user_id, code: input.code.trim(), investment_type: input.investment_type, status: 'ACTIVE',
+        id, investor_user_id: input.investor_user_id, code: input.code.trim(), investment_type: input.investment_type, currency: input.currency, status: 'ACTIVE',
         start_date: input.start_date, maturity_date: input.maturity_date, initial_capital_cents: input.capital_cents,
-        current_capital_cents: input.capital_cents, rate_bps: input.fixed_annual_rate_bps,
+        current_capital_cents: input.capital_cents, rate_bps: isRef ? null : input.fixed_annual_rate_bps ?? null,
+        rate_type: isRef ? 'REFERENCE' : 'FIXED', reference_rate_code: isRef ? input.reference_rate_code ?? 'CETES_28' : null, spread_bps: isRef ? input.spread_bps ?? 0 : null,
         payout_frequency: input.payout_frequency, day_count_convention: input.day_count_convention,
         capitalization_policy: input.capitalization_policy, notes: input.notes || null, created_at: nowIso()
       });
@@ -451,12 +485,23 @@ export const mockApi: PortalApi = {
       if (!inv) return fail(404, 'NOT_FOUND', 'Inversión no encontrada.');
       if (input.period_end <= input.period_start) return fail(400, 'INVALID_PERIOD', 'La fecha final debe ser posterior a la inicial.');
       const days = daysBetween(input.period_start, input.period_end);
-      const amount = mockYieldAmount(inv.current_capital_cents, inv.rate_bps, input.period_start, input.period_end);
+      let rate = inv.rate_bps ?? 0;
+      let ref: ReturnType<typeof mockRateAt> = undefined;
+      if (inv.rate_type === 'REFERENCE') {
+        ref = mockRateAt(db, inv.reference_rate_code!, input.period_start);
+        if (!ref) return fail(409, 'REFERENCE_RATE_MISSING', `Registre la tasa CETES vigente al ${input.period_start} en Administración › Tasas de referencia.`);
+        rate = ref.annual_rate_bps + (inv.spread_bps ?? 0);
+      }
+      const amount = mockYieldAmount(inv.current_capital_cents, rate, input.period_start, input.period_end);
       return {
         investment_id: inv.id, period_start: input.period_start, period_end: input.period_end, days_in_period: days,
-        capital_cents: inv.current_capital_cents, annual_rate_bps: inv.rate_bps, calculated_yield_cents: amount,
-        day_count_convention: inv.day_count_convention,
-        calculation_formula: `${inv.current_capital_cents} * (${inv.rate_bps} / 10000) * (${days} / 365)`
+        capital_cents: inv.current_capital_cents, annual_rate_bps: rate, calculated_yield_cents: amount,
+        day_count_convention: inv.day_count_convention, currency: inv.currency, rate_type: inv.rate_type,
+        reference_rate_code: inv.reference_rate_code, reference_rate_bps: ref?.annual_rate_bps ?? null,
+        reference_rate_date: ref?.effective_date ?? null, spread_bps: inv.spread_bps, rules_approved: false,
+        calculation_formula: ref
+          ? `${inv.current_capital_cents} * ((${ref.annual_rate_bps} - ${Math.abs(inv.spread_bps ?? 0)}) / 10000) * (${days} / 365)`
+          : `${inv.current_capital_cents} * (${rate} / 10000) * (${days} / 365)`
       };
     },
     async confirmYield(input) {
@@ -468,7 +513,8 @@ export const mockApi: PortalApi = {
       const id = nextId(db, 'yid');
       db.yields.push({
         id, investment_id: input.investment_id, period_start: input.period_start, period_end: input.period_end,
-        amount_cents: input.amount_cents, status: 'CONFIRMED', source: 'AUTO', note: input.note ?? null, created_at: nowIso()
+        amount_cents: input.amount_cents, status: 'CONFIRMED', source: 'AUTO', note: input.note ?? null, created_at: nowIso(),
+        reference_rate_id: refIdFor(input.investment_id, input.period_start)
       });
       audit('YIELD_CONFIRMED', 'YIELD_ENTRY', id, { amount_cents: input.amount_cents });
       return { yield_entry_id: id, is_existing: false, amount_cents: input.amount_cents };
@@ -505,7 +551,7 @@ export const mockApi: PortalApi = {
         .map((p) => {
           const inv = db.investments.find((i) => i.id === p.investment_id)!;
           return {
-            id: p.id, investment_id: p.investment_id, investment_code: inv.code, investor_name: investorName(inv.investor_user_id),
+            id: p.id, investment_id: p.investment_id, investment_code: inv.code, currency: inv.currency, investor_name: investorName(inv.investor_user_id),
             amount_cents: p.amount_cents, allocated_cents: p.allocations.reduce((s, a) => s + a.amount_cents, 0),
             paid_at: p.paid_at, status: p.status, reference: p.reference, notes: p.notes
           };
@@ -588,6 +634,31 @@ export const mockApi: PortalApi = {
       const term = (q.action ?? '').trim().toUpperCase();
       const rows = db.audit.filter((a) => !term || a.action.includes(term)).sort(byDesc((a) => a.created_at));
       return paginate(rows, { page: q.page, pageSize: q.pageSize ?? 20 });
+    },
+    async referenceRates(q) {
+      requireAdmin();
+      const rows = db.rates
+        .filter((r) => !q.rate_code || r.rate_code === q.rate_code)
+        .sort(byDesc((r) => r.effective_date))
+        .map((r) => ({ ...r, created_by: 'admin@ficticio.test', in_use: db.yields.some((y) => y.reference_rate_id === r.id) }));
+      return paginate(rows, q);
+    },
+    async createReferenceRate(input) {
+      requireAdmin();
+      if (db.rates.some((r) => r.rate_code === input.rate_code && r.effective_date === input.effective_date)) {
+        return fail(409, 'REFERENCE_RATE_EXISTS', 'Ya existe una tasa capturada para ese plazo y fecha.');
+      }
+      if (input.effective_date > today()) return fail(400, 'INVALID_INPUT', 'No se capturan tasas con fecha futura.');
+      const id = nextId(db, 'rrt');
+      db.rates.push({ id, rate_code: input.rate_code, effective_date: input.effective_date, annual_rate_bps: input.annual_rate_bps, source: input.source ?? null, created_at: nowIso() });
+      audit('REFERENCE_RATE_RECORDED', 'REFERENCE_RATE', id, { ...input });
+      return { id };
+    },
+    async deleteReferenceRate(id) {
+      requireAdmin();
+      if (db.yields.some((y) => y.reference_rate_id === id)) return fail(409, 'REFERENCE_RATE_IN_USE', 'Esta tasa ya se usó en un rendimiento confirmado; no se puede modificar ni borrar.');
+      db.rates = db.rates.filter((r) => r.id !== id);
+      audit('REFERENCE_RATE_DELETED', 'REFERENCE_RATE', id, {});
     }
   })
 };

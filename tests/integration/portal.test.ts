@@ -27,7 +27,11 @@ describe('Área del inversionista y administración', () => {
     const y = await confirmPeriod(admin, inv, '2026-01-15', '2026-02-15');
     await admin.call('POST', '/api/admin/payments', { investment_id: inv, amount_cents: 1000, paid_at: '2026-02-16T12:00:00Z', reference: 'SPEI-1', allocations: [{ yield_entry_id: y.id, amount_cents: 1000 }] });
 
-    const s = (await hector.call('GET', '/api/investor/summary')).json.data;
+    const summary = (await hector.call('GET', '/api/investor/summary')).json.data;
+    expect(summary.by_currency).toHaveLength(1);
+    const s = summary.by_currency[0];
+    expect(summary.active_investments_count).toBe(1);
+    expect(summary.as_of_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(s).toMatchObject({
       currency: 'MXN',
       total_capital_cents: 40_000_000,
@@ -37,7 +41,6 @@ describe('Área del inversionista y administración', () => {
       total_yield_pending_cents: y.amount - 1000,
       active_investments_count: 1
     });
-    expect(s.as_of_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     const list = (await hector.call('GET', '/api/investor/investments?status=ACTIVE')).json;
     expect(list.pagination.total).toBe(1);
@@ -119,12 +122,12 @@ describe('Área del inversionista y administración', () => {
     });
     expect(noType.status).toBe(400);
     const badDates = await admin.call('POST', '/api/admin/investments', {
-      investor_user_id: hectorId, code: 'FICT-BD', investment_type: 'FAST_FOOD', start_date: '2026-02-30', maturity_date: '2027-01-15', capital_cents: 100,
+      investor_user_id: hectorId, code: 'FICT-BD', investment_type: 'FAST_FOOD', currency: 'MXN', start_date: '2026-02-30', maturity_date: '2027-01-15', capital_cents: 100,
       fixed_annual_rate_bps: 1300, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
     });
     expect(badDates.status).toBe(400);
     const toAdmin = await admin.call('POST', '/api/admin/investments', {
-      investor_user_id: 'usr_admin', code: 'FICT-AD', investment_type: 'FAST_FOOD', start_date: '2026-01-15', maturity_date: '2027-01-15', capital_cents: 100,
+      investor_user_id: 'usr_admin', code: 'FICT-AD', investment_type: 'FAST_FOOD', currency: 'MXN', start_date: '2026-01-15', maturity_date: '2027-01-15', capital_cents: 100,
       fixed_annual_rate_bps: 1300, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
     });
     expect(toAdmin.status).toBe(400);
@@ -134,7 +137,7 @@ describe('Área del inversionista y administración', () => {
     expect(byName.data).toHaveLength(1);
     expect(byName.data[0]).toMatchObject({ code: 'FICT-2026-004', investment_type: 'TRANSPORT', investor_name: 'Cesar Daniel' });
     const dupCode = await admin.call('POST', '/api/admin/investments', {
-      investor_user_id: hectorId, code: 'fict-2026-001', investment_type: 'MOBILITY', start_date: '2026-01-15', maturity_date: '2027-01-15', capital_cents: 100,
+      investor_user_id: hectorId, code: 'fict-2026-001', investment_type: 'MOBILITY', currency: 'MXN', start_date: '2026-01-15', maturity_date: '2027-01-15', capital_cents: 100,
       fixed_annual_rate_bps: 1300, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
     });
     expect(dupCode.json.error.code).toBe('CODE_ALREADY_EXISTS');
@@ -179,7 +182,8 @@ describe('Área del inversionista y administración', () => {
     const inv = await createInvestment(admin, hectorId);
     const y = await confirmPeriod(admin, inv, '2026-01-15', '2026-02-15');
     const summary = (await admin.call('GET', '/api/admin/summary')).json.data;
-    expect(summary).toMatchObject({ investors_count: 2, active_investments_count: 1, total_capital_cents: 25_000_000, yield_pending_cents: y.amount });
+    expect(summary).toMatchObject({ investors_count: 2, active_investments_count: 1 });
+    expect(summary.by_currency).toEqual([{ currency: 'MXN', total_capital_cents: 25_000_000, yield_pending_cents: y.amount, active_investments_count: 1 }]);
     const pending = (await admin.call('GET', `/api/admin/investments/${inv}/yields?pending=1`)).json.data;
     expect(pending).toHaveLength(1);
     expect(pending[0]).toMatchObject({ id: y.id, paid_cents: 0, reinvested_cents: 0, pending_cents: y.amount, source: 'AUTO' });

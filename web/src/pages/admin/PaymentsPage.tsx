@@ -6,7 +6,7 @@ import { InvestmentPicker } from '../../components/admin/InvestmentPicker';
 import { DataTable, Pagination, type Column } from '../../components/DataTable';
 import { Alert, Async, Button, Card, EmptyState, errorMessage, PageHeader, TextArea, TextInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
-import { centsToPlainPesos, formatDateTime, formatMXN, formatPeriod, todayInContractZone } from '../../lib/format';
+import { centsToPlainPesos, formatDateTime, formatMoney, formatPeriod, todayInContractZone } from '../../lib/format';
 import { mexicoCityLocalToIso, parsePesosToCents } from '../../lib/parse';
 
 const paymentColumns: Column<AdminPaymentRow>[] = [
@@ -14,8 +14,8 @@ const paymentColumns: Column<AdminPaymentRow>[] = [
   { key: 'inv', header: 'Inversión', render: (r) => r.investment_code },
   { key: 'who', header: 'Inversionista', hideOnMobile: true, render: (r) => r.investor_name ?? '—' },
   { key: 'ref', header: 'Referencia', render: (r) => r.reference },
-  { key: 'amount', header: 'Monto', align: 'right', render: (r) => formatMXN(r.amount_cents) },
-  { key: 'alloc', header: 'Asignado', align: 'right', render: (r) => formatMXN(r.allocated_cents) }
+  { key: 'amount', header: 'Monto', align: 'right', render: (r) => formatMoney(r.amount_cents, r.currency) },
+  { key: 'alloc', header: 'Asignado', align: 'right', render: (r) => formatMoney(r.allocated_cents, r.currency) }
 ];
 
 export function PaymentsPage() {
@@ -64,6 +64,9 @@ export function PaymentsPage() {
 
 function PaymentForm({ investmentId, onSaved, onEdit }: { investmentId: string; onSaved: (msg: string) => void; onEdit: () => void }) {
   const pending = useAsync(() => api.admin.yields(investmentId, { pendingOnly: true }), [investmentId]);
+  const inv = useAsync(() => api.admin.investment(investmentId), [investmentId]);
+  const currency = inv.data?.currency ?? 'MXN';
+  const formatMXN = (c: number) => formatMoney(c, currency);
   const [form, setForm] = useState({ amount: '', date: todayInContractZone(), time: '12:00', reference: '', notes: '' });
   const [alloc, setAlloc] = useState<Record<string, string>>({});
   const [ack, setAck] = useState(false);
@@ -125,7 +128,7 @@ function PaymentForm({ investmentId, onSaved, onEdit }: { investmentId: string; 
           <form onSubmit={(e) => submit(e, entries)} noValidate className="space-y-5">
             {error && <Alert tone="bad">{error}</Alert>}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <TextInput label="Monto pagado (MXN)" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} hint={amountCents ? formatMXN(amountCents) : undefined} />
+              <TextInput label={`Monto pagado (${currency})`} inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} hint={amountCents ? formatMXN(amountCents) : undefined} />
               <TextInput label="Fecha del pago" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
               <TextInput label="Hora (Ciudad de México)" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
               <TextInput label="Referencia bancaria" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />

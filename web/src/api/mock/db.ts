@@ -5,6 +5,8 @@
 import type {
   AuditLogRow,
   Beneficiary,
+  Currency,
+  ReferenceRateCode,
   InvestmentType,
   CapitalizationPolicy,
   DayCountConvention,
@@ -36,12 +38,17 @@ export interface MockInvestment {
   investor_user_id: string;
   code: string;
   investment_type: InvestmentType;
+  currency: Currency;
   status: InvestmentStatus;
   start_date: string;
   maturity_date: string;
   initial_capital_cents: number;
   current_capital_cents: number;
-  rate_bps: number;
+  /** Tasa fija (null en CETES). */
+  rate_bps: number | null;
+  rate_type: 'FIXED' | 'REFERENCE';
+  reference_rate_code: ReferenceRateCode | null;
+  spread_bps: number | null;
   payout_frequency: PayoutFrequency;
   day_count_convention: DayCountConvention;
   capitalization_policy: CapitalizationPolicy;
@@ -59,6 +66,8 @@ export interface MockYield {
   source: YieldSource;
   note: string | null;
   reversal_of?: string;
+  /** Tasa de referencia usada (solo CETES). */
+  reference_rate_id?: string;
   created_at: string;
 }
 
@@ -98,6 +107,15 @@ export interface MockNotification extends NotificationEvent {
   user_id: string;
 }
 
+export interface MockReferenceRate {
+  id: string;
+  rate_code: ReferenceRateCode;
+  effective_date: string;
+  annual_rate_bps: number;
+  source: string | null;
+  created_at: string;
+}
+
 export interface MockDb {
   users: MockUser[];
   investments: MockInvestment[];
@@ -107,6 +125,7 @@ export interface MockDb {
   documents: MockDocument[];
   notifications: MockNotification[];
   audit: AuditLogRow[];
+  rates: MockReferenceRate[];
   seq: number;
 }
 
@@ -205,39 +224,60 @@ export function createMockDb(): MockDb {
     ],
     investments: [
       {
-        id: 'inv_fict_001', investor_user_id: 'usr_fict_01', code: 'FICT-2026-001', investment_type: 'MOBILITY', status: 'ACTIVE',
+        id: 'inv_fict_001', investor_user_id: 'usr_fict_01', code: 'FICT-2026-001', investment_type: 'MOBILITY', currency: 'MXN', status: 'ACTIVE',
         start_date: '2026-01-15', maturity_date: '2027-01-15',
         initial_capital_cents: 25_000_000, current_capital_cents: 25_000_000, rate_bps: 1600,
+        rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
         payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE',
         notes: 'Contrato FICTICIO de prueba', created_at: '2026-01-15T17:00:00Z'
       },
       {
-        id: 'inv_fict_002', investor_user_id: 'usr_fict_01', code: 'FICT-2025-002', investment_type: 'TRANSPORT', status: 'ACTIVE',
+        id: 'inv_fict_002', investor_user_id: 'usr_fict_01', code: 'FICT-2025-002', investment_type: 'TRANSPORT', currency: 'MXN', status: 'ACTIVE',
         start_date: '2025-11-01', maturity_date: '2027-05-01',
         initial_capital_cents: 40_000_000, current_capital_cents: 40_000_000, rate_bps: 2500,
+        rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
         payout_frequency: 'SEMIANNUAL', day_count_convention: 'ACT_365', capitalization_policy: 'COMPOUND_TO_CAPITAL',
         notes: null, created_at: '2025-11-01T17:00:00Z'
       },
       {
-        id: 'inv_fict_003', investor_user_id: 'usr_fict_01', code: 'FICT-2025-003', investment_type: 'FAST_FOOD', status: 'MATURED',
+        id: 'inv_fict_003', investor_user_id: 'usr_fict_01', code: 'FICT-2025-003', investment_type: 'FAST_FOOD', currency: 'MXN', status: 'MATURED',
         start_date: '2025-01-10', maturity_date: '2026-01-10',
         initial_capital_cents: 10_000_000, current_capital_cents: 10_000_000, rate_bps: 1300,
+        rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
         payout_frequency: 'AT_MATURITY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE',
         notes: null, created_at: '2025-01-10T17:00:00Z'
       },
       {
-        id: 'inv_fict_004', investor_user_id: 'usr_fict_02', code: 'FICT-2026-004', investment_type: 'TRANSPORT', status: 'ACTIVE',
+        id: 'inv_fict_004', investor_user_id: 'usr_fict_02', code: 'FICT-2026-004', investment_type: 'TRANSPORT', currency: 'MXN', status: 'ACTIVE',
         start_date: '2026-03-01', maturity_date: '2027-09-01',
         initial_capital_cents: 40_000_000, current_capital_cents: 40_000_000, rate_bps: 2500,
+        rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
         payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE',
         notes: null, created_at: '2026-03-01T17:00:00Z'
       },
       {
-        id: 'inv_fict_005', investor_user_id: 'usr_fict_03', code: 'FICT-2026-005', investment_type: 'FAST_FOOD', status: 'ACTIVE',
+        id: 'inv_fict_005', investor_user_id: 'usr_fict_03', code: 'FICT-2026-005', investment_type: 'FAST_FOOD', currency: 'MXN', status: 'ACTIVE',
         start_date: '2026-05-01', maturity_date: '2027-05-01',
         initial_capital_cents: 10_000_000, current_capital_cents: 10_000_000, rate_bps: 1300,
+        rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
         payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE',
         notes: 'Pago mensual para complementar pensión (FICTICIO)', created_at: '2026-05-01T17:00:00Z'
+      },
+      {
+        id: 'inv_fict_006', investor_user_id: 'usr_fict_02', code: 'FICT-2026-006', investment_type: 'TRANSPORT', currency: 'USD', status: 'ACTIVE',
+        start_date: '2026-04-01', maturity_date: '2028-04-01',
+        initial_capital_cents: 2_000_000, current_capital_cents: 2_000_000, rate_bps: 1200,
+        rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
+        payout_frequency: 'ANNUAL', day_count_convention: 'ACT_365', capitalization_policy: 'NONE',
+        notes: 'Inversión en dólares FICTICIA', created_at: '2026-04-01T17:00:00Z'
+      },
+      {
+        id: 'inv_fict_007', investor_user_id: 'usr_fict_03', code: 'FICT-2026-007', investment_type: 'CETES', currency: 'MXN', status: 'ACTIVE',
+        start_date: '2026-06-01', maturity_date: '2027-06-01',
+        initial_capital_cents: 20_000_000, current_capital_cents: 20_000_000, rate_bps: null,
+        rate_type: 'REFERENCE', reference_rate_code: 'CETES_28', spread_bps: -100,
+        payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE',
+        notes: 'CETES − 1 punto (FICTICIO)', created_at: '2026-06-01T17:00:00Z'
       }
     ],
     yields: [],
@@ -246,6 +286,12 @@ export function createMockDb(): MockDb {
     documents: [],
     notifications: [],
     audit: [],
+    rates: [
+      ['2026-05-28', 745], ['2026-06-25', 740], ['2026-07-30', 730], ['2026-08-27', 725], ['2026-09-24', 720]
+    ].map(([d, bps], i) => ({
+      id: `rrt_fict_${i + 1}`, rate_code: 'CETES_28' as const, effective_date: d as string, annual_rate_bps: bps as number,
+      source: 'Tasa FICTICIA', created_at: `${d}T18:00:00Z`
+    })),
     seq: 1
   };
 
@@ -316,6 +362,17 @@ export function createMockDb(): MockDb {
     start = end;
   }
 
+  // FICT-2026-007: CETES 28 − 1 punto; tasa vigente al inicio de cada periodo; 3 pagados, el último pendiente.
+  start = '2026-06-01';
+  for (let i = 0; i < 4; i++) {
+    const end = addMonths('2026-06-01', i + 1);
+    const ref = mockRateAt(db, 'CETES_28', start)!;
+    const y = addYield('inv_fict_007', start, end, 20_000_000, ref.annual_rate_bps - 100);
+    y.reference_rate_id = ref.id;
+    if (i < 3) pay('inv_fict_007', y, y.amount_cents, `${end}T17:30:00Z`);
+    start = end;
+  }
+
   const doc = (invId: string, title: string, type: DocumentType, file: string, size: number, created: string) =>
     db.documents.push({
       id: id('doc'), investment_id: invId, title, document_type: type, original_filename: file,
@@ -351,6 +408,13 @@ export function createMockDb(): MockDb {
   audit('DOCUMENT_UPLOADED', 'DOCUMENT', db.documents[2]!.id, '2026-05-02T18:00:00Z', { title: 'Adenda FICTICIA de reinversión' });
 
   return db;
+}
+
+/** Tasa de referencia vigente a una fecha (la más reciente con fecha efectiva <= date). */
+export function mockRateAt(db: MockDb, code: ReferenceRateCode, date: string) {
+  return db.rates
+    .filter((r) => r.rate_code === code && r.effective_date <= date)
+    .sort((a, b) => b.effective_date.localeCompare(a.effective_date))[0];
 }
 
 export function nextId(db: MockDb, prefix: string) {

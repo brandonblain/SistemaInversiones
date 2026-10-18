@@ -16,10 +16,24 @@ export async function getCapitalAsOf(db: D1Database, investmentId: string, date:
   return row?.capital ?? 0;
 }
 
+export type ReferenceRateCode = 'CETES_28' | 'CETES_91' | 'CETES_182' | 'CETES_364';
+
+/** Detalle de la tasa aplicada. Para CETES: tasa de referencia vigente al inicio del periodo + diferencial. */
+export interface RateDetail {
+  rateType: 'FIXED' | 'REFERENCE';
+  referenceRateCode: ReferenceRateCode | null;
+  referenceRateId: string | null;
+  referenceRateBps: number | null;
+  referenceRateDate: string | null;
+  spreadBps: number | null;
+}
+
 export interface CalculationContext {
-  investment: { id: string; code: string; status: string; start_date: string; maturity_date: string; investor_user_id: string };
+  investment: { id: string; code: string; status: string; start_date: string; maturity_date: string; investor_user_id: string; currency: string };
   capitalCents: number;
+  /** Tasa anual APLICADA al periodo (fija, o referencia + diferencial). */
   rateBps: number;
+  rate: RateDetail;
   convention: DayCountConvention;
   payoutFrequency: PayoutFrequency;
   capitalizationPolicy: CapitalizationPolicy;
@@ -33,7 +47,7 @@ export interface CalculationContext {
  */
 export async function resolveCalculationContext(db: D1Database, investmentId: string, start: string, end: string): Promise<CalculationContext> {
   const inv = await db
-    .prepare('SELECT id, code, status, start_date, maturity_date, investor_user_id FROM investments WHERE id = ?')
+    .prepare('SELECT id, code, status, start_date, maturity_date, investor_user_id, currency FROM investments WHERE id = ?')
     .bind(investmentId)
     .first<CalculationContext['investment']>();
   if (!inv) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
@@ -47,13 +61,13 @@ export async function resolveCalculationContext(db: D1Database, investmentId: st
 
   const terms = await db
     .prepare(
-      `SELECT fixed_annual_rate_bps, day_count_convention, payout_frequency, capitalization_policy
+      `SELECT rate_type, fixed_annual_rate_bps, reference_rate_code, spread_bps, day_count_convention, payout_frequency, capitalization_policy
        FROM investment_terms
        WHERE investment_id = ? AND effective_from <= ? AND (effective_to IS NULL OR effective_to > ?)
        ORDER BY effective_from DESC, version DESC LIMIT 1`
     )
     .bind(investmentId, start, start)
-    .first<{ fixed_annual_rate_bps: number; day_count_convention: DayCountConvention; payout_frequency: PayoutFrequency; capitalization_policy: CapitalizationPolicy }>();
+    .first<{ rate_type: 'FIXED' | 'REFERENCE'; fixed_annual_rate_bps: number | null; reference_rate_code: ReferenceRateCode | null; spread_bps: number | null; day_count_convention: DayCountConvention; payout_frequency: PayoutFrequency; capitalization_policy: CapitalizationPolicy }>();
   if (!terms) throw new AppError(409, 'TERMS_NOT_FOUND', 'No hay términos contractuales vigentes para el inicio del periodo.');
 
   const termChange = await db
@@ -79,13 +93,50 @@ export async function resolveCalculationContext(db: D1Database, investmentId: st
   const capitalCents = await getCapitalAsOf(db, investmentId, start);
   if (capitalCents <= 0) throw new AppError(409, 'NO_CAPITAL', 'La inversión no tiene capital vigente al inicio del periodo.');
 
+  const rate = await resolveRate(db, terms, start);
+
   return {
     investment: inv,
     capitalCents,
-    rateBps: terms.fixed_annual_rate_bps,
+    rateBps: rate.appliedBps,
+    rate: rate.detail,
     convention: terms.day_count_convention,
     payoutFrequency: terms.payout_frequency,
     capitalizationPolicy: terms.capitalization_policy
+  };
+}
+
+/**
+ * Tasa aplicada al periodo [start, end).
+ * - FIXED: la tasa anual fija del contrato.
+ * - REFERENCE (CETES): la última tasa capturada con fecha efectiva <= inicio del periodo, más el diferencial.
+ *   PENDIENTE de confirmar con el cliente: plazo de CETES, fecha de observación y si "−1 punto" son 100 pb.
+ */
+export async function resolveRate(
+  db: D1Database,
+  terms: { rate_type: 'FIXED' | 'REFERENCE'; fixed_annual_rate_bps: number | null; reference_rate_code: ReferenceRateCode | null; spread_bps: number | null },
+  start: string
+): Promise<{ appliedBps: number; detail: RateDetail }> {
+  if (terms.rate_type === 'FIXED') {
+    if (!terms.fixed_annual_rate_bps) throw new AppError(409, 'TERMS_NOT_FOUND', 'La inversión no tiene tasa fija registrada.');
+    return {
+      appliedBps: terms.fixed_annual_rate_bps,
+      detail: { rateType: 'FIXED', referenceRateCode: null, referenceRateId: null, referenceRateBps: null, referenceRateDate: null, spreadBps: null }
+    };
+  }
+  const code = terms.reference_rate_code!;
+  const ref = await db
+    .prepare('SELECT id, annual_rate_bps, effective_date FROM reference_rates WHERE rate_code = ? AND effective_date <= ? ORDER BY effective_date DESC LIMIT 1')
+    .bind(code, start)
+    .first<{ id: string; annual_rate_bps: number; effective_date: string }>();
+  if (!ref) {
+    throw new AppError(409, 'REFERENCE_RATE_MISSING', `Registre la tasa ${code.replace('_', ' ')} vigente al ${start} en Administración › Tasas de referencia.`, { rate_code: code, date: start });
+  }
+  const applied = ref.annual_rate_bps + (terms.spread_bps ?? 0);
+  if (applied <= 0) throw new AppError(409, 'RATE_NOT_POSITIVE', 'La tasa aplicada (referencia + diferencial) no es positiva.');
+  return {
+    appliedBps: applied,
+    detail: { rateType: 'REFERENCE', referenceRateCode: code, referenceRateId: ref.id, referenceRateBps: ref.annual_rate_bps, referenceRateDate: ref.effective_date, spreadBps: terms.spread_bps }
   };
 }
 
