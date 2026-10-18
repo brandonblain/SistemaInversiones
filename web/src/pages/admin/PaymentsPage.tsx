@@ -23,6 +23,7 @@ export function PaymentsPage() {
   const investmentId = params.get('inversion') ?? '';
   const [page, setPage] = useState(1);
   const [nonce, setNonce] = useState(0);
+  const [saved, setSaved] = useState<string | null>(null);
   const history = useAsync(() => api.admin.payments({ investment_id: investmentId || undefined, page, pageSize: 10 }), [investmentId, page, nonce]);
 
   return (
@@ -34,7 +35,19 @@ export function PaymentsPage() {
           <InvestmentPicker value={investmentId} onChange={(id) => { setParams(id ? { inversion: id } : {}, { replace: true }); setPage(1); }} />
         </div>
       </Card>
-      {investmentId && <PaymentForm key={`${investmentId}-${nonce}`} investmentId={investmentId} onSaved={() => setNonce((n) => n + 1)} />}
+      {saved && <div className="mt-4"><Alert tone="ok">{saved}</Alert></div>}
+      {investmentId && (
+        <PaymentForm
+          key={`${investmentId}-${nonce}`}
+          investmentId={investmentId}
+          onEdit={() => setSaved(null)}
+          onSaved={(msg) => {
+            // El formulario se vuelve a montar limpio; el aviso de éxito vive en la página.
+            setSaved(msg);
+            setNonce((n) => n + 1);
+          }}
+        />
+      )}
       <Card className="mt-4" title={investmentId ? 'Pagos de esta inversión' : 'Pagos registrados'}>
         <Async state={history}>
           {(res) => (
@@ -49,13 +62,12 @@ export function PaymentsPage() {
   );
 }
 
-function PaymentForm({ investmentId, onSaved }: { investmentId: string; onSaved: () => void }) {
+function PaymentForm({ investmentId, onSaved, onEdit }: { investmentId: string; onSaved: (msg: string) => void; onEdit: () => void }) {
   const pending = useAsync(() => api.admin.yields(investmentId, { pendingOnly: true }), [investmentId]);
   const [form, setForm] = useState({ amount: '', date: todayInContractZone(), time: '12:00', reference: '', notes: '' });
   const [alloc, setAlloc] = useState<Record<string, string>>({});
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const amountCents = parsePesosToCents(form.amount);
@@ -84,7 +96,7 @@ function PaymentForm({ investmentId, onSaved }: { investmentId: string; onSaved:
   const submit = async (e: FormEvent, entries: AdminYieldEntry[]) => {
     e.preventDefault();
     if (saving) return;
-    setOk(null);
+    onEdit();
     const problem = validate(entries);
     if (problem) return setError(problem);
     setError(null);
@@ -98,8 +110,7 @@ function PaymentForm({ investmentId, onSaved }: { investmentId: string; onSaved:
         notes: form.notes.trim() || undefined,
         allocations: allocCents.map((a) => ({ yield_entry_id: a.yield_entry_id, amount_cents: a.amount_cents! }))
       });
-      setOk('Pago registrado. Se notificará al inversionista por correo (sin montos).');
-      onSaved();
+      onSaved(`Pago ${form.reference.trim()} registrado. Se notificará al inversionista por correo (sin montos).`);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -113,7 +124,6 @@ function PaymentForm({ investmentId, onSaved }: { investmentId: string; onSaved:
         {(entries) => (
           <form onSubmit={(e) => submit(e, entries)} noValidate className="space-y-5">
             {error && <Alert tone="bad">{error}</Alert>}
-            {ok && <Alert tone="ok">{ok}</Alert>}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <TextInput label="Monto pagado (MXN)" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} hint={amountCents ? formatMXN(amountCents) : undefined} />
               <TextInput label="Fecha del pago" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
