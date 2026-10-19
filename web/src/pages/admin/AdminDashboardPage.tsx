@@ -56,6 +56,7 @@ export function AdminDashboardPage() {
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Card title="Tareas frecuentes">
           <ul className="space-y-2 text-sm">
+            <li><Link className="font-semibold text-brand hover:underline" to="/admin/estadisticas">Ver estadísticas generales y por cliente</Link></li>
             <li><Link className="font-semibold text-brand hover:underline" to="/admin/rendimientos">Calcular y confirmar rendimientos</Link></li>
             <li><Link className="font-semibold text-brand hover:underline" to="/admin/pagos">Registrar un pago externo</Link></li>
             <li><Link className="font-semibold text-brand hover:underline" to="/admin/inversiones/nueva">Dar de alta una inversión</Link></li>

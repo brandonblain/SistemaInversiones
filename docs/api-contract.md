@@ -141,8 +141,17 @@ El inversionista **no tiene rutas de documentos**.
   - Responde 201 con `{ user_id, profile_id, email, full_name }`.
 - `GET /investors/:id` → `{ user: { id, email, is_active, created_at }, profile, beneficiaries: [...], investments: InvestmentListItem[] }`
 
+### Estadísticas
+- `GET /statistics?investor_id=`: sin `investor_id` son generales; con `investor_id`, de ese cliente (404 si no existe). Todo va separado por moneda. Responde:
+  - `totals`: por moneda, `{ currency, investors_count, investments_active, investments_matured, investments_total, initial_capital_cents, capital_cents, yield_confirmed_cents, yield_paid_cents, yield_reinvested_cents, yield_pending_cents, weighted_fixed_rate_bps }`. La tasa ponderada usa el capital vigente de las inversiones de tasa fija.
+  - `by_type`: `{ currency, investment_type, investments_count, capital_cents, yield_confirmed_cents }`.
+  - `by_payout`: `{ currency, payout_frequency, investments_count, capital_cents }`.
+  - `monthly`: 12 meses por moneda, `{ currency, month: 'YYYY-MM', yield_confirmed_cents, paid_cents }`.
+  - `upcoming_maturities`: vencimientos de los próximos 90 días.
+  - `investors`: un renglón por cliente y moneda, `{ user_id, full_name, email, currency, investments_count, active_count, capital_cents, yield_confirmed_cents, yield_paid_cents, yield_reinvested_cents, yield_pending_cents, next_maturity }`.
+
 ### Inversiones
-- `GET /investments?q=&status=&page=&pageSize=`: `q` busca por código, nombre o correo. Cada fila trae `{ id, investor_user_id, code, investment_type, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, investor_name, investor_email, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy }`.
+- `GET /investments?q=&status=&currency=&investment_type=&investor_id=&page=&pageSize=`: `q` busca por código, nombre o correo. Cada fila incluye además los saldos `yield_confirmed_cents`, `yield_paid_cents`, `yield_reinvested_cents` y `yield_pending_cents`. Cada fila trae `{ id, investor_user_id, code, investment_type, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, investor_name, investor_email, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy }`.
 - `POST /investments`: cuerpo `{ investor_user_id, code, investment_type, currency, start_date, maturity_date, capital_cents, payout_frequency, day_count_convention, capitalization_policy, notes? }` más la tasa:
   - **tasa fija** (Fast Food, Movilidad, Transporte): `fixed_annual_rate_bps`;
   - **CETES**: `reference_rate_code` y `spread_bps`, con `currency` obligatoriamente `MXN`.

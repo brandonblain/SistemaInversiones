@@ -3,7 +3,10 @@ import type {
   AdminInvestorDetail,
   AdminInvestorRow,
   AdminPaymentRow,
+  AdminStatistics,
   AdminSummary,
+  Currency,
+  InvestmentType,
   AdminYieldEntry,
   AuditLogRow,
   ConfirmYieldInput,
@@ -59,7 +62,8 @@ export interface PortalApi {
     investors(q: PageQuery & { q?: string; active?: '' | '1' | '0' }): Promise<Paginated<AdminInvestorRow>>;
     investor(id: string): Promise<AdminInvestorDetail>;
     createInvestor(input: CreateInvestorInput): Promise<{ user_id: string }>;
-    investments(q: PageQuery & { q?: string; status?: InvestmentStatus | '' }): Promise<Paginated<AdminInvestmentRow>>;
+    investments(q: PageQuery & { q?: string; status?: InvestmentStatus | ''; currency?: Currency | ''; investment_type?: InvestmentType | ''; investor_id?: string }): Promise<Paginated<AdminInvestmentRow>>;
+    statistics(investorId?: string): Promise<AdminStatistics>;
     investment(id: string): Promise<InvestmentDetail & { investor_user_id: string; investor_name: string | null; notes: string | null }>;
     createInvestment(input: CreateInvestmentInput): Promise<{ investment_id: string }>;
     yields(investmentId: string, q?: { pendingOnly?: boolean }): Promise<AdminYieldEntry[]>;

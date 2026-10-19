@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 import { USING_MOCKS } from '../../api';
 import { MockBanner } from '../../components/MockBanner';
+import { Link } from 'react-router-dom';
 import { BRAND } from '../../layouts/brand';
+import { usePrivatePage } from '../../layouts/usePrivatePage';
 
 export function AuthLayout({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  usePrivatePage();
   return (
     <div className="flex min-h-screen flex-col bg-nav">
       <MockBanner />
@@ -24,6 +27,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
             </div>
           )}
           <p className="mt-6 text-center text-xs text-nav-ink/80">Acceso privado y exclusivo para inversionistas de {BRAND.name}.</p>
+          <p className="mt-3 text-center text-sm"><Link to="/" className="font-semibold text-white hover:underline">← Volver al sitio</Link></p>
         </div>
       </main>
     </div>

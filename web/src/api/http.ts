@@ -75,6 +75,7 @@ export const httpApi: PortalApi = {
     investor: (id) => request('GET', `/api/admin/investors/${encodeURIComponent(id)}`),
     createInvestor: (input) => request('POST', '/api/admin/investors', input),
     investments: (q) => requestPage(`/api/admin/investments${qs(q)}`),
+    statistics: (investorId) => request('GET', `/api/admin/statistics${qs({ investor_id: investorId })}`),
     investment: async (id) =>
       normalizeInvestmentDetail(await request('GET', `/api/admin/investments/${encodeURIComponent(id)}`)) as any,
     createInvestment: (input) => request('POST', '/api/admin/investments', input),

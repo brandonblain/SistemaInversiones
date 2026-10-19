@@ -17,11 +17,11 @@ npm run setup     # instala dependencias, crea la base D1 local y carga los dato
 npm start         # compila la interfaz y levanta todo en http://localhost:8787
 ```
 
-Abra **http://localhost:8787** y entre con cualquiera de estos usuarios (contraseña `Ficticio123!`):
+Abra **http://localhost:8787**: verá la **página web pública** de la empresa (ramos, opciones de inversión, formas de cobro y socios capital). Con el botón **Acceso clientes**, arriba a la derecha, entre con cualquiera de estos usuarios (contraseña `Ficticio123!`):
 
 | Usuario | Rol | Qué probar |
 |---|---|---|
-| `admin@ficticio.test` | Administración | Calcular y confirmar rendimientos, registrar pagos, dar de alta clientes con beneficiarios e inversiones por ramo, subir documentos, revisar la bitácora |
+| `admin@ficticio.test` | Administración | **Estadísticas** generales, por cliente y de todas las inversiones; calcular y confirmar rendimientos, registrar pagos, dar de alta clientes con beneficiarios e inversiones por ramo, subir documentos, revisar la bitácora |
 | `hector.galeana@ficticio.test` | Inversionista | Tres inversiones: Movilidad, Transporte con reinversión y Fast Food vencida |
 | `cesar.daniel@ficticio.test` | Inversionista | Transporte mensual en pesos y Transporte anual en **dólares** |
 | `victoria.perez@ficticio.test` | Inversionista | Fast Food mensual e inversión a **CETES − 1 punto** |
@@ -46,7 +46,7 @@ La interfaz también funciona sin backend, con datos de ejemplo: `npm --prefix w
 ## Pruebas
 
 ```bash
-npm run test:all   # 60 pruebas del backend + 47 de la interfaz
+npm run test:all   # 63 pruebas del backend + 53 de la interfaz
 npm run typecheck  # backend y frontend
 ```
 

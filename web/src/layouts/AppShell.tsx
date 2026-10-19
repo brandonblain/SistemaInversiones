@@ -5,6 +5,7 @@ import { Icon, type IconName } from '../components/icons';
 import { MockBanner } from '../components/MockBanner';
 import { cx } from '../components/ui';
 import { BRAND } from './brand';
+import { usePrivatePage } from './usePrivatePage';
 
 export interface NavItem {
   to: string;
@@ -40,6 +41,7 @@ export function AppShell({ nav, areaLabel, mobileStyle, banner }: { nav: NavItem
   const name = session?.investor_profile?.full_name ?? session?.user.email ?? '';
 
   useEffect(() => setDrawer(false), [location.pathname]);
+  usePrivatePage();
 
   const onLogout = async () => {
     await logout();

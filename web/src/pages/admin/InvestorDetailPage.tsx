@@ -4,7 +4,8 @@ import type { Beneficiary, InvestmentListItem } from '../../api/types';
 import { InvestmentStatusBadge } from '../../components/badges';
 import { DataTable, type Column } from '../../components/DataTable';
 import { Icon } from '../../components/icons';
-import { Async, Badge, Card, DefinitionList, EmptyState, LinkButton, PageHeader } from '../../components/ui';
+import { StatsOverview } from '../../components/admin/StatsOverview';
+import { Async, Badge, Card, DefinitionList, EmptyState, LinkButton, LoadingBlock, PageHeader } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
 import { formatDate, formatMoney, formatRateBps } from '../../lib/format';
 import { investmentTypeLabel, payoutFrequencyLabel, rateSummary, relationshipLabel } from '../../lib/labels';
@@ -30,6 +31,7 @@ export function InvestorDetailPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const detail = useAsync(() => api.admin.investor(id), [id]);
+  const stats = useAsync(() => api.admin.statistics(id), [id]);
 
   const back = (
     <Link to="/admin/clientes" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
@@ -67,6 +69,9 @@ export function InvestorDetailPage() {
                 rowKey={(b) => b.id ?? b.full_name}
                 empty={<EmptyState icon="users" title="Sin beneficiarios registrados" />}
               />
+            </Card>
+            <Card title="Estadísticas del cliente">
+              <Async state={stats} loading={<LoadingBlock rows={6} />}>{(s) => <StatsOverview stats={s} scope="cliente" />}</Async>
             </Card>
             <Card title="Inversiones">
               <DataTable

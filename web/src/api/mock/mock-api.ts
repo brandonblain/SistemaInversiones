@@ -5,6 +5,7 @@ import { ApiError, notifyUnauthorized } from '../client';
 import type { PortalApi } from '../portal-api';
 import type {
   AdminInvestmentRow,
+  AdminStatistics,
   AdminYieldEntry,
   CurrencyTotals,
   HistoryEntry,
@@ -23,6 +24,7 @@ import {
   mockRateAt,
   mockYieldAmount,
   nextId,
+  addMonths,
   type MockDb,
   type MockInvestment,
   type MockUser
@@ -186,6 +188,93 @@ function totalsByCurrency(invs: MockInvestment[]) {
     acc.set(inv.currency, t);
   }
   return [...acc.values()].sort((a, b) => (a.currency === 'MXN' ? -1 : b.currency === 'MXN' ? 1 : 0));
+}
+
+/** Estadísticas del servidor simulado (misma forma que /api/admin/statistics). */
+function mockStatistics(investorId?: string): AdminStatistics {
+  const t0 = today();
+  const invs = db.investments.filter((i) => !investorId || i.investor_user_id === investorId);
+  const currencies = [...new Set(invs.map((i) => i.currency))].sort((a, b) => (a === 'MXN' ? -1 : b === 'MXN' ? 1 : 0));
+  const totals = currencies.map((cur) => {
+    const list = invs.filter((i) => i.currency === cur);
+    const bs = list.map((i) => ({ i, b: balance(i) }));
+    const activeFixed = bs.filter(({ i }) => i.status === 'ACTIVE' && i.rate_type === 'FIXED' && i.rate_bps);
+    const capFixed = activeFixed.reduce((s, x) => s + x.b.capital_cents, 0);
+    return {
+      currency: cur,
+      investors_count: new Set(list.map((i) => i.investor_user_id)).size,
+      investments_active: list.filter((i) => i.status === 'ACTIVE').length,
+      investments_matured: list.filter((i) => i.status === 'MATURED').length,
+      investments_total: list.length,
+      initial_capital_cents: list.reduce((s, i) => s + i.initial_capital_cents, 0),
+      capital_cents: bs.filter(({ i }) => i.status === 'ACTIVE').reduce((s, x) => s + x.b.capital_cents, 0),
+      yield_confirmed_cents: bs.reduce((s, x) => s + x.b.yield_confirmed_cents, 0),
+      yield_paid_cents: bs.reduce((s, x) => s + x.b.yield_paid_cents, 0),
+      yield_reinvested_cents: bs.reduce((s, x) => s + x.b.yield_reinvested_cents, 0),
+      yield_pending_cents: bs.reduce((s, x) => s + x.b.yield_pending_cents, 0),
+      weighted_fixed_rate_bps: capFixed > 0 ? Math.round(activeFixed.reduce((s, x) => s + x.b.capital_cents * (x.i.rate_bps ?? 0), 0) / capFixed) : null
+    };
+  });
+  const group = <K extends string>(key: (i: MockInvestment) => K) => {
+    const m = new Map<string, { currency: MockInvestment['currency']; k: K; investments_count: number; capital_cents: number; yield_confirmed_cents: number }>();
+    for (const i of invs) {
+      const id = `${i.currency}|${key(i)}`;
+      const g = m.get(id) ?? { currency: i.currency, k: key(i), investments_count: 0, capital_cents: 0, yield_confirmed_cents: 0 };
+      g.investments_count += 1;
+      if (i.status === 'ACTIVE') g.capital_cents += balance(i).capital_cents;
+      g.yield_confirmed_cents += balance(i).yield_confirmed_cents;
+      m.set(id, g);
+    }
+    return [...m.values()].sort((a, b) => b.capital_cents - a.capital_cents);
+  };
+  const fromMonth = addMonths(`${t0.slice(0, 7)}-01`, -11);
+  const months = Array.from({ length: 12 }, (_, k) => addMonths(fromMonth, k).slice(0, 7));
+  const ids = new Set(invs.map((i) => i.id));
+  const monthly = currencies.flatMap((cur) =>
+    months.map((m) => ({
+      currency: cur,
+      month: m,
+      yield_confirmed_cents: db.yields
+        .filter((y) => ids.has(y.investment_id) && y.status === 'CONFIRMED' && y.period_end.startsWith(m) && db.investments.find((i) => i.id === y.investment_id)?.currency === cur)
+        .reduce((s, y) => s + y.amount_cents, 0),
+      paid_cents: db.payments
+        .filter((p) => ids.has(p.investment_id) && p.paid_at.startsWith(m) && db.investments.find((i) => i.id === p.investment_id)?.currency === cur)
+        .reduce((s, p) => s + p.amount_cents, 0)
+    }))
+  );
+  const limit = new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10);
+  const perInvestor = new Map<string, AdminStatistics['investors'][number]>();
+  for (const i of invs) {
+    const b = balance(i);
+    const u = db.users.find((x) => x.id === i.investor_user_id)!;
+    const k = `${i.investor_user_id}|${i.currency}`;
+    const r = perInvestor.get(k) ?? {
+      user_id: u.id, full_name: u.profile?.full_name ?? null, email: u.email, currency: i.currency, investments_count: 0, active_count: 0,
+      capital_cents: 0, yield_confirmed_cents: 0, yield_paid_cents: 0, yield_reinvested_cents: 0, yield_pending_cents: 0, next_maturity: null
+    };
+    r.investments_count += 1;
+    if (i.status === 'ACTIVE') {
+      r.active_count += 1;
+      r.capital_cents += b.capital_cents;
+      if (i.maturity_date >= t0 && (!r.next_maturity || i.maturity_date < r.next_maturity)) r.next_maturity = i.maturity_date;
+    }
+    r.yield_confirmed_cents += b.yield_confirmed_cents;
+    r.yield_paid_cents += b.yield_paid_cents;
+    r.yield_reinvested_cents += b.yield_reinvested_cents;
+    r.yield_pending_cents += b.yield_pending_cents;
+    perInvestor.set(k, r);
+  }
+  return {
+    as_of_date: t0,
+    totals,
+    by_type: group((i) => i.investment_type).map(({ k, ...g }) => ({ ...g, investment_type: k })),
+    by_payout: group((i) => i.payout_frequency).map(({ k, yield_confirmed_cents: _y, ...g }) => ({ ...g, payout_frequency: k })),
+    monthly,
+    upcoming_maturities: invs
+      .filter((i) => i.status === 'ACTIVE' && i.maturity_date >= t0 && i.maturity_date <= limit)
+      .map((i) => ({ investment_id: i.id, code: i.code, investor_user_id: i.investor_user_id, investor_name: investorName(i.investor_user_id), currency: i.currency, maturity_date: i.maturity_date, capital_cents: i.current_capital_cents })),
+    investors: [...perInvestor.values()].sort((a, b) => b.capital_cents - a.capital_cents)
+  };
 }
 
 function adminYield(y: MockDb['yields'][number]): AdminYieldEntry {
@@ -434,6 +523,9 @@ export const mockApi: PortalApi = {
       const term = (q.q ?? '').trim().toLowerCase();
       const rows: AdminInvestmentRow[] = db.investments
         .filter((i) => !q.status || i.status === q.status)
+        .filter((i) => !q.currency || i.currency === q.currency)
+        .filter((i) => !q.investment_type || i.investment_type === q.investment_type)
+        .filter((i) => !q.investor_id || i.investor_user_id === q.investor_id)
         .filter((i) => !term || i.code.toLowerCase().includes(term) || (investorName(i.investor_user_id) ?? '').toLowerCase().includes(term))
         .sort(byDesc((i) => i.created_at))
         .map((i) => ({
@@ -443,9 +535,15 @@ export const mockApi: PortalApi = {
           investor_email: db.users.find((u) => u.id === i.investor_user_id)?.email ?? '',
           rate_type: i.rate_type, fixed_annual_rate_bps: i.rate_bps, reference_rate_code: i.reference_rate_code, spread_bps: i.spread_bps,
           payout_frequency: i.payout_frequency,
-          day_count_convention: i.day_count_convention, capitalization_policy: i.capitalization_policy
+          day_count_convention: i.day_count_convention, capitalization_policy: i.capitalization_policy,
+          yield_confirmed_cents: balance(i).yield_confirmed_cents, yield_paid_cents: balance(i).yield_paid_cents,
+          yield_reinvested_cents: balance(i).yield_reinvested_cents, yield_pending_cents: balance(i).yield_pending_cents
         }));
       return paginate(rows, q);
+    },
+    async statistics(investorId) {
+      requireAdmin();
+      return mockStatistics(investorId);
     },
     async investment(id) {
       requireAdmin();

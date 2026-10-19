@@ -1,7 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { useAuth } from './auth/AuthContext';
-import { homeFor, RequireRole } from './auth/RequireRole';
-import { EmptyState, FullPageLoading, LinkButton } from './components/ui';
+import { Route, Routes } from 'react-router-dom';
+import { RequireRole } from './auth/RequireRole';
+import { EmptyState, LinkButton } from './components/ui';
 import { AdminLayout } from './layouts/AdminLayout';
 import { InvestorLayout } from './layouts/InvestorLayout';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -17,6 +16,7 @@ import { InvestorsPage } from './pages/admin/InvestorsPage';
 import { PaymentsPage } from './pages/admin/PaymentsPage';
 import { ReferenceRatesPage } from './pages/admin/ReferenceRatesPage';
 import { SecurityPage } from './pages/admin/SecurityPage';
+import { StatisticsPage } from './pages/admin/StatisticsPage';
 import { YieldsPage } from './pages/admin/YieldsPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -26,12 +26,7 @@ import { InvestmentDetailPage } from './pages/investor/InvestmentDetailPage';
 import { InvestmentsPage } from './pages/investor/InvestmentsPage';
 import { NotificationsPage } from './pages/investor/NotificationsPage';
 import { ProfilePage } from './pages/investor/ProfilePage';
-
-function RootRedirect() {
-  const { status, session } = useAuth();
-  if (status === 'loading') return <FullPageLoading />;
-  return <Navigate to={session ? homeFor(session.user.role) : '/login'} replace />;
-}
+import { LandingPage } from './pages/public/LandingPage';
 
 function NotFound() {
   return (
@@ -44,7 +39,7 @@ function NotFound() {
 export function App() {
   return (
     <Routes>
-      <Route path="/" element={<RootRedirect />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/recuperar" element={<ForgotPasswordPage />} />
       <Route path="/restablecer" element={<ResetPasswordPage />} />
@@ -60,6 +55,7 @@ export function App() {
 
       <Route path="/admin" element={<RequireRole role="ADMIN"><AdminLayout /></RequireRole>}>
         <Route index element={<AdminDashboardPage />} />
+        <Route path="estadisticas" element={<StatisticsPage />} />
         <Route path="clientes" element={<InvestorsPage />} />
         <Route path="clientes/nuevo" element={<InvestorFormPage />} />
         <Route path="clientes/:id" element={<InvestorDetailPage />} />

@@ -285,6 +285,47 @@ export interface AdminInvestmentRow {
   payout_frequency: PayoutFrequency;
   day_count_convention: DayCountConvention;
   capitalization_policy: CapitalizationPolicy;
+  yield_confirmed_cents: number;
+  yield_paid_cents: number;
+  yield_reinvested_cents: number;
+  yield_pending_cents: number;
+}
+
+/** Estadísticas de administración (generales o de un cliente), siempre separadas por moneda. */
+export interface AdminStatistics {
+  as_of_date: string;
+  totals: Array<{
+    currency: Currency;
+    investors_count: number;
+    investments_active: number;
+    investments_matured: number;
+    investments_total: number;
+    initial_capital_cents: number;
+    capital_cents: number;
+    yield_confirmed_cents: number;
+    yield_paid_cents: number;
+    yield_reinvested_cents: number;
+    yield_pending_cents: number;
+    weighted_fixed_rate_bps: number | null;
+  }>;
+  by_type: Array<{ currency: Currency; investment_type: InvestmentType; investments_count: number; capital_cents: number; yield_confirmed_cents: number }>;
+  by_payout: Array<{ currency: Currency; payout_frequency: PayoutFrequency; investments_count: number; capital_cents: number }>;
+  monthly: Array<{ currency: Currency; month: string; yield_confirmed_cents: number; paid_cents: number }>;
+  upcoming_maturities: Array<{ investment_id: string; code: string; investor_user_id: string; investor_name: string | null; currency: Currency; maturity_date: string; capital_cents: number }>;
+  investors: Array<{
+    user_id: string;
+    full_name: string | null;
+    email: string;
+    currency: Currency;
+    investments_count: number;
+    active_count: number;
+    capital_cents: number;
+    yield_confirmed_cents: number;
+    yield_paid_cents: number;
+    yield_reinvested_cents: number;
+    yield_pending_cents: number;
+    next_maturity: string | null;
+  }>;
 }
 
 export interface CreateInvestmentInput {

@@ -10,6 +10,7 @@ import { archiveDocument, DOCUMENT_TYPES, getDocumentForAdmin, uploadPrivateDocu
 import { confirmYield, executeReinvestment, previewYield, recordExternalPayment, recordManualYield, reverseYieldEntry } from '../services/payment-ledger';
 import { balancesFor, currentReferenceRate, INVESTMENT_COLUMNS, latestReferenceRates, TERMS_JOIN, toDetail, toListItem, totalsByCurrency, yieldEntriesWithSettlement, type InvestmentRow } from '../services/read-models';
 import { runScheduledMaintenance } from '../services/scheduled-jobs';
+import { adminStatistics } from '../services/statistics';
 import type { Env, AppVariables } from '../index';
 
 export const adminRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
@@ -183,6 +184,23 @@ adminRoutes.get('/investments', async (c) => {
     conds.push('i.status = ?');
     binds.push(status);
   }
+  const currency = c.req.query('currency') ?? '';
+  if (currency) {
+    if (!(CURRENCIES as readonly string[]).includes(currency)) throw badRequest('INVALID_INPUT', 'Moneda no válida.');
+    conds.push('i.currency = ?');
+    binds.push(currency);
+  }
+  const type = c.req.query('investment_type') ?? '';
+  if (type) {
+    if (!(INVESTMENT_TYPES as readonly string[]).includes(type)) throw badRequest('INVALID_INPUT', 'Tipo de inversión no válido.');
+    conds.push('i.investment_type = ?');
+    binds.push(type);
+  }
+  const investorFilter = c.req.query('investor_id') ?? '';
+  if (investorFilter) {
+    conds.push('i.investor_user_id = ?');
+    binds.push(investorFilter);
+  }
   const from = `FROM investments i JOIN users u ON u.id = i.investor_user_id LEFT JOIN investor_profiles p ON p.user_id = u.id ${TERMS_JOIN}`;
   const where = conds.join(' AND ');
   const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n ${from} WHERE ${where}`).bind(...binds).first<{ n: number }>();
@@ -195,8 +213,30 @@ adminRoutes.get('/investments', async (c) => {
        ${from} WHERE ${where} ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
     )
     .bind(...binds, pageSize, offset)
-    .all();
-  return c.json({ success: true, data: rows.results, pagination: pagination(page, pageSize, total?.n ?? 0) });
+    .all<Record<string, unknown> & { id: string }>();
+  // Saldos de cada inversión de la página (confirmado, pagado, reinvertido, pendiente)
+  const balances = await balancesFor(c.env.DB, rows.results.map((r) => r.id));
+  const data = rows.results.map((r) => {
+    const b = balances.get(r.id);
+    return {
+      ...r,
+      yield_confirmed_cents: b?.yield_confirmed_cents ?? 0,
+      yield_paid_cents: b?.yield_paid_cents ?? 0,
+      yield_reinvested_cents: b?.yield_reinvested_cents ?? 0,
+      yield_pending_cents: b?.yield_pending_cents ?? 0
+    };
+  });
+  return c.json({ success: true, data, pagination: pagination(page, pageSize, total?.n ?? 0) });
+});
+
+// Estadísticas generales (o de un cliente con ?investor_id=), siempre separadas por moneda
+adminRoutes.get('/statistics', async (c) => {
+  const investorId = c.req.query('investor_id') ?? '';
+  if (investorId) {
+    const exists = await c.env.DB.prepare("SELECT id FROM users WHERE id = ? AND role = 'INVESTOR'").bind(investorId).first();
+    if (!exists) throw new AppError(404, 'NOT_FOUND', 'Inversionista no encontrado.');
+  }
+  return c.json({ success: true, data: await adminStatistics(c.env.DB, investorId || null) });
 });
 
 adminRoutes.post('/investments', async (c) => {
