@@ -28,6 +28,22 @@ describe('Página web pública', () => {
     expect(screen.getByRole('link', { name: /Volver al sitio/ })).toBeInTheDocument();
   });
 
+  it('el menú móvil abre las secciones y se cierra con Escape o al elegir una', async () => {
+    const user = userEvent.setup();
+    renderApp('/');
+    const toggle = await screen.findByRole('button', { name: 'Abrir menú' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await user.click(toggle);
+    const menu = document.getElementById('menu-sitio')!;
+    expect(within(menu).getByRole('link', { name: /Inversiones/ })).toHaveAttribute('href', '#inversiones');
+    expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveAttribute('aria-expanded', 'true');
+    await user.keyboard('{Escape}');
+    expect(document.getElementById('menu-sitio')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await user.click(within(document.getElementById('menu-sitio')!).getByRole('link', { name: /Ramos/ }));
+    expect(document.getElementById('menu-sitio')).toBeNull();
+  });
+
   it('con sesión iniciada ofrece ir al portal', async () => {
     renderApp('/', { loginAs: INVESTOR_ID });
     expect(await within(screen.getByRole('banner')).findByRole('link', { name: /Ir a mi portal/ })).toHaveAttribute('href', '/app');

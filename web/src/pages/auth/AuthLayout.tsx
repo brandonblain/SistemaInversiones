@@ -27,7 +27,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
             </div>
           )}
           <p className="mt-6 text-center text-xs text-nav-ink/80">Acceso privado y exclusivo para inversionistas de {BRAND.name}.</p>
-          <p className="mt-3 text-center text-sm"><Link to="/" className="font-semibold text-white hover:underline">← Volver al sitio</Link></p>
+          <p className="mt-3 text-center text-sm"><Link to="/" className="inline-flex min-h-[44px] items-center font-semibold text-white hover:underline">← Volver al sitio</Link></p>
         </div>
       </main>
     </div>

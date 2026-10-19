@@ -19,7 +19,10 @@ export default {
         ok: { DEFAULT: token('ok'), soft: token('ok-soft') },
         warn: { DEFAULT: token('warn'), soft: token('warn-soft') },
         bad: { DEFAULT: token('bad'), soft: token('bad-soft') },
-        info: { DEFAULT: token('info'), soft: token('info-soft') }
+        info: { DEFAULT: token('info'), soft: token('info-soft') },
+        // Franjas azul marino del sitio público: texto "on-band" siempre claro, en ambos modos
+        band: { DEFAULT: token('band'), raised: token('band-raised'), line: token('band-line') },
+        'on-band': { DEFAULT: token('on-band'), 2: token('on-band-2'), accent: token('on-band-accent') }
       },
       fontFamily: {
         sans: ['"Figtree Variable"', 'Figtree', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],

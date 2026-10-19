@@ -84,13 +84,13 @@ export function LoginPage() {
 
         <div className="flex justify-between text-sm">
           {needsMfa ? (
-            <button type="button" className="font-medium text-brand hover:underline" onClick={() => { setNeedsMfa(false); setMfa(''); }}>
+            <button type="button" className="inline-flex min-h-[44px] items-center font-medium text-brand hover:underline" onClick={() => { setNeedsMfa(false); setMfa(''); }}>
               Volver
             </button>
           ) : (
             <span />
           )}
-          <Link to="/recuperar" className="font-medium text-brand hover:underline">¿Olvidó su contraseña?</Link>
+          <Link to="/recuperar" className="inline-flex min-h-[44px] items-center font-medium text-brand hover:underline">¿Olvidó su contraseña?</Link>
         </div>
       </form>
     </AuthLayout>

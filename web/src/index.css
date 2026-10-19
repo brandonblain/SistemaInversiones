@@ -53,6 +53,17 @@
   --dist-reinvested: 0.55 0.11 255;
   --dist-pending: 0.68 0.14 240;
 
+  /*
+   * Sitio público: franjas azul marino. A diferencia de --brand-ink (que en modo oscuro se vuelve
+   * oscuro porque el botón primario se aclara), el texto sobre franja es SIEMPRE claro.
+   */
+  --band: 0.24 0.075 262;
+  --band-raised: 0.31 0.085 261;
+  --band-line: 0.36 0.06 262;
+  --on-band: 0.985 0.004 255;
+  --on-band-2: 0.87 0.03 255;
+  --on-band-accent: 0.82 0.1 238;
+
   /* Movimiento (Emil Kowalski): curvas fuertes; nunca ease-in en UI */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -170,7 +181,7 @@ h2,
 
 @layer components {
   .input {
-    @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-muted
+    @apply block min-h-[44px] w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-muted
       focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:opacity-60;
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
@@ -213,6 +224,33 @@ dialog::backdrop {
   transition: opacity 200ms ease;
 }
 
+/* Sitio público: anillo de foco con contraste según el fondo (claro sobre franja, marca sobre página) */
+.site {
+  --focus: var(--brand);
+}
+.site .band {
+  --focus: var(--on-band-accent);
+}
+.site :focus-visible {
+  outline: 2px solid oklch(var(--focus));
+  outline-offset: 3px;
+}
+
+/* Menú móvil del sitio: entra desde arriba, 200 ms ease-out */
+.menu-panel {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+@starting-style {
+  .menu-panel {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 /* Revelado al hacer scroll (solo página pública) */
 [data-reveal] {
   opacity: 0;
@@ -232,6 +270,9 @@ dialog::backdrop {
   [data-reveal] {
     transform: none;
     transition: opacity 300ms ease;
+  }
+  .menu-panel {
+    transform: none;
   }
   .pressable:active:not(:disabled) {
     transform: none;
