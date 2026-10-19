@@ -51,7 +51,7 @@ export function StatsOverview({ stats, scope }: { stats: AdminStatistics; scope:
 function Tiles({ t, scope }: { t: Totals; scope: 'general' | 'cliente' }) {
   const m = (c: number) => formatMoney(c, t.currency);
   return (
-    <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <dl className="metric-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <KpiTile tone="brand" label="Capital vigente" value={m(t.capital_cents)} help={`${t.investments_active} vigentes · ${t.investments_matured} vencidas · ${t.investments_total} en total`} />
       <KpiTile label="Capital inicial colocado" value={m(t.initial_capital_cents)} help="Suma del capital inicial de todos los contratos." />
       <KpiTile label="Rendimiento confirmado" value={m(t.yield_confirmed_cents)} />

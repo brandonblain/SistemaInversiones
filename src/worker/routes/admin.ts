@@ -16,7 +16,7 @@ import type { Env, AppVariables } from '../index';
 export const adminRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 adminRoutes.use('*', authMiddleware, requireAdmin);
 
-const INVESTMENT_TYPES = ['FAST_FOOD', 'MOBILITY', 'TRANSPORT', 'CETES'] as const;
+const INVESTMENT_TYPES = ['FAST_FOOD', 'MOBILITY', 'TRANSPORT', 'ELECTRIC_VEHICLES', 'CETES'] as const;
 const CURRENCIES = ['MXN', 'USD'] as const;
 const REFERENCE_RATES = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'] as const;
 const STATUSES = ['DRAFT', 'ACTIVE', 'MATURED', 'CANCELLED'] as const;

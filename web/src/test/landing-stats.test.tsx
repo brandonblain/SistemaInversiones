@@ -12,7 +12,8 @@ describe('Página web pública', () => {
     for (const name of ['Movilidad', 'Transporte', 'Fast Food', 'CETES']) {
       expect(screen.getAllByRole('heading', { name }).length).toBeGreaterThan(0);
     }
-    expect(screen.getByText('16 %')).toBeInTheDocument();
+    expect(screen.getAllByText('16 %')).toHaveLength(2); // Movilidad y Vehículos eléctricos
+    expect(screen.getByRole('heading', { name: 'Vehículos eléctricos' })).toBeInTheDocument();
     expect(screen.getByText('CETES − 1')).toBeInTheDocument();
     for (const m of ['Mensual', 'Semestral', 'Anual', 'A liquidación']) expect(screen.getByRole('heading', { name: m })).toBeInTheDocument();
     expect(screen.getByText('Héctor Galeana')).toBeInTheDocument();

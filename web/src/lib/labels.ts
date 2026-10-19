@@ -89,6 +89,7 @@ export const investmentTypeLabel: Record<InvestmentType, string> = {
   FAST_FOOD: 'Fast Food',
   MOBILITY: 'Movilidad',
   TRANSPORT: 'Transporte',
+  ELECTRIC_VEHICLES: 'Vehículos eléctricos',
   CETES: 'CETES'
 };
 
@@ -96,10 +97,12 @@ export const investmentTypeLabel: Record<InvestmentType, string> = {
  * Condiciones de referencia publicadas por Verticimax (material comercial).
  * Solo prellenan el formulario; el contrato firmado manda.
  */
-export const investmentTypeReference: Partial<Record<InvestmentType, { capital_cents: number; months: number; rate_bps: number }>> = {
+export const investmentTypeReference: Partial<Record<InvestmentType, { capital_cents?: number; months?: number; rate_bps: number }>> = {
   MOBILITY: { capital_cents: 25_000_000, months: 12, rate_bps: 1600 },
   TRANSPORT: { capital_cents: 40_000_000, months: 18, rate_bps: 2500 },
-  FAST_FOOD: { capital_cents: 10_000_000, months: 12, rate_bps: 1300 }
+  FAST_FOOD: { capital_cents: 10_000_000, months: 12, rate_bps: 1300 },
+  // Solo la tasa está definida en el material; capital y plazo los fija cada contrato.
+  ELECTRIC_VEHICLES: { rate_bps: 1600 }
 };
 
 export const relationshipLabel: Record<Relationship, string> = {

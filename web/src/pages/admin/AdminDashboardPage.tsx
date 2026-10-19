@@ -14,7 +14,7 @@ export function AdminDashboardPage() {
       <Async state={summary} loading={<LoadingBlock rows={6} />}>
         {(s) => (
           <div className="space-y-5">
-            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="metric-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <KpiTile label="Inversionistas" value={s.investors_count} />
               <KpiTile label="Inversiones vigentes" value={s.active_investments_count} />
               <KpiTile label="Vencen en los próximos 30 días" value={s.maturing_soon_count} />
@@ -22,7 +22,7 @@ export function AdminDashboardPage() {
             </dl>
 
             {/* Cifras por moneda: pesos y dólares nunca se suman */}
-            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <dl className="metric-grid grid-cols-1 sm:grid-cols-2">
               {s.by_currency.map((t) => (
                 <div key={t.currency} className="contents">
                   <KpiTile tone="brand" label={`Capital vigente (${t.currency})`} value={formatMoney(t.total_capital_cents, t.currency)} help={`${t.active_investments_count} inversiones vigentes en ${t.currency}`} />

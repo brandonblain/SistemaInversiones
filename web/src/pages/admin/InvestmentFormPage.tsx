@@ -59,10 +59,10 @@ export function InvestmentFormPage() {
     const start = form.start_date || todayInContractZone();
     setForm((f) => ({
       ...f,
-      capital: centsToPlainPesos(reference.capital_cents),
+      capital: reference.capital_cents ? centsToPlainPesos(reference.capital_cents) : f.capital,
       rate: formatRateBps(reference.rate_bps).replace(' %', ''),
       start_date: start,
-      maturity_date: addMonthsToDate(start, reference.months) ?? f.maturity_date
+      maturity_date: reference.months ? addMonthsToDate(start, reference.months) ?? f.maturity_date : f.maturity_date
     }));
     setReviewing(false);
   };
@@ -124,7 +124,7 @@ export function InvestmentFormPage() {
 
           <fieldset className="sm:col-span-2">
             <legend className="label">Tipo de inversión</legend>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" role="radiogroup">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup">
               {(Object.keys(investmentTypeLabel) as InvestmentType[]).map((t) => {
                 const ref = investmentTypeReference[t];
                 const selected = form.investment_type === t;
@@ -147,13 +147,13 @@ export function InvestmentFormPage() {
                           setErrors((prev) => ({ ...prev, type: undefined }));
                           setReviewing(false);
                         }}
-                        className="h-4 w-4 accent-[rgb(var(--brand))]"
+                        className="h-4 w-4 accent-[oklch(var(--brand))]"
                       />
                       <span className="font-semibold text-ink">{investmentTypeLabel[t]}</span>
                     </span>
                     <span className="mt-1 text-xs text-ink-muted">
                       {ref
-                        ? `Referencia: ${formatMoney(ref.capital_cents, 'MXN')} · ${ref.months} meses · ${formatRateBps(ref.rate_bps)}`
+                        ? `Referencia: ${[ref.capital_cents ? formatMoney(ref.capital_cents, 'MXN') : null, ref.months ? `${ref.months} meses` : null, formatRateBps(ref.rate_bps)].filter(Boolean).join(' · ')}`
                         : 'Tasa variable: CETES más un diferencial (p. ej. − 1 punto). Solo en pesos.'}
                     </span>
                   </label>

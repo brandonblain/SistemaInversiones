@@ -29,7 +29,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cx(
-        'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition',
+        'pressable inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-60',
         variants[variant],
         className
@@ -47,7 +47,7 @@ export function LinkButton({ to, variant = 'primary', icon, children }: { to: st
     <Link
       to={to}
       className={cx(
-        'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition',
+        'pressable inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
         variants[variant]
       )}
@@ -98,18 +98,17 @@ export function PageHeader({ title, subtitle, actions, back }: { title: ReactNod
 // ---------- Indicadores ----------
 export function KpiTile({ label, value, help, tone = 'default', testId }: { label: string; value: ReactNode; help?: string; tone?: 'default' | 'brand' | 'attention'; testId?: string }) {
   return (
+    // Plano: se usa dentro de un panel .metric-grid con divisores de 1px (no una tarjeta por número).
     <div
       data-testid={testId}
-      className={cx(
-        'rounded-card border p-4',
-        tone === 'brand' && 'border-brand/30 bg-brand-soft',
-        tone === 'attention' && 'border-warn/40 bg-warn-soft',
-        tone === 'default' && 'border-line bg-surface'
-      )}
+      className={cx('flex flex-col p-4 sm:p-5', tone === 'attention' ? 'bg-accent-soft' : 'bg-surface')}
     >
-      <dt className="text-sm font-medium text-ink-2">{label}</dt>
-      <dd className="mt-1 text-xl font-bold text-ink sm:text-2xl">{value}</dd>
-      {help && <p className="mt-1 text-xs leading-snug text-ink-muted">{help}</p>}
+      <dt className={cx('flex items-center gap-2 text-sm font-medium', tone === 'attention' ? 'text-accent-ink' : 'text-ink-2')}>
+        {tone === 'attention' && <span aria-hidden className="h-2 w-2 rounded-full bg-accent" />}
+        {label}
+      </dt>
+      <dd className={cx('figure mt-1.5 font-bold text-ink', tone === 'brand' ? 'text-2xl sm:text-[1.75rem]' : 'text-xl sm:text-2xl')}>{value}</dd>
+      {help && <p className="mt-1.5 max-w-[34ch] text-xs leading-snug text-ink-muted">{help}</p>}
     </div>
   );
 }

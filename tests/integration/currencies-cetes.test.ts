@@ -128,3 +128,16 @@ describe('Monedas, inversión a CETES − 1 punto y modalidad anual', () => {
     expect(d.investment.terms.payout_frequency).toBe('ANNUAL');
   });
 });
+
+describe('Vehículos eléctricos', () => {
+  it('se registra como tipo de inversión con tasa fija', async () => {
+    const env = makeEnv();
+    await seedAdmin(env);
+    const inv = await seedInvestor(env);
+    const admin = await login(env, 'admin@ficticio.test', ADMIN_PASSWORD);
+    const id = await createInvestment(admin, inv, { investment_type: 'ELECTRIC_VEHICLES', fixed_annual_rate_bps: 1600 });
+    const d = (await admin.call('GET', `/api/admin/investments/${id}`)).json.data;
+    expect(d.investment.investment_type).toBe('ELECTRIC_VEHICLES');
+    expect(d.investment.terms).toMatchObject({ rate_type: 'FIXED', fixed_annual_rate_bps: 1600 });
+  });
+});

@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-// Los colores se leen de variables CSS definidas en src/index.css (tokens de marca reemplazables).
-const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+// Los colores se leen de variables CSS OKLCH definidas en src/index.css (tokens de marca, ver .impeccable.md).
+const token = (name) => `oklch(var(--${name}) / <alpha-value>)`;
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -9,6 +9,8 @@ export default {
       colors: {
         brand: { DEFAULT: token('brand'), strong: token('brand-strong'), soft: token('brand-soft'), ink: token('brand-ink') },
         nav: { DEFAULT: token('nav'), hover: token('nav-hover'), active: token('nav-active'), ink: token('nav-ink') },
+        accent: { DEFAULT: token('accent'), soft: token('accent-soft'), ink: token('accent-ink') },
+        dist: { paid: token('dist-paid'), reinvested: token('dist-reinvested'), pending: token('dist-pending') },
         page: token('page'),
         surface: token('surface'),
         sunken: token('sunken'),
@@ -20,9 +22,11 @@ export default {
         info: { DEFAULT: token('info'), soft: token('info-soft') }
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif']
+        sans: ['"Figtree Variable"', 'Figtree', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        display: ['"Archivo Variable"', 'Archivo', 'system-ui', 'sans-serif']
       },
-      borderRadius: { card: '0.75rem' }
+      borderRadius: { card: '0.875rem' },
+      transitionTimingFunction: { out: 'var(--ease-out)', 'in-out-strong': 'var(--ease-in-out)' }
     }
   },
   plugins: []

@@ -24,7 +24,7 @@ function read(): ChartTheme {
     reinvested: v(VARS[2], '#1baf7a'),
     grid: v(VARS[3], '#e1e0d9'),
     axis: v(VARS[4], '#898781'),
-    surface: surface ? `rgb(${surface})` : '#ffffff'
+    surface: surface ? `oklch(${surface})` : '#fcfcfd'
   };
 }
 

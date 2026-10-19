@@ -3,39 +3,43 @@
 @tailwind utilities;
 
 /*
- * TOKENS DE MARCA — VERTICIMAX MÉXICO STAR UP
- * Azul marino oscuro como color de plataforma, con tonalidades para superficies y navegación.
- * Los valores son canales RGB ("R G B") para que Tailwind pueda aplicar opacidad.
+ * TOKENS DE MARCA — VERTICIMAX MÉXICO STAR UP (ver .impeccable.md)
+ * Valores OKLCH "L C H" (perceptualmente uniformes); Tailwind los usa como oklch(var(--x) / alfa).
+ * - Azul marino: color de plataforma.  - Azul cielo (fondo del logo): acento escaso de "atención".
+ * - Rojo (U del logo): solo errores.   - Neutros teñidos hacia el tono del azul marino (262°).
  */
 :root {
   color-scheme: light;
-  --brand: 13 42 92;           /* #0d2a5c azul marino */
-  --brand-strong: 7 26 61;     /* #071a3d azul marino profundo */
-  --brand-soft: 231 237 247;   /* #e7edf7 tinte de azul marino */
-  --brand-ink: 255 255 255;    /* texto sobre --brand */
+  --brand: 0.33 0.1 262;
+  --brand-strong: 0.25 0.085 262;
+  --brand-soft: 0.95 0.02 255;
+  --brand-ink: 0.99 0.004 255;
 
-  /* Navegación lateral / encabezados */
-  --nav: 8 27 61;              /* #081b3d */
-  --nav-hover: 18 45 92;       /* #122d5c */
-  --nav-active: 27 63 122;     /* #1b3f7a */
-  --nav-ink: 199 212 235;      /* #c7d4eb */
+  --nav: 0.22 0.07 262;
+  --nav-hover: 0.28 0.08 262;
+  --nav-active: 0.36 0.1 260;
+  --nav-ink: 0.86 0.03 255;
 
-  --page: 243 246 250;
-  --surface: 255 255 255;
-  --sunken: 236 241 248;
-  --ink: 11 22 42;
-  --ink-2: 58 71 96;
-  --ink-muted: 92 105 129;
-  --line: 218 225 236;
+  --page: 0.975 0.006 255;
+  --surface: 0.995 0.003 255;
+  --sunken: 0.955 0.01 255;
+  --ink: 0.22 0.03 262;
+  --ink-2: 0.42 0.03 262;
+  --ink-muted: 0.52 0.025 262;
+  --line: 0.9 0.012 255;
 
-  --ok: 0 99 0;
-  --ok-soft: 230 244 230;
-  --warn: 140 88 0;
-  --warn-soft: 253 243 220;
-  --bad: 176 40 40;
-  --bad-soft: 252 235 235;
-  --info: 23 78 150;
-  --info-soft: 230 239 251;
+  --accent: 0.62 0.15 243;
+  --accent-soft: 0.955 0.03 238;
+  --accent-ink: 0.38 0.12 250;
+
+  --ok: 0.48 0.13 150;
+  --ok-soft: 0.95 0.04 150;
+  --warn: 0.55 0.12 70;
+  --warn-soft: 0.96 0.04 85;
+  --bad: 0.52 0.18 25;
+  --bad-soft: 0.95 0.03 20;
+  --info: 0.48 0.12 250;
+  --info-soft: 0.95 0.025 250;
 
   /* Gráficas: paleta categórica validada (orden fijo, no cíclico) */
   --series-1: #2a78d6;
@@ -43,94 +47,196 @@
   --series-3: #1baf7a;
   --chart-grid: #e1e0d9;
   --chart-axis: #898781;
+
+  /* Distribución del rendimiento (pagado / reinvertido / pendiente): escala de la marca */
+  --dist-paid: 0.33 0.1 262;
+  --dist-reinvested: 0.55 0.11 255;
+  --dist-pending: 0.68 0.14 240;
+
+  /* Movimiento (Emil Kowalski): curvas fuertes; nunca ease-in en UI */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --brand: 125 168 232;
-    --brand-strong: 165 196 242;
-    --brand-soft: 20 40 78;
-    --brand-ink: 5 12 26;
-    --nav: 5 14 32;
-    --nav-hover: 15 33 66;
-    --nav-active: 24 52 100;
-    --nav-ink: 184 199 225;
-    --page: 5 12 26;
-    --surface: 11 24 48;
-    --sunken: 17 33 62;
-    --ink: 236 240 247;
-    --ink-2: 184 196 216;
-    --ink-muted: 140 154 180;
-    --line: 34 52 86;
-    --ok: 12 163 12;
-    --ok-soft: 14 40 22;
-    --warn: 250 178 25;
-    --warn-soft: 50 38 10;
-    --bad: 230 103 103;
-    --bad-soft: 55 22 26;
-    --info: 120 170 230;
-    --info-soft: 18 36 66;
+    --brand: 0.74 0.11 252;
+    --brand-strong: 0.82 0.09 252;
+    --brand-soft: 0.3 0.06 262;
+    --brand-ink: 0.17 0.03 262;
+    --nav: 0.15 0.04 262;
+    --nav-hover: 0.22 0.05 262;
+    --nav-active: 0.3 0.07 260;
+    --nav-ink: 0.84 0.03 255;
+    --page: 0.17 0.03 262;
+    --surface: 0.215 0.035 262;
+    --sunken: 0.25 0.04 262;
+    --ink: 0.95 0.01 255;
+    --ink-2: 0.83 0.02 255;
+    --ink-muted: 0.7 0.025 255;
+    --line: 0.33 0.04 262;
+    --accent: 0.74 0.13 240;
+    --accent-soft: 0.3 0.075 245;
+    --accent-ink: 0.9 0.06 240;
+    --ok: 0.74 0.15 150;
+    --ok-soft: 0.29 0.05 150;
+    --warn: 0.82 0.13 80;
+    --warn-soft: 0.31 0.05 80;
+    --bad: 0.72 0.15 25;
+    --bad-soft: 0.3 0.06 25;
+    --info: 0.77 0.1 250;
+    --info-soft: 0.29 0.05 250;
     --series-1: #3987e5;
     --series-2: #d95926;
     --series-3: #199e70;
     --chart-grid: #22344f;
     --chart-axis: #8c9ab4;
+    --dist-paid: 0.62 0.12 255;
+    --dist-reinvested: 0.78 0.08 220;
+    --dist-pending: 0.8 0.12 240;
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --brand: 125 168 232;
-  --brand-strong: 165 196 242;
-  --brand-soft: 20 40 78;
-  --brand-ink: 5 12 26;
-  --nav: 5 14 32;
-  --nav-hover: 15 33 66;
-  --nav-active: 24 52 100;
-  --nav-ink: 184 199 225;
-  --page: 5 12 26;
-  --surface: 11 24 48;
-  --sunken: 17 33 62;
-  --ink: 236 240 247;
-  --ink-2: 184 196 216;
-  --ink-muted: 140 154 180;
-  --line: 34 52 86;
-  --ok: 12 163 12;
-  --ok-soft: 14 40 22;
-  --warn: 250 178 25;
-  --warn-soft: 50 38 10;
-  --bad: 230 103 103;
-  --bad-soft: 55 22 26;
-  --info: 120 170 230;
-  --info-soft: 18 36 66;
+  --brand: 0.74 0.11 252;
+  --brand-strong: 0.82 0.09 252;
+  --brand-soft: 0.3 0.06 262;
+  --brand-ink: 0.17 0.03 262;
+  --nav: 0.15 0.04 262;
+  --nav-hover: 0.22 0.05 262;
+  --nav-active: 0.3 0.07 260;
+  --nav-ink: 0.84 0.03 255;
+  --page: 0.17 0.03 262;
+  --surface: 0.215 0.035 262;
+  --sunken: 0.25 0.04 262;
+  --ink: 0.95 0.01 255;
+  --ink-2: 0.83 0.02 255;
+  --ink-muted: 0.7 0.025 255;
+  --line: 0.33 0.04 262;
+  --accent: 0.74 0.13 240;
+  --accent-soft: 0.3 0.075 245;
+  --accent-ink: 0.9 0.06 240;
+  --ok: 0.74 0.15 150;
+  --ok-soft: 0.29 0.05 150;
+  --warn: 0.82 0.13 80;
+  --warn-soft: 0.31 0.05 80;
+  --bad: 0.72 0.15 25;
+  --bad-soft: 0.3 0.06 25;
+  --info: 0.77 0.1 250;
+  --info-soft: 0.29 0.05 250;
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
   --chart-grid: #22344f;
   --chart-axis: #8c9ab4;
+  --dist-paid: 0.62 0.12 255;
+  --dist-reinvested: 0.78 0.08 220;
+  --dist-pending: 0.8 0.12 240;
 }
 
 html,
 body {
-  background: rgb(var(--page));
-  color: rgb(var(--ink));
+  background: oklch(var(--page));
+  color: oklch(var(--ink));
 }
 
 body {
   @apply font-sans antialiased;
+  font-feature-settings: 'ss01' on;
+}
+
+/* Títulos y cifras en Archivo (grotesca de la familia del logo), ligeramente expandida */
+h1,
+h2,
+.font-display {
+  font-family: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  font-stretch: 108%;
+  letter-spacing: -0.01em;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
+/* Cifras: siempre alineables */
+.figure {
+  font-family: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-stretch: 104%;
+  letter-spacing: -0.015em;
+}
+
 @layer components {
   .input {
     @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-ink placeholder:text-ink-muted
       focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:opacity-60;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
   }
   .label {
     @apply mb-1 block text-sm font-medium text-ink-2;
+  }
+  /* Respuesta al presionar (Emil Kowalski): escala 0.97, 160 ms ease-out */
+  .pressable {
+    transition:
+      transform 160ms var(--ease-out),
+      background-color 150ms ease,
+      color 150ms ease,
+      border-color 150ms ease;
+  }
+  .pressable:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  /* Indicadores agrupados en un panel con divisores finos (en lugar de una tarjeta por número) */
+  .metric-grid {
+    @apply grid overflow-hidden rounded-card border border-line bg-line;
+    gap: 1px;
+  }
+}
+
+/* Diálogos: entrada suave (escala 0.96 → 1, opacidad). Los modales se quedan centrados. */
+dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+dialog::backdrop {
+  transition: opacity 200ms ease;
+}
+
+/* Revelado al hacer scroll (solo página pública) */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 560ms var(--ease-out),
+    transform 700ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal][data-visible='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Reducir movimiento: se conservan los fundidos, se quitan los desplazamientos y escalas */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    transform: none;
+    transition: opacity 300ms ease;
+  }
+  .pressable:active:not(:disabled) {
+    transform: none;
+  }
+  dialog[open] {
+    transform: none;
   }
 }
