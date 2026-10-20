@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { Async, Card, KpiTile, LoadingBlock, PageHeader } from '../../components/ui';
+import { MarketIndicators } from '../../components/MarketIndicators';
+import type { ReferenceRateCode } from '../../api/types';
+
+const PLAZO_ORDER: ReferenceRateCode[] = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'];
 import { useAsync } from '../../hooks/useAsync';
 import { formatDate, formatMoney, formatRateBps } from '../../lib/format';
 import { referenceRateLabel } from '../../lib/labels';
@@ -31,15 +35,17 @@ export function AdminDashboardPage() {
               ))}
             </dl>
 
+            <MarketIndicators variant="admin" systemRates={s.reference_rates} />
+
             <Card
-              title="Tasas CETES vigentes"
+              title="Tasas CETES en el sistema (para cálculos)"
               actions={<Link to="/admin/tasas" className="text-sm font-semibold text-brand hover:underline">Capturar tasas</Link>}
             >
               {s.reference_rates.length === 0 ? (
                 <p className="text-sm text-ink-2">No hay tasas CETES capturadas. Las inversiones a CETES no se pueden calcular sin ellas.</p>
               ) : (
                 <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  {s.reference_rates.map((r) => (
+                  {[...s.reference_rates].sort((x, y) => PLAZO_ORDER.indexOf(x.rate_code) - PLAZO_ORDER.indexOf(y.rate_code)).map((r) => (
                     <li key={r.rate_code} className="rounded-lg border border-line p-3">
                       <p className="text-xs text-ink-muted">{referenceRateLabel[r.rate_code]}</p>
                       <p className="text-lg font-bold text-ink">{formatRateBps(r.annual_rate_bps)}</p>

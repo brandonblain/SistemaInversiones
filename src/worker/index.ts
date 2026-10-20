@@ -6,6 +6,7 @@ import { investorRoutes } from './routes/investor';
 import { adminRoutes } from './routes/admin';
 import { AppError, mapDbError } from './lib/errors';
 import { runScheduledMaintenance } from './services/scheduled-jobs';
+import { getMarketSnapshot } from './services/market';
 
 export interface Env {
   DB: D1Database;
@@ -48,6 +49,10 @@ app.use('/api/*', originGuardMiddleware);
 app.get('/api/health', (c) =>
   c.json({ success: true, data: { status: 'ok', environment: c.env.ENVIRONMENT || 'development', timestamp: new Date().toISOString() } })
 );
+
+// Indicadores públicos de Banxico (tipo de cambio FIX y CETES). Sin sesión ni datos de clientes;
+// es la única ruta /api disponible también en el sitio público.
+app.get('/api/public/market', async (c) => c.json({ success: true, data: await getMarketSnapshot(c.env) }));
 
 app.route('/api/auth', authRoutes);
 app.route('/api/investor', investorRoutes);

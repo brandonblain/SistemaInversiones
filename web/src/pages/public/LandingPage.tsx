@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { homeFor } from '../../auth/RequireRole';
 import { cx } from '../../components/ui';
+import { cetesMinusOnePoint, formatFx, useMarket } from '../../components/MarketIndicators';
+import { formatDate, formatRateBps } from '../../lib/format';
 import { Icon } from '../../components/icons';
 import { useReveal } from '../../hooks/useReveal';
 import { BRAND } from '../../layouts/brand';
@@ -68,6 +70,10 @@ export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   useReveal(rootRef);
+  // Indicadores de Banxico en vivo (informativos); si no hay datos, la página muestra solo lo fijo
+  const market = useMarket().data;
+  const fx = market?.available ? market.fx : null;
+  const cetes28 = market?.available ? market.cetes.CETES_28 : undefined;
   const access =
     site().kind === 'public'
       ? { to: portalHref('/'), label: 'Acceso clientes', external: true }
@@ -229,7 +235,14 @@ export function LandingPage() {
                 <p className={cx(eyebrow, 'text-on-band-accent')}>Opciones</p>
                 <h2 className="mt-3 text-balance text-3xl font-extrabold leading-tight sm:text-4xl">Giros en los que apalancamos tu inversión</h2>
               </div>
-              <p className="max-w-[40ch] text-on-band-2">Invierte en pesos mexicanos o en dólares. CETES, solo en pesos.</p>
+              <div className="max-w-[40ch]">
+                <p className="text-on-band-2">Invierte en pesos mexicanos o en dólares. CETES, solo en pesos.</p>
+                {fx && (
+                  <p className="mt-2 text-sm text-on-band-2" data-testid="fx-publico">
+                    Tipo de cambio FIX: <strong className="figure text-on-band">{formatFx(fx.rate)}</strong> por dólar · Banxico, {formatDate(fx.date)}
+                  </p>
+                )}
+              </div>
             </div>
 
             <ul className="mt-10 border-t border-band-line" aria-label="Opciones de inversión">
@@ -241,7 +254,14 @@ export function LandingPage() {
                   className="grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 border-b border-band-line py-5 md:grid-cols-[64px_minmax(0,1fr)_17rem_10rem] md:gap-x-6 lg:grid-cols-[72px_minmax(0,1fr)_20rem_11rem] lg:gap-x-10"
                 >
                   <img src={o.img} alt="" width={72} height={72} loading="lazy" className="aspect-square w-full rounded-xl object-cover" />
-                  <h3 className="text-lg font-bold leading-snug sm:text-xl">{o.name}</h3>
+                  <div>
+                    <h3 className="text-lg font-bold leading-snug sm:text-xl">{o.name}</h3>
+                    {o.compact && cetes28 && (
+                      <p className="mt-0.5 text-xs text-on-band-2 sm:text-sm" data-testid="cetes-publico">
+                        CETES 28 días: <span className="figure text-on-band">{formatRateBps(cetes28.annual_rate_bps)}</span> · Banxico, {formatDate(cetes28.date)}
+                      </p>
+                    )}
+                  </div>
                   <dl className="col-span-2 col-start-2 row-start-2 grid grid-cols-2 gap-4 md:col-span-1 md:col-start-3 md:row-start-1">
                     <div>
                       <dt className="text-xs font-semibold uppercase tracking-wider text-on-band-2">Capital</dt>
@@ -256,7 +276,9 @@ export function LandingPage() {
                     <span className={cx('figure block whitespace-nowrap font-extrabold leading-none', o.compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl')}>
                       {o.tasa}
                     </span>
-                    <span className="mt-1.5 block text-xs text-on-band-2 sm:text-sm">{o.nota}</span>
+                    <span className="mt-1.5 block text-xs text-on-band-2 sm:text-sm">
+                      {o.compact && cetes28 ? `punto · hoy ≈ ${cetesMinusOnePoint(cetes28.annual_rate_bps)} anual` : o.nota}
+                    </span>
                   </p>
                 </li>
               ))}
@@ -343,7 +365,7 @@ export function LandingPage() {
           <p className="mt-5 max-w-[62ch] text-xs leading-relaxed">
             Las tasas, plazos y capitales mostrados son de referencia; las condiciones definitivas se establecen en cada contrato.
             Los testimonios reflejan experiencias individuales; los rendimientos pasados no garantizan rendimientos futuros.
-            Toda inversión conlleva riesgos.
+            Toda inversión conlleva riesgos. Tipo de cambio y tasas CETES: Banco de México (SIE), con fines informativos.
           </p>
         </div>
       </footer>

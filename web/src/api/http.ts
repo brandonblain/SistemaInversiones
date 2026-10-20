@@ -35,6 +35,9 @@ export function normalizeInvestmentDetail(raw: any): InvestmentDetail & Record<s
 }
 
 export const httpApi: PortalApi = {
+  public: {
+    market: () => request('GET', '/api/public/market')
+  },
   auth: {
     login: async (input) => toSession(await request<RawSession>('POST', '/api/auth/login', input)),
     logout: async () => {

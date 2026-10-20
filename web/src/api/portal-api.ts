@@ -31,6 +31,7 @@ import type {
   ReferenceRate,
   ReferenceRateCode,
   BanxicoPreview,
+  MarketSnapshot,
   BanxicoImportResult,
   ReinvestInput,
   Session,
@@ -41,6 +42,10 @@ import type {
 
 /** Superficie completa que consume la interfaz. Implementada por la API real (http) y por los mocks FICTICIOS. */
 export interface PortalApi {
+  /** Datos públicos, sin sesión. */
+  public: {
+    market(): Promise<MarketSnapshot>;
+  };
   auth: {
     login(input: LoginInput): Promise<Session>;
     logout(): Promise<void>;

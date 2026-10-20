@@ -160,6 +160,21 @@ export interface ReferenceRate {
   in_use: boolean;
 }
 
+/**
+ * Indicadores de Banco de México (informativos): tipo de cambio FIX y CETES más recientes.
+ * No afectan saldos ni cálculos (estos usan las tasas capturadas/importadas).
+ */
+export interface MarketSnapshot {
+  available: boolean;
+  /** Tipo de cambio FIX en pesos por dólar, como texto exacto (p. ej. "18.4253"). */
+  fx: { rate: string; date: string; series_id: string } | null;
+  cetes: Partial<Record<ReferenceRateCode, { annual_rate_bps: number; date: string; series_id: string }>>;
+  source: string;
+  fetched_at: string | null;
+  /** true si Banxico no respondió y se muestra el último dato disponible. */
+  stale: boolean;
+}
+
 /** Tasa consultada en Banxico (SIE) y su estado frente a lo ya capturado. */
 export interface BanxicoRate {
   rate_code: ReferenceRateCode;

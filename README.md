@@ -64,7 +64,7 @@ Consulte [docs/deployment-and-operations.md](docs/deployment-and-operations.md):
 ### Dos dominios, un solo Worker (producción)
 | Dominio | Qué muestra |
 | --- | --- |
-| `pimexfortexcapital.com.mx` | Página corporativa. "Acceso clientes" lleva al portal. No expone la API. `/login`, `/app`, `/admin`, `/recuperar` y `/restablecer` redirigen (302) al portal. `www.` redirige (301) al dominio sin www. |
+| `pimexfortexcapital.com.mx` | Página corporativa. "Acceso clientes" lleva al portal. No expone la API (salvo `GET /api/public/market`: indicadores de Banxico). `/login`, `/app`, `/admin`, `/recuperar` y `/restablecer` redirigen (302) al portal. `www.` redirige (301) al dominio sin www. |
 | `clientes.pimexfortexcapital.com.mx` | Portal: la raíz muestra el login o, con sesión, el panel según el rol. API, cookies y enlaces de recuperación. |
 
 - El Worker atiende todas las peticiones (`run_worker_first: true`) y decide por dominio (`PUBLIC_HOST` / `PORTAL_HOST`, ver `src/worker/middleware/sites.ts`); en el HTML deja `<meta name="site">` para que React sepa qué sitio es. Sin esas variables (local, staging) funciona como un solo sitio.

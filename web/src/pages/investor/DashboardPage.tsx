@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { useAuth } from '../../auth/AuthContext';
 import { BalanceTiles } from '../../components/BalanceTiles';
+import { MarketIndicators } from '../../components/MarketIndicators';
 import { InvestmentStatusBadge } from '../../components/badges';
 import { Async, Card, EmptyState, LoadingBlock, PageHeader } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
@@ -59,6 +60,8 @@ export function DashboardPage() {
           )
         }
       </Async>
+
+      <MarketIndicators variant="investor" className="mt-6" />
 
       <Card
         className="mt-6"

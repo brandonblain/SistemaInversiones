@@ -31,6 +31,7 @@ La versión anterior de esta guía pedía `JWT_SECRET` y `ADMIN_MFA_SECRET`, per
 2. En **Administración › Tasas CETES › Importar desde Banxico**: *Consultar Banxico* muestra la vista previa (no escribe nada) e *Importar* guarda solo las tasas nuevas, con fuente `Banxico SIE <serie>` y registro en la bitácora. Nunca se sobrescribe una tasa ya capturada: si difiere, se reporta.
 3. Series (subasta semanal, tasa de rendimiento): CETES 28 `SF43936`, 91 `SF43939`, 182 `SF43942`, 364 `SF43945` (`src/worker/services/banxico.ts`). Las cuatro se verificaron contra el catálogo del SIE (20/10/2026). Como salvaguarda, si el título que devuelve Banxico no menciona el plazo esperado, esa serie se rechaza.
 4. Límites de Banxico: 200 consultas cada 5 minutos y 10 000 al día. Sin token, la importación responde 503 y la captura manual sigue disponible.
+5. Indicadores en pantalla (`GET /api/public/market`, sin sesión): tipo de cambio FIX (`SF43718`) y CETES más recientes ("dato oportuno"). Se muestran en la página pública (fila CETES − 1 y tipo de cambio), en la cuenta del cliente y en el resumen de administración. Se guardan en la caché del Worker 30 minutos; si Banxico falla se sirve el último dato bueno (hasta 3 días). Son informativos: los rendimientos se calculan con las tasas importadas o capturadas, nunca con este dato en vivo. Es la única ruta `/api` que responde en el dominio público.
 
 ### Correo
 1. Verifique el dominio remitente en el proveedor (SPF/DKIM). **No modifique los registros MX existentes del cliente.**

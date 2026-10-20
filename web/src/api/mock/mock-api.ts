@@ -8,6 +8,7 @@ import type {
   AdminStatistics,
   AdminYieldEntry,
   BanxicoPreview,
+  MarketSnapshot,
   BanxicoRate,
   CurrencyTotals,
   HistoryEntry,
@@ -325,6 +326,25 @@ function wrap<T extends object>(obj: T): T {
 }
 
 export const mockApi: PortalApi = {
+  public: {
+    // Indicadores FICTICIOS con la forma real del backend
+    async market(): Promise<MarketSnapshot> {
+      const d = addDaysIso(today(), -1);
+      return {
+        available: true,
+        fx: { rate: '18.4253', date: d, series_id: 'SF43718' },
+        cetes: {
+          CETES_28: { annual_rate_bps: 625, date: addDaysIso(today(), -5), series_id: 'SF43936' },
+          CETES_91: { annual_rate_bps: 655, date: addDaysIso(today(), -5), series_id: 'SF43939' },
+          CETES_182: { annual_rate_bps: 679, date: addDaysIso(today(), -5), series_id: 'SF43942' },
+          CETES_364: { annual_rate_bps: 711, date: addDaysIso(today(), -5), series_id: 'SF43945' }
+        },
+        source: 'Banco de México (SIE)',
+        fetched_at: nowIso(),
+        stale: false
+      };
+    }
+  },
   auth: /* @__PURE__ */ wrap<PortalApi['auth']>({
     async login({ email, password, mfa_token }) {
       const u = db.users.find((x) => x.email === email.trim().toLowerCase());

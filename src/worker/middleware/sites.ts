@@ -45,8 +45,10 @@ export async function siteRoutingMiddleware(c: SiteContext, next: Next) {
   if (norm(url.hostname) !== norm(c.env.PUBLIC_HOST)) {
     return c.redirect(`${siteOrigin(url, c.env.PUBLIC_HOST!)}${url.pathname}${url.search}`, 301);
   }
-  // La API solo existe en el portal: el sitio público no maneja sesiones ni datos.
-  if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
+  // La API solo existe en el portal: el sitio público no maneja sesiones ni datos de clientes.
+  // Excepción: indicadores públicos de Banxico, solo lectura (GET).
+  const publicApi = url.pathname.startsWith('/api/public/') && (c.req.method === 'GET' || c.req.method === 'HEAD');
+  if (!publicApi && (url.pathname === '/api' || url.pathname.startsWith('/api/'))) {
     return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Ruta no encontrada.', details: null } }, 404);
   }
   // Login, recuperación y paneles viven en el subdominio del portal.

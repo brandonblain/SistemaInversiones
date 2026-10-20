@@ -61,16 +61,16 @@ export function banxicoDate(fecha: string): string | null {
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-type SieResponse = { bmx?: { series?: Array<{ idSerie?: string; titulo?: string; datos?: Array<{ fecha?: string; dato?: string }> }> } };
+type SieSeries = { idSerie?: string; titulo?: string; datos?: Array<{ fecha?: string; dato?: string }> };
+type SieResponse = { bmx?: { series?: SieSeries[] } };
 
-export async function fetchCetesRates(env: Env, from: string, to: string, codes: CetesCode[] = Object.keys(BANXICO_SERIES) as CetesCode[]): Promise<BanxicoResult> {
+/** Llamada al SIE con el token en la cabecera; traduce los errores sin exponer el token. */
+async function sieFetch(env: Env, path: string): Promise<SieSeries[]> {
   const token = env.BANXICO_TOKEN?.trim();
   if (!token) throw new AppError(503, 'BANXICO_NOT_CONFIGURED', 'Falta configurar el token de Banxico (secreto BANXICO_TOKEN).');
-
-  const ids = codes.map((c) => BANXICO_SERIES[c].id).join(',');
   let res: Response;
   try {
-    res = await fetch(`${BASE}/series/${ids}/datos/${from}/${to}`, {
+    res = await fetch(`${BASE}${path}`, {
       headers: { 'Bmx-Token': token, Accept: 'application/json' },
       signal: AbortSignal.timeout(15_000)
     });
@@ -80,9 +80,19 @@ export async function fetchCetesRates(env: Env, from: string, to: string, codes:
   if (res.status === 401 || res.status === 403) throw new AppError(503, 'BANXICO_TOKEN_INVALID', 'Banxico rechazó el token. Revise el secreto BANXICO_TOKEN.');
   if (res.status === 429) throw new AppError(429, 'BANXICO_RATE_LIMIT', 'Banxico limitó las consultas (200 cada 5 minutos). Intente en unos minutos.');
   if (!res.ok) throw new AppError(503, 'BANXICO_UNAVAILABLE', `Banxico respondió ${res.status}. Intente más tarde.`);
-
   const body = (await res.json().catch(() => null)) as SieResponse | null;
-  const series = body?.bmx?.series ?? [];
+  return body?.bmx?.series ?? [];
+}
+
+/** ¿El título corresponde a CETES de ese plazo? (salvaguarda contra una serie equivocada) */
+const isCetesTitle = (titulo: string | undefined, days: number) => {
+  const title = normalize(titulo ?? '');
+  return title.includes('cetes') && new RegExp(`\\b${days}\\s*dias\\b`).test(title);
+};
+
+export async function fetchCetesRates(env: Env, from: string, to: string, codes: CetesCode[] = Object.keys(BANXICO_SERIES) as CetesCode[]): Promise<BanxicoResult> {
+  const ids = codes.map((c) => BANXICO_SERIES[c].id).join(',');
+  const series = await sieFetch(env, `/series/${ids}/datos/${from}/${to}`);
   const rates: BanxicoRate[] = [];
   const rejected: BanxicoResult['rejected'] = [];
 
@@ -93,8 +103,7 @@ export async function fetchCetesRates(env: Env, from: string, to: string, codes:
       rejected.push({ rate_code: code, series_id: id, reason: 'Banxico no devolvió esta serie.' });
       continue;
     }
-    const title = normalize(s.titulo ?? '');
-    if (!title.includes('cetes') || !new RegExp(`\\b${days}\\s*dias\\b`).test(title)) {
+    if (!isCetesTitle(s.titulo, days)) {
       rejected.push({ rate_code: code, series_id: id, reason: `El título de la serie no corresponde a CETES ${days} días: "${s.titulo ?? ''}".` });
       continue;
     }
@@ -106,4 +115,51 @@ export async function fetchCetesRates(env: Env, from: string, to: string, codes:
   }
   rates.sort((a, b) => (a.effective_date === b.effective_date ? a.rate_code.localeCompare(b.rate_code) : b.effective_date.localeCompare(a.effective_date)));
   return { rates, rejected };
+}
+
+/**
+ * Tipo de cambio FIX (pesos por dólar, fecha de determinación), verificado en el catálogo del SIE:
+ * "Tipo de cambio Pesos por dólar E.U.A. … para solventar obligaciones … Fecha de determinación (FIX)".
+ */
+export const BANXICO_FX = { id: 'SF43718' } as const;
+
+/** "18.4253" → "18.4253" (texto, sin pasar por punto flotante). null si no es un número válido. */
+export function fxRate(dato: string): string | null {
+  const m = /^\s*(\d{1,3}\.\d{1,6})\s*$/.exec(dato);
+  return m && Number(m[1]) > 0 ? m[1]! : null;
+}
+
+export interface MarketData {
+  fx: { rate: string; date: string; series_id: string } | null;
+  cetes: Partial<Record<CetesCode, { annual_rate_bps: number; date: string; series_id: string }>>;
+}
+
+/** Último dato publicado ("oportuno") del FIX y de las cuatro CETES, en una sola consulta. */
+export async function fetchMarketData(env: Env): Promise<MarketData> {
+  const codes = Object.keys(BANXICO_SERIES) as CetesCode[];
+  const ids = [BANXICO_FX.id, ...codes.map((c) => BANXICO_SERIES[c].id)].join(',');
+  const series = await sieFetch(env, `/series/${ids}/datos/oportuno`);
+  const latest = (s?: SieSeries) => s?.datos?.[s.datos.length - 1];
+
+  const fxSeries = series.find((x) => x.idSerie === BANXICO_FX.id);
+  const fxTitle = normalize(fxSeries?.titulo ?? '');
+  let fx: MarketData['fx'] = null;
+  if (fxSeries && fxTitle.includes('tipo de cambio') && fxTitle.includes('fix')) {
+    const d = latest(fxSeries);
+    const date = banxicoDate(d?.fecha ?? '');
+    const rate = fxRate(d?.dato ?? '');
+    if (date && rate) fx = { rate, date, series_id: BANXICO_FX.id };
+  }
+
+  const cetes: MarketData['cetes'] = {};
+  for (const code of codes) {
+    const { id, days } = BANXICO_SERIES[code];
+    const s = series.find((x) => x.idSerie === id);
+    if (!s || !isCetesTitle(s.titulo, days)) continue;
+    const d = latest(s);
+    const date = banxicoDate(d?.fecha ?? '');
+    const bps = percentToBps(d?.dato ?? '');
+    if (date && bps !== null) cetes[code] = { annual_rate_bps: bps, date, series_id: id };
+  }
+  return { fx, cetes };
 }
