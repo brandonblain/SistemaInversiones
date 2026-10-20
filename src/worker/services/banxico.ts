@@ -10,7 +10,8 @@ import type { Env } from '../index';
  *  - Rango: /series/{ids}/datos/{yyyy-MM-dd}/{yyyy-MM-dd}; respuesta bmx.series[].datos[] con
  *    fecha "dd/MM/yyyy" y dato "7.15" (porcentaje anual) o "N/E" (sin dato, se omite).
  *
- * Series de la subasta semanal (tasa de rendimiento). SF43936 es la del ejemplo oficial de Banxico.
+ * Series de la subasta semanal (tasa de rendimiento), verificadas contra el catálogo del SIE el 20/10/2026:
+ * "Valores gubernamentales · Resultados de la subasta semanal · Tasa de rendimiento · Cetes a N días".
  * Como salvaguarda, el título que devuelve Banxico debe mencionar el plazo esperado ("28 días", …);
  * si no coincide, esa serie se rechaza en lugar de importar un dato equivocado.
  */
