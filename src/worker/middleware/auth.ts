@@ -30,9 +30,30 @@ export const clientIp = (c: Context) => c.req.header('cf-connecting-ip') || c.re
 const fail = (c: Context, status: 401 | 403, code: string, message: string) =>
   c.json({ success: false, error: { code, message, details: null } }, status);
 
+/**
+ * Política de contenido para las páginas: todo se sirve desde el mismo origen (fuentes incluidas);
+ * 'unsafe-inline' en estilos solo por los atributos style de React. Sin scripts en línea ni de terceros.
+ */
+export const PAGE_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'"
+].join('; ');
+
 export async function securityHeadersMiddleware(c: AuthContext, next: Next) {
   await next();
-  c.header('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+  const isApi = c.req.path === '/api' || c.req.path.startsWith('/api/');
+  const isHtml = (c.res.headers.get('content-type') ?? '').includes('text/html');
+  // API y HTML: nunca en caché (datos privados / meta del sitio). JS, CSS e imágenes conservan su caché.
+  if (isApi || isHtml) c.header('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+  if (isHtml) c.header('Content-Security-Policy', PAGE_CSP);
   c.header('X-Content-Type-Options', 'nosniff');
   c.header('X-Frame-Options', 'DENY');
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin');

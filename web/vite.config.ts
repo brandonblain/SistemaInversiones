@@ -27,6 +27,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     env: { VITE_USE_MOCKS: 'true', VITE_MOCK_LATENCY_MS: '0' },
-    css: false
+    css: false,
+    // Pruebas de pantallas completas (tablas, filtros, gráficas) en jsdom: holgura al correr en paralelo
+    testTimeout: 15000
   }
 });

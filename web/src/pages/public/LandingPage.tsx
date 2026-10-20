@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { homeFor } from '../../auth/RequireRole';
@@ -6,6 +6,7 @@ import { cx } from '../../components/ui';
 import { Icon } from '../../components/icons';
 import { useReveal } from '../../hooks/useReveal';
 import { BRAND } from '../../layouts/brand';
+import { portalHref, site } from '../../lib/site';
 
 // Contenido tomado del material comercial de Verticimax México Star Up.
 // Tasas, plazos y capitales son condiciones de referencia; cada contrato fija las definitivas.
@@ -64,7 +65,12 @@ export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   useReveal(rootRef);
-  const access = session ? { to: homeFor(session.user.role), label: 'Ir a mi portal' } : { to: '/login', label: 'Acceso clientes' };
+  const access =
+    site().kind === 'public'
+      ? { to: portalHref('/'), label: 'Acceso clientes', external: true }
+      : session
+        ? { to: homeFor(session.user.role), label: 'Ir a mi portal', external: false }
+        : { to: '/login', label: 'Acceso clientes', external: false };
 
   useEffect(() => {
     document.title = 'Verticimax México Star Up · Ecosistema de negocios';
@@ -96,10 +102,10 @@ export function LandingPage() {
               </a>
             ))}
           </nav>
-          <Link to={access.to} className="pressable inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-on-band px-4 text-sm font-bold text-band hover:bg-on-band-2 lg:ml-4">
+          <AccessLink access={access} className="pressable inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-on-band px-4 text-sm font-bold text-band hover:bg-on-band-2 lg:ml-4">
             <Icon name="user" className="h-4 w-4" />
             {access.label}
-          </Link>
+          </AccessLink>
           <button
             type="button"
             className="pressable inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-band hover:bg-band-raised lg:hidden"
@@ -151,12 +157,12 @@ export function LandingPage() {
                 <a href="#inversiones" className={ctaOnBand}>
                   Ver opciones de inversión
                 </a>
-                <Link
-                  to={access.to}
+                <AccessLink
+                  access={access}
                   className="pressable inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg border border-band-line px-5 font-semibold text-on-band hover:bg-band-raised"
                 >
                   <Icon name="user" className="h-4 w-4" /> {access.label}
-                </Link>
+                </AccessLink>
               </div>
               <dl data-reveal style={delay(4)} className="mt-10 grid max-w-lg grid-cols-3 border-t border-band-line pt-6">
                 {STATS.map((s, i) => (
@@ -310,9 +316,9 @@ export function LandingPage() {
               <h2 className="text-2xl font-extrabold sm:text-3xl">¿Ya eres inversionista?</h2>
               <p className="mt-1 text-on-band-2">Consulta tu capital, rendimientos y pagos en tu portal privado.</p>
             </div>
-            <Link to={access.to} className={ctaOnBand}>
+            <AccessLink access={access} className={ctaOnBand}>
               <Icon name="user" className="h-4 w-4" /> {access.label}
-            </Link>
+            </AccessLink>
           </div>
         </section>
       </main>
@@ -334,5 +340,18 @@ export function LandingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+/** Botón de acceso: enlace interno en el mismo sitio, absoluto hacia el subdominio del portal desde el sitio público. */
+function AccessLink({ access, className, children }: { access: { to: string; external: boolean }; className: string; children: ReactNode }) {
+  return access.external ? (
+    <a href={access.to} className={className}>
+      {children}
+    </a>
+  ) : (
+    <Link to={access.to} className={className}>
+      {children}
+    </Link>
   );
 }

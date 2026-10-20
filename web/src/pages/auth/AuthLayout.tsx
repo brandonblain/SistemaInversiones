@@ -4,6 +4,7 @@ import { MockBanner } from '../../components/MockBanner';
 import { Link } from 'react-router-dom';
 import { BRAND } from '../../layouts/brand';
 import { usePrivatePage } from '../../layouts/usePrivatePage';
+import { publicHref } from '../../lib/site';
 
 export function AuthLayout({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   usePrivatePage();
@@ -27,7 +28,13 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
             </div>
           )}
           <p className="mt-6 text-center text-xs text-nav-ink/80">Acceso privado y exclusivo para inversionistas de {BRAND.name}.</p>
-          <p className="mt-3 text-center text-sm"><Link to="/" className="inline-flex min-h-[44px] items-center font-semibold text-white hover:underline">← Volver al sitio</Link></p>
+          <p className="mt-3 text-center text-sm">
+            {publicHref() === '/' ? (
+              <Link to="/" className="inline-flex min-h-[44px] items-center font-semibold text-white hover:underline">← Volver al sitio</Link>
+            ) : (
+              <a href={publicHref()} className="inline-flex min-h-[44px] items-center font-semibold text-white hover:underline">← Volver al sitio</a>
+            )}
+          </p>
         </div>
       </main>
     </div>

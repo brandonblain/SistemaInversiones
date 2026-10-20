@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { securityHeadersMiddleware, originGuardMiddleware, AuthenticatedUser, InvestorProfile } from './middleware/auth';
+import { serveSite, siteRoutingMiddleware } from './middleware/sites';
 import { authRoutes } from './routes/auth';
 import { investorRoutes } from './routes/investor';
 import { adminRoutes } from './routes/admin';
@@ -22,6 +23,12 @@ export interface Env {
   FINANCIAL_RULES_APPROVED?: string;
   /** Orígenes adicionales permitidos para peticiones que modifican datos (p. ej. http://localhost:5173 en desarrollo). */
   ALLOWED_ORIGINS?: string;
+  /** Archivos de la SPA (web/dist). Ausente en pruebas unitarias. */
+  ASSETS?: Fetcher;
+  /** Dominio de la página corporativa (p. ej. pimexfortexcapital.com.mx). Vacío = sitio combinado. */
+  PUBLIC_HOST?: string;
+  /** Dominio del portal de clientes (p. ej. clientes.pimexfortexcapital.com.mx). Vacío = sitio combinado. */
+  PORTAL_HOST?: string;
 }
 
 export type AppVariables = {
@@ -33,6 +40,7 @@ export type AppVariables = {
 export const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 app.use('*', securityHeadersMiddleware);
+app.use('*', siteRoutingMiddleware);
 app.use('/api/*', originGuardMiddleware);
 
 app.get('/api/health', (c) =>
@@ -42,6 +50,9 @@ app.get('/api/health', (c) =>
 app.route('/api/auth', authRoutes);
 app.route('/api/investor', investorRoutes);
 app.route('/api/admin', adminRoutes);
+
+// Todo lo que no es /api: SPA y archivos estáticos. Una ruta /api inexistente responde 404 en JSON.
+app.on(['GET', 'HEAD'], '*', (c) => (c.req.path === '/api' || c.req.path.startsWith('/api/') ? c.notFound() : serveSite(c)));
 
 app.notFound((c) => c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Ruta no encontrada.', details: null } }, 404));
 

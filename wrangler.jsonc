@@ -5,12 +5,14 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Frontend (React/Vite) compilado como archivos estáticos. El Worker atiende primero /api/*;
-  // cualquier otra ruta sirve la SPA (index.html) sin pasar por el Worker.
+  // Frontend (React/Vite) compilado como archivos estáticos. El Worker atiende TODAS las peticiones:
+  // separa el sitio público del portal por dominio (src/worker/middleware/sites.ts), aplica cabeceras
+  // de seguridad y entrega los archivos con env.ASSETS (rutas desconocidas → index.html de la SPA).
   "assets": {
     "directory": "./web/dist",
+    "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": true
   },
 
   "observability": { "enabled": true },
@@ -66,12 +68,20 @@
     },
     "production": {
       "name": "portal-inversionistas-production",
+      // Solo los dominios propios (Settings › Domains & Routes): pimexfortexcapital.com.mx y clientes.…
+      // Sin *.workers.dev ni URLs de vista previa: una sola dirección por sitio (cookies, CSRF y enlaces).
+      "workers_dev": false,
+      "preview_urls": false,
       "vars": {
         "ENVIRONMENT": "production",
-        "APP_BASE_URL": "https://REEMPLAZAR-subdominio-del-cliente",
+        // Portal de clientes: login, paneles, API y enlaces de recuperación de contraseña.
+        "APP_BASE_URL": "https://clientes.pimexfortexcapital.com.mx",
+        "PUBLIC_HOST": "pimexfortexcapital.com.mx",
+        "PORTAL_HOST": "clientes.pimexfortexcapital.com.mx",
         "ALLOWED_ORIGINS": "",
         "DEFAULT_CURRENCY": "MXN",
-        "EMAIL_FROM": "avisos@REEMPLAZAR-dominio-del-cliente",
+        // Debe pertenecer a un dominio verificado en Resend.
+        "EMAIL_FROM": "avisos@pimexfortexcapital.com.mx",
         "EMAIL_PROVIDER": "resend",
         "REQUIRE_ADMIN_MFA": "true",
         // Cambiar a "true" SOLO con la aprobación escrita de convenciones (docs/01, decisiones 1-4).

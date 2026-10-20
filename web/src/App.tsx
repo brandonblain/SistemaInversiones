@@ -1,6 +1,8 @@
-import { Route, Routes } from 'react-router-dom';
-import { RequireRole } from './auth/RequireRole';
-import { EmptyState, LinkButton } from './components/ui';
+import { useEffect } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useAuth } from './auth/AuthContext';
+import { homeFor, RequireRole } from './auth/RequireRole';
+import { EmptyState, FullPageLoading, LinkButton } from './components/ui';
 import { AdminLayout } from './layouts/AdminLayout';
 import { InvestorLayout } from './layouts/InvestorLayout';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -27,6 +29,7 @@ import { InvestmentsPage } from './pages/investor/InvestmentsPage';
 import { NotificationsPage } from './pages/investor/NotificationsPage';
 import { ProfilePage } from './pages/investor/ProfilePage';
 import { LandingPage } from './pages/public/LandingPage';
+import { isPortalPath, portalHref, site } from './lib/site';
 
 function NotFound() {
   return (
@@ -36,10 +39,41 @@ function NotFound() {
   );
 }
 
+/** Raíz del portal de clientes: sin sesión muestra el login; con sesión, el panel de su rol. */
+function PortalHome() {
+  const { status, session } = useAuth();
+  if (status === 'loading') return <FullPageLoading />;
+  if (status === 'authenticated' && session) return <Navigate to={homeFor(session.user.role)} replace />;
+  return <LoginPage />;
+}
+
+/** Navegación a otro dominio (sitio público → portal). El Worker hace lo mismo en cargas directas. */
+function ExternalRedirect({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+  return <FullPageLoading />;
+}
+
+/** Sitio público: solo la página corporativa; las rutas del portal se envían al subdominio de clientes. */
+function PublicFallback() {
+  const { pathname, search } = useLocation();
+  return isPortalPath(pathname) ? <ExternalRedirect to={portalHref(pathname + search)} /> : <NotFound />;
+}
+
 export function App() {
+  const kind = site().kind;
+  if (kind === 'public') {
+    return (
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="*" element={<PublicFallback />} />
+      </Routes>
+    );
+  }
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={kind === 'portal' ? <PortalHome /> : <LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/recuperar" element={<ForgotPasswordPage />} />
       <Route path="/restablecer" element={<ResetPasswordPage />} />

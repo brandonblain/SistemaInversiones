@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api } from '../api';
 import { setUnauthorizedHandler } from '../api/client';
 import type { LoginInput, Session } from '../api/types';
+import { site } from '../lib/site';
 
 type Status = 'loading' | 'anonymous' | 'authenticated';
 
@@ -31,6 +32,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   statusRef.current = status;
 
   useEffect(() => {
+    // El sitio público no tiene API ni recibe la cookie del portal: siempre es anónimo.
+    if (site().kind === 'public') {
+      setStatus('anonymous');
+      return;
+    }
     let alive = true;
     api.auth
       .me()
