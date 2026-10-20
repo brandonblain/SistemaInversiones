@@ -29,6 +29,7 @@ import { InvestmentsPage } from './pages/investor/InvestmentsPage';
 import { NotificationsPage } from './pages/investor/NotificationsPage';
 import { ProfilePage } from './pages/investor/ProfilePage';
 import { LandingPage } from './pages/public/LandingPage';
+import { LegalDocPage, LegalIndexPage } from './pages/public/LegalPages';
 import { isPortalPath, portalHref, site } from './lib/site';
 
 function NotFound() {
@@ -67,6 +68,8 @@ export function App() {
     return (
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/legal" element={<LegalIndexPage />} />
+        <Route path="/legal/:slug" element={<LegalDocPage />} />
         <Route path="*" element={<PublicFallback />} />
       </Routes>
     );
@@ -75,6 +78,8 @@ export function App() {
     <Routes>
       <Route path="/" element={kind === 'portal' ? <PortalHome /> : <LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/legal" element={<LegalIndexPage />} />
+      <Route path="/legal/:slug" element={<LegalDocPage />} />
       <Route path="/recuperar" element={<ForgotPasswordPage />} />
       <Route path="/restablecer" element={<ResetPasswordPage />} />
 

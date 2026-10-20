@@ -53,8 +53,9 @@ describe('Sitio público y portal de clientes en dominios separados', () => {
       expect(res.status, path).toBe(302);
       expect(res.headers.get('location')).toBe(`${PORTAL}${path}`);
     }
-    // Rutas parecidas que no son del portal no se redirigen
+    // Rutas parecidas que no son del portal no se redirigen; los documentos legales viven en el sitio público
     expect((await get(env, `${PUBLIC}/application`)).status).toBe(200);
+    expect((await get(env, `${PUBLIC}/legal/aviso-de-privacidad`)).status).toBe(200);
   });
 
   it('dominio raíz: no expone la API (ni lectura ni escritura)', async () => {

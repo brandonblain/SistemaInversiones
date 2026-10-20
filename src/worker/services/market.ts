@@ -10,7 +10,7 @@ import { fetchMarketData, type MarketData } from './banxico';
  *  - se consulta Banxico como máximo cada FRESH_MS por centro de datos;
  *  - si Banxico falla, se sirve el último dato bueno hasta STALE_MS, marcado como stale.
  */
-const CACHE_KEY = 'https://indicadores.cache.internal/banxico/v1';
+const CACHE_KEY = 'https://indicadores.cache.internal/banxico/v2';
 const FRESH_MS = 30 * 60 * 1000;
 const STALE_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -21,7 +21,7 @@ export interface MarketSnapshot extends MarketData {
   stale: boolean;
 }
 
-const EMPTY: MarketSnapshot = { available: false, fx: null, cetes: {}, source: 'Banco de México (SIE)', fetched_at: null, stale: false };
+const EMPTY: MarketSnapshot = { available: false, fx: null, cetes: {}, indicators: [], source: 'Banco de México (SIE)', fetched_at: null, stale: false };
 
 type Cached = { data: MarketData; fetched_at: string };
 
@@ -50,7 +50,7 @@ export async function getMarketSnapshot(env: Env, now: Date = new Date()): Promi
     const data = await fetchMarketData(env);
     const fresh: Cached = { data, fetched_at: now.toISOString() };
     await writeCache(fresh);
-    return { ...EMPTY, ...data, available: !!(data.fx || Object.keys(data.cetes).length), fetched_at: fresh.fetched_at };
+    return { ...EMPTY, ...data, available: data.indicators.length > 0, fetched_at: fresh.fetched_at };
   } catch {
     // Banxico no respondió: último dato bueno (si no es demasiado viejo) o nada
     if (cached && age < STALE_MS) return { ...EMPTY, ...cached.data, available: true, fetched_at: cached.fetched_at, stale: true };

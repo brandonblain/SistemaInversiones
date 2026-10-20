@@ -6,23 +6,25 @@ import { ADMIN_ID, INVESTOR_ID, renderApp } from './render';
 afterEach(() => vi.restoreAllMocks());
 
 const unavailable = () =>
-  vi.spyOn(api.public, 'market').mockResolvedValue({ available: false, fx: null, cetes: {}, source: 'Banco de México (SIE)', fetched_at: null, stale: false });
+  vi.spyOn(api.public, 'market').mockResolvedValue({ available: false, fx: null, cetes: {}, indicators: [], source: 'Banco de México (SIE)', fetched_at: null, stale: false });
 
 describe('Indicadores de Banxico', () => {
-  it('página web: tipo de cambio FIX y CETES − 1 con la tasa del día', async () => {
+  it('página web: tipo de cambio FIX y, en CETES, solo el porcentaje del día (CETES 28 − 1)', async () => {
     renderApp('/');
     expect(await screen.findByTestId('fx-publico')).toHaveTextContent('Tipo de cambio FIX: $18.4253 por dólar');
     expect(screen.getByTestId('cetes-publico')).toHaveTextContent('CETES 28 días: 6.25 %');
-    expect(screen.getByText('punto · hoy ≈ 5.25 % anual')).toBeInTheDocument();
-    expect(screen.getByText('CETES − 1')).toBeInTheDocument();
+    expect(screen.getByTestId('cetes-tasa')).toHaveTextContent('5.25 %');
+    expect(screen.getByText('anual hoy · CETES − 1 punto')).toBeInTheDocument();
+    expect(screen.queryByText('CETES − 1')).not.toBeInTheDocument(); // ya no va el nombre en grande
   });
 
   it('página web sin datos de Banxico: se mantiene el contenido fijo', async () => {
     unavailable();
     renderApp('/');
-    expect(await screen.findByText('CETES − 1')).toBeInTheDocument();
-    expect(screen.getByText('punto · variable, solo en pesos')).toBeInTheDocument();
+    expect(await screen.findByText('CETES − 1 punto')).toBeInTheDocument();
+    expect(screen.getByText('variable, solo en pesos')).toBeInTheDocument();
     expect(screen.queryByTestId('fx-publico')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Indicadores de Banco de México' })).not.toBeInTheDocument();
   });
 
   it('cuenta del cliente: tipo de cambio y CETES 28 como referencia informativa', async () => {
@@ -54,5 +56,22 @@ describe('Indicadores de Banxico', () => {
     unavailable();
     renderApp('/admin', { loginAs: ADMIN_ID });
     expect(await screen.findByText(/BANXICO_TOKEN/)).toBeInTheDocument();
+  });
+
+  it('cinta de indicadores en la página web, la cuenta del cliente y la administración', async () => {
+    for (const [path, opts] of [['/', {}], ['/app', { loginAs: INVESTOR_ID }], ['/admin', { loginAs: ADMIN_ID }]] as const) {
+      const view = renderApp(path, opts);
+      const ticker = await screen.findByRole('region', { name: 'Indicadores de Banco de México' });
+      const [visible, copy] = ticker.querySelectorAll('ul');
+      expect(copy).toHaveAttribute('aria-hidden', 'true'); // la copia del bucle no se lee dos veces
+      for (const label of ['Dólar FIX', 'Euro', 'Libra esterlina', 'UDIS', 'Tasa objetivo Banxico', 'TIIE 28 días', 'CETES 28 días', 'Inflación anual']) {
+        expect(within(visible as HTMLElement).getByText(label)).toBeInTheDocument();
+      }
+      expect(within(visible as HTMLElement).getByText('$18.4253')).toBeInTheDocument();
+      expect(within(visible as HTMLElement).getByText('8.861350')).toBeInTheDocument();
+      // La variación no depende solo del color: flecha + texto para lectores de pantalla
+      expect(within(visible as HTMLElement).getAllByText('sube', { exact: false }).length).toBeGreaterThan(0);
+      view.unmount();
+    }
   });
 });

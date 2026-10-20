@@ -7,9 +7,27 @@ import { formatDate, formatRateBps } from '../lib/format';
 import { referenceRateLabel } from '../lib/labels';
 import { Badge, Card, cx } from './ui';
 
-/** Indicadores públicos de Banxico (tipo de cambio FIX y CETES). Informativos: no cambian saldos ni contratos. */
+/**
+ * Indicadores públicos de Banxico (cinta, FIX y CETES). Informativos: no cambian saldos ni contratos.
+ * La cinta y los paneles de una misma página comparten una sola consulta (vigente 60 s).
+ */
+let shared: { at: number; promise: Promise<MarketSnapshot> } | null = null;
+export function loadMarket(): Promise<MarketSnapshot> {
+  if (!shared || Date.now() - shared.at > 60_000) {
+    const promise = api.public.market().catch((e) => {
+      shared = null;
+      throw e;
+    });
+    shared = { at: Date.now(), promise };
+  }
+  return shared.promise;
+}
+/** Solo para pruebas. */
+export const resetMarketCache = () => {
+  shared = null;
+};
 export function useMarket() {
-  return useAsync<MarketSnapshot>(() => api.public.market(), []);
+  return useAsync<MarketSnapshot>(loadMarket, []);
 }
 
 /** "18.4253" → "$18.4253" (el FIX se publica con 4 decimales). */

@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { Icon, type IconName } from '../components/icons';
 import { MockBanner } from '../components/MockBanner';
+import { MarketTicker } from '../components/MarketTicker';
 import { cx } from '../components/ui';
 import { BRAND } from './brand';
 import { usePrivatePage } from './usePrivatePage';
@@ -91,6 +92,9 @@ export function AppShell({ nav, areaLabel, mobileStyle, banner }: { nav: NavItem
             {links(nav)}
           </nav>
           <div className="border-t border-white/10 p-3">
+            <NavLink to="/legal" className="mb-1 flex min-h-[36px] items-center px-3 text-xs text-nav-ink hover:text-white hover:underline">
+              Legal y privacidad
+            </NavLink>
             <p className="truncate px-3 pb-2 text-xs text-nav-ink/80" title={name}>{name}</p>
             {logoutButton}
           </div>
@@ -117,6 +121,7 @@ export function AppShell({ nav, areaLabel, mobileStyle, banner }: { nav: NavItem
             </nav>
           )}
 
+          <MarketTicker />
           {banner}
 
           <main id="contenido" className={cx('mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 lg:py-8', mobileStyle === 'bottom' && 'pb-24 lg:pb-8')}>

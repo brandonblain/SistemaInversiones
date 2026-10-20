@@ -32,6 +32,10 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
             </div>
           )}
           <p className="mt-6 text-center text-xs text-nav-ink/80">Acceso privado y exclusivo para inversionistas de {BRAND.name}.</p>
+          <p className="mt-1 flex flex-wrap justify-center gap-x-4 text-xs">
+            <Link to="/legal/aviso-de-privacidad" className="inline-flex min-h-[44px] items-center text-nav-ink hover:text-white hover:underline">Aviso de privacidad</Link>
+            <Link to="/legal/terminos-y-condiciones" className="inline-flex min-h-[44px] items-center text-nav-ink hover:text-white hover:underline">Términos y condiciones</Link>
+          </p>
           <p className="mt-3 text-center text-sm">
             {publicHref() === '/' ? (
               <Link to="/" className="inline-flex min-h-[44px] items-center font-semibold text-white hover:underline">← Volver al sitio</Link>

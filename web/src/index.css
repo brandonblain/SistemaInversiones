@@ -262,6 +262,47 @@ dialog::backdrop {
   }
 }
 
+/* Documentos legales: datos por completar, resaltados y con borde punteado (no solo color) */
+.legal-placeholder {
+  background: oklch(var(--accent-soft));
+  color: oklch(var(--accent-ink));
+  border-radius: 0.25rem;
+  outline: 1px dashed oklch(var(--accent) / 0.7);
+  padding: 0 0.2em;
+}
+
+/* Cinta de indicadores (Banxico): movimiento constante y lineal, en pausa con mouse o foco */
+.ticker-viewport {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 1.5rem, #000 calc(100% - 1.5rem), transparent);
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker var(--ticker-duration, 60s) linear infinite;
+}
+.ticker:hover .ticker-track,
+.ticker-viewport:focus-visible .ticker-track {
+  animation-play-state: paused;
+}
+.ticker-group {
+  display: flex;
+  gap: 2rem;
+  padding-right: 2rem;
+}
+@keyframes ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* Variación: colores fijos sobre la franja negra (no dependen del tema) */
+.ticker-up {
+  color: oklch(0.8 0.15 150);
+}
+.ticker-down {
+  color: oklch(0.74 0.16 27);
+}
+
 /* Revelado al hacer scroll (solo página pública) */
 [data-reveal] {
   opacity: 0;
@@ -284,6 +325,18 @@ dialog::backdrop {
   }
   .menu-panel {
     transform: none;
+  }
+  /* Cinta fija y desplazable a mano; sin la copia duplicada */
+  .ticker-track {
+    animation: none;
+  }
+  .ticker-viewport {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .ticker-group[aria-hidden] {
+    display: none;
   }
   .pressable:active:not(:disabled) {
     transform: none;

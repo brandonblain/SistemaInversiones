@@ -4,11 +4,13 @@ import { useAuth } from '../../auth/AuthContext';
 import { homeFor } from '../../auth/RequireRole';
 import { cx } from '../../components/ui';
 import { cetesMinusOnePoint, formatFx, useMarket } from '../../components/MarketIndicators';
+import { MarketTicker } from '../../components/MarketTicker';
 import { formatDate, formatRateBps } from '../../lib/format';
 import { Icon } from '../../components/icons';
 import { useReveal } from '../../hooks/useReveal';
 import { BRAND } from '../../layouts/brand';
 import { portalHref, site } from '../../lib/site';
+import { LEGAL_DOCS } from '../../legal/documents';
 
 // Contenido tomado del material comercial de la empresa (marca actual: Pimex Fortex Capital).
 // Tasas, plazos y capitales son condiciones de referencia; cada contrato fija las definitivas.
@@ -96,6 +98,7 @@ export function LandingPage() {
     <div ref={rootRef} className="site min-h-screen bg-page text-ink">
       {/* ---------- Encabezado ---------- */}
       <header className="band sticky top-0 z-30 border-b border-band-line bg-band">
+        <MarketTicker />
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
           <a href="#inicio" className="mr-auto flex min-h-[44px] min-w-[44px] items-center gap-3" aria-label={`${BRAND.name}, inicio`}>
             <img src={BRAND.emblemDarkSrc} alt="" width={118} height={36} className="h-7 w-auto sm:h-9" />
@@ -273,12 +276,27 @@ export function LandingPage() {
                     </div>
                   </dl>
                   <p className="col-start-3 row-start-1 text-right md:col-start-4">
-                    <span className={cx('figure block whitespace-nowrap font-extrabold leading-none', o.compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl')}>
-                      {o.tasa}
-                    </span>
-                    <span className="mt-1.5 block text-xs text-on-band-2 sm:text-sm">
-                      {o.compact && cetes28 ? `punto · hoy ≈ ${cetesMinusOnePoint(cetes28.annual_rate_bps)} anual` : o.nota}
-                    </span>
+                    {o.compact ? (
+                      // CETES: solo el porcentaje del día (CETES 28 − 1 punto); sin dato de Banxico, la fórmula en tamaño normal
+                      cetes28 ? (
+                        <>
+                          <span className="figure block whitespace-nowrap text-3xl font-extrabold leading-none sm:text-4xl" data-testid="cetes-tasa">
+                            {cetesMinusOnePoint(cetes28.annual_rate_bps)}
+                          </span>
+                          <span className="mt-1.5 block text-xs text-on-band-2 sm:text-sm">anual hoy · CETES − 1 punto</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="block whitespace-nowrap text-lg font-bold leading-tight">CETES − 1 punto</span>
+                          <span className="mt-1.5 block text-xs text-on-band-2 sm:text-sm">variable, solo en pesos</span>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <span className="figure block whitespace-nowrap text-3xl font-extrabold leading-none sm:text-4xl">{o.tasa}</span>
+                        <span className="mt-1.5 block text-xs text-on-band-2 sm:text-sm">{o.nota}</span>
+                      </>
+                    )}
                   </p>
                 </li>
               ))}
@@ -362,7 +380,23 @@ export function LandingPage() {
             </span>
             <span>© {new Date().getFullYear()} {BRAND.name}</span>
           </div>
-          <p className="mt-5 max-w-[62ch] text-xs leading-relaxed">
+          <nav aria-label="Documentos legales" className="mt-4">
+            <ul className="flex flex-wrap gap-x-4">
+              {LEGAL_DOCS.filter((d) => d.group === 'sitio').map((d) => (
+                <li key={d.slug}>
+                  <Link to={`/legal/${d.slug}`} className="inline-flex min-h-[44px] items-center text-sm font-medium text-ink hover:text-brand hover:underline">
+                    {d.short}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link to="/legal" className="inline-flex min-h-[44px] items-center text-sm font-medium text-brand hover:underline">
+                  Todos los documentos
+                </Link>
+              </li>
+            </ul>
+          </nav>
+          <p className="mt-3 max-w-[62ch] text-xs leading-relaxed">
             Las tasas, plazos y capitales mostrados son de referencia; las condiciones definitivas se establecen en cada contrato.
             Los testimonios reflejan experiencias individuales; los rendimientos pasados no garantizan rendimientos futuros.
             Toda inversión conlleva riesgos. Tipo de cambio y tasas CETES: Banco de México (SIE), con fines informativos.

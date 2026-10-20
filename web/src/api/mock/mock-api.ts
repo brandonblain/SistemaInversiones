@@ -339,6 +339,20 @@ export const mockApi: PortalApi = {
           CETES_182: { annual_rate_bps: 679, date: addDaysIso(today(), -5), series_id: 'SF43942' },
           CETES_364: { annual_rate_bps: 711, date: addDaysIso(today(), -5), series_id: 'SF43945' }
         },
+        indicators: [
+          { key: 'USD', label: 'Dólar FIX', kind: 'fx', value: '18.4253', date: d, change: '+0.0312', direction: 'up', series_id: 'SF43718' },
+          { key: 'EUR', label: 'Euro', kind: 'fx', value: '20.6704', date: d, change: '−0.0450', direction: 'down', series_id: 'SF46410' },
+          { key: 'GBP', label: 'Libra esterlina', kind: 'fx', value: '24.5628', date: d, change: '+0.0101', direction: 'up', series_id: 'SF46407' },
+          { key: 'CAD', label: 'Dólar canadiense', kind: 'fx', value: '13.0804', date: d, change: '−0.0123', direction: 'down', series_id: 'SF60632' },
+          { key: 'UDIS', label: 'UDIS', kind: 'index', value: '8.861350', date: today(), change: '+0.000451', direction: 'up', series_id: 'SP68257' },
+          { key: 'OBJETIVO', label: 'Tasa objetivo Banxico', kind: 'rate', value: '6.50', date: today(), change: '+0.00', direction: 'flat', series_id: 'SF61745' },
+          { key: 'TIIE28', label: 'TIIE 28 días', kind: 'rate', value: '6.76', date: today(), change: '−0.01', direction: 'down', series_id: 'SF60648' },
+          { key: 'CETES_28', label: 'CETES 28 días', kind: 'rate', value: '6.25', date: addDaysIso(today(), -5), change: '+0.16', direction: 'up', series_id: 'SF43936' },
+          { key: 'CETES_91', label: 'CETES 91 días', kind: 'rate', value: '6.55', date: addDaysIso(today(), -5), change: '−0.23', direction: 'down', series_id: 'SF43939' },
+          { key: 'CETES_182', label: 'CETES 182 días', kind: 'rate', value: '6.79', date: addDaysIso(today(), -5), change: '−0.12', direction: 'down', series_id: 'SF43942' },
+          { key: 'CETES_364', label: 'CETES 364 días', kind: 'rate', value: '7.11', date: addDaysIso(today(), -5), change: '−0.33', direction: 'down', series_id: 'SF43945' },
+          { key: 'INFLACION', label: 'Inflación anual', kind: 'rate', value: '3.45', date: addDaysIso(today(), -49), change: '−0.12', direction: 'down', series_id: 'SP30578' }
+        ],
         source: 'Banco de México (SIE)',
         fetched_at: nowIso(),
         stale: false

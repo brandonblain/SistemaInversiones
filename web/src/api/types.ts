@@ -169,10 +169,24 @@ export interface MarketSnapshot {
   /** Tipo de cambio FIX en pesos por dólar, como texto exacto (p. ej. "18.4253"). */
   fx: { rate: string; date: string; series_id: string } | null;
   cetes: Partial<Record<ReferenceRateCode, { annual_rate_bps: number; date: string; series_id: string }>>;
+  /** Cinta de indicadores: divisas, UDIS, tasas, CETES e inflación, con variación contra el dato anterior. */
+  indicators: MarketIndicator[];
   source: string;
   fetched_at: string | null;
   /** true si Banxico no respondió y se muestra el último dato disponible. */
   stale: boolean;
+}
+
+export interface MarketIndicator {
+  key: string;
+  label: string;
+  /** fx: pesos por unidad · index: valor (UDIS) · rate: porcentaje anual */
+  kind: 'fx' | 'index' | 'rate';
+  value: string;
+  date: string;
+  change: string | null;
+  direction: 'up' | 'down' | 'flat' | null;
+  series_id: string;
 }
 
 /** Tasa consultada en Banxico (SIE) y su estado frente a lo ya capturado. */

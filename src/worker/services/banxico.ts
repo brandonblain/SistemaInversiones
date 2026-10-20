@@ -1,4 +1,5 @@
 import { AppError } from '../lib/errors';
+import { addDays, todayInContractZone } from '../lib/dates';
 import type { Env } from '../index';
 
 /**
@@ -117,49 +118,106 @@ export async function fetchCetesRates(env: Env, from: string, to: string, codes:
   return { rates, rejected };
 }
 
-/**
- * Tipo de cambio FIX (pesos por dólar, fecha de determinación), verificado en el catálogo del SIE:
- * "Tipo de cambio Pesos por dólar E.U.A. … para solventar obligaciones … Fecha de determinación (FIX)".
- */
-export const BANXICO_FX = { id: 'SF43718' } as const;
-
 /** "18.4253" → "18.4253" (texto, sin pasar por punto flotante). null si no es un número válido. */
 export function fxRate(dato: string): string | null {
   const m = /^\s*(\d{1,3}\.\d{1,6})\s*$/.exec(dato);
   return m && Number(m[1]) > 0 ? m[1]! : null;
 }
 
+export type IndicatorKey =
+  | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'UDIS' | 'OBJETIVO' | 'TIIE28' | 'INFLACION'
+  | CetesCode;
+
+export interface Indicator {
+  key: IndicatorKey;
+  label: string;
+  /** fx: pesos por unidad · index: valor (UDIS) · rate: porcentaje anual */
+  kind: 'fx' | 'index' | 'rate';
+  /** Valor publicado, redondeado para mostrar (p. ej. "18.4253", "8.861350", "6.50"). */
+  value: string;
+  date: string;
+  /** Diferencia contra el dato anterior, con signo y los mismos decimales; null si no hay anterior. */
+  change: string | null;
+  direction: 'up' | 'down' | 'flat' | null;
+  series_id: string;
+}
+
+type Spec = { key: IndicatorKey; label: string; id: string; kind: Indicator['kind']; decimals: number; match: (title: string) => boolean };
+
+/**
+ * Indicadores de la cinta, verificados contra el catálogo del SIE (20/10/2026). Cada serie se valida por
+ * su título: si Banxico devolviera otra cosa, ese indicador simplemente no se muestra.
+ */
+const INDICATORS: Spec[] = [
+  { key: 'USD', label: 'Dólar FIX', id: 'SF43718', kind: 'fx', decimals: 4, match: (t) => t.includes('tipo de cambio') && t.includes('fix') },
+  { key: 'EUR', label: 'Euro', id: 'SF46410', kind: 'fx', decimals: 4, match: (t) => t.includes('euro') },
+  { key: 'GBP', label: 'Libra esterlina', id: 'SF46407', kind: 'fx', decimals: 4, match: (t) => t.includes('libra esterlina') },
+  { key: 'CAD', label: 'Dólar canadiense', id: 'SF60632', kind: 'fx', decimals: 4, match: (t) => t.includes('canadiense') },
+  { key: 'UDIS', label: 'UDIS', id: 'SP68257', kind: 'index', decimals: 6, match: (t) => t.includes('udis') },
+  { key: 'OBJETIVO', label: 'Tasa objetivo Banxico', id: 'SF61745', kind: 'rate', decimals: 2, match: (t) => t.includes('tasa objetivo') },
+  { key: 'TIIE28', label: 'TIIE 28 días', id: 'SF60648', kind: 'rate', decimals: 2, match: (t) => t.includes('tiie') && /\b28 dias\b/.test(t) },
+  ...(Object.keys(BANXICO_SERIES) as CetesCode[]).map((code): Spec => ({
+    key: code,
+    label: `CETES ${BANXICO_SERIES[code].days} días`,
+    id: BANXICO_SERIES[code].id,
+    kind: 'rate',
+    decimals: 2,
+    match: (t) => isCetesTitle(t, BANXICO_SERIES[code].days)
+  })),
+  { key: 'INFLACION', label: 'Inflación anual', id: 'SP30578', kind: 'rate', decimals: 2, match: (t) => t.includes('precios al consumidor') && t.includes('anual') }
+];
+
 export interface MarketData {
   fx: { rate: string; date: string; series_id: string } | null;
   cetes: Partial<Record<CetesCode, { annual_rate_bps: number; date: string; series_id: string }>>;
+  indicators: Indicator[];
 }
 
-/** Último dato publicado ("oportuno") del FIX y de las cuatro CETES, en una sola consulta. */
-export async function fetchMarketData(env: Env): Promise<MarketData> {
-  const codes = Object.keys(BANXICO_SERIES) as CetesCode[];
-  const ids = [BANXICO_FX.id, ...codes.map((c) => BANXICO_SERIES[c].id)].join(',');
-  const series = await sieFetch(env, `/series/${ids}/datos/oportuno`);
-  const latest = (s?: SieSeries) => s?.datos?.[s.datos.length - 1];
+const num = (dato?: string) => {
+  const t = (dato ?? '').trim();
+  return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : null;
+};
 
-  const fxSeries = series.find((x) => x.idSerie === BANXICO_FX.id);
-  const fxTitle = normalize(fxSeries?.titulo ?? '');
-  let fx: MarketData['fx'] = null;
-  if (fxSeries && fxTitle.includes('tipo de cambio') && fxTitle.includes('fix')) {
-    const d = latest(fxSeries);
-    const date = banxicoDate(d?.fecha ?? '');
-    const rate = fxRate(d?.dato ?? '');
-    if (date && rate) fx = { rate, date, series_id: BANXICO_FX.id };
-  }
-
+/**
+ * Indicadores de mercado de Banxico en una sola consulta por rango (últimos 100 días): último dato
+ * publicado hasta hoy y el anterior, para la variación. (Las UDIS se publican por adelantado: se toma la de hoy.)
+ */
+export async function fetchMarketData(env: Env, today: string = todayInContractZone()): Promise<MarketData> {
+  const ids = INDICATORS.map((i) => i.id).join(',');
+  const series = await sieFetch(env, `/series/${ids}/datos/${addDays(today, -100)}/${today}`);
+  const indicators: Indicator[] = [];
+  const fxRaw: Record<string, { dato: string; date: string }> = {};
   const cetes: MarketData['cetes'] = {};
-  for (const code of codes) {
-    const { id, days } = BANXICO_SERIES[code];
-    const s = series.find((x) => x.idSerie === id);
-    if (!s || !isCetesTitle(s.titulo, days)) continue;
-    const d = latest(s);
-    const date = banxicoDate(d?.fecha ?? '');
-    const bps = percentToBps(d?.dato ?? '');
-    if (date && bps !== null) cetes[code] = { annual_rate_bps: bps, date, series_id: id };
+
+  for (const spec of INDICATORS) {
+    const s = series.find((x) => x.idSerie === spec.id);
+    if (!s || !spec.match(normalize(s.titulo ?? ''))) continue;
+    const points = (s.datos ?? [])
+      .map((d) => ({ date: banxicoDate(d.fecha ?? ''), dato: (d.dato ?? '').trim(), n: num(d.dato) }))
+      .filter((p): p is { date: string; dato: string; n: number } => !!p.date && p.n !== null && p.date <= today)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const last = points[points.length - 1];
+    if (!last) continue;
+    const prev = points[points.length - 2];
+    const diff = prev ? last.n - prev.n : null;
+    const eps = 10 ** -(spec.decimals + 1);
+    indicators.push({
+      key: spec.key,
+      label: spec.label,
+      kind: spec.kind,
+      value: last.n.toFixed(spec.decimals),
+      date: last.date,
+      change: diff === null ? null : `${diff >= 0 ? '+' : '−'}${Math.abs(diff).toFixed(spec.decimals)}`,
+      direction: diff === null ? null : Math.abs(diff) < eps ? 'flat' : diff > 0 ? 'up' : 'down',
+      series_id: spec.id
+    });
+    if (spec.key === 'USD') fxRaw.USD = { dato: last.dato, date: last.date };
+    if (spec.key in BANXICO_SERIES) {
+      const bps = percentToBps(last.dato);
+      if (bps !== null) cetes[spec.key as CetesCode] = { annual_rate_bps: bps, date: last.date, series_id: spec.id };
+    }
   }
-  return { fx, cetes };
+
+  const usd = fxRaw.USD ? fxRate(fxRaw.USD.dato) : null;
+  return { fx: usd && fxRaw.USD ? { rate: usd, date: fxRaw.USD.date, series_id: 'SF43718' } : null, cetes, indicators };
 }

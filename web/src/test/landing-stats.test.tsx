@@ -14,7 +14,7 @@ describe('Página web pública', () => {
     }
     expect(screen.getAllByText('16 %')).toHaveLength(2); // Movilidad y Vehículos eléctricos
     expect(screen.getByRole('heading', { name: 'Vehículos eléctricos' })).toBeInTheDocument();
-    expect(screen.getByText('CETES − 1')).toBeInTheDocument();
+    expect(await screen.findByTestId('cetes-tasa')).toHaveTextContent('5.25 %'); // CETES 28 (6.25 %) − 1 punto
     for (const m of ['Mensual', 'Semestral', 'Anual', 'A liquidación']) expect(screen.getByRole('heading', { name: m })).toBeInTheDocument();
     expect(screen.getByText('Héctor Galeana')).toBeInTheDocument();
     expect(screen.getByText(/rendimientos pasados no garantizan/)).toBeInTheDocument();
