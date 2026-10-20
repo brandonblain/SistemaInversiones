@@ -81,7 +81,7 @@
         {
           "binding": "DB",
           "database_name": "portal-inversionistas-db-prod",
-          "database_id": "REEMPLAZAR-con-id-de-produccion",
+          "database_id": "06615f8f-6e23-4739-a073-b0e0115565e1",
           "migrations_dir": "migrations"
         }
       ],
