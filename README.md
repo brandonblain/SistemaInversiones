@@ -1,4 +1,4 @@
-# Verticimax México Star Up — Portal privado de inversionistas
+# Pymex Fortex Capital — Portal privado de inversionistas
 
 Un solo proyecto para Cloudflare Workers:
 

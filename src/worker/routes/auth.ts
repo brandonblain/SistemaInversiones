@@ -291,7 +291,7 @@ authRoutes.post('/admin/mfa/setup', authMiddleware, async (c) => {
 
   const secret = generateBase32Secret();
   await c.env.DB.prepare('UPDATE users SET mfa_pending_secret = ? WHERE id = ?').bind(secret, user.id).run();
-  const issuer = encodeURIComponent('Verticimax Portal');
+  const issuer = encodeURIComponent('Pymex Fortex Capital');
   return c.json({
     success: true,
     data: { secret, otpauth_url: `otpauth://totp/${issuer}:${encodeURIComponent(user.email)}?secret=${secret}&issuer=${issuer}&digits=6&period=30` }

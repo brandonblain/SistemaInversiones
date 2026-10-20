@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 /** Marca las páginas privadas (login, portal, administración) para que los buscadores no las indexen. */
-export function usePrivatePage(title = 'Verticimax México · Portal de inversionistas') {
+export function usePrivatePage(title = 'Pymex Fortex Capital · Portal de inversionistas') {
   useEffect(() => {
     document.title = title;
     let meta = document.querySelector<HTMLMetaElement>('meta[name="robots"]');

@@ -10,6 +10,8 @@ export default {
         brand: { DEFAULT: token('brand'), strong: token('brand-strong'), soft: token('brand-soft'), ink: token('brand-ink') },
         nav: { DEFAULT: token('nav'), hover: token('nav-hover'), active: token('nav-active'), ink: token('nav-ink') },
         accent: { DEFAULT: token('accent'), soft: token('accent-soft'), ink: token('accent-ink') },
+        // Rojo corporativo: líneas y acentos decorativos
+        signal: token('signal'),
         dist: { paid: token('dist-paid'), reinvested: token('dist-reinvested'), pending: token('dist-pending') },
         page: token('page'),
         surface: token('surface'),

@@ -17,20 +17,22 @@ export interface NavItem {
 }
 
 function BrandMark({ areaLabel, compact = false }: { areaLabel?: string; compact?: boolean }) {
+  // El emblema "PFC" ya lleva la marca; debajo, el nombre completo y el área (sobre negro ejecutivo).
   return (
-    <div className="flex items-center gap-2.5">
-      <img src={BRAND.emblemSrc} alt="" className={compact ? 'h-8 w-auto' : 'h-11 w-auto'} />
-      <div className="leading-tight">
-        <p className={cx('font-extrabold tracking-wide text-white', compact ? 'text-sm' : 'text-base')}>VERTICIMAX</p>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-nav-ink">México · Star Up</p>
-        {areaLabel && !compact && <p className="mt-1 text-xs text-nav-ink/80">{areaLabel}</p>}
-      </div>
+    <div className={cx('leading-tight', compact && 'flex items-center gap-2.5')}>
+      <img src={BRAND.emblemDarkSrc} alt={BRAND.name} width={compact ? 92 : 132} height={compact ? 28 : 40} className={compact ? 'h-7 w-auto' : 'h-10 w-auto'} />
+      {!compact && (
+        <>
+          <p className="mt-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-nav-ink">{BRAND.name}</p>
+          {areaLabel && <p className="mt-0.5 text-xs text-nav-ink">{areaLabel}</p>}
+        </>
+      )}
     </div>
   );
 }
 
 /**
- * Estructura común: barra lateral azul marino en escritorio; en móvil, encabezado azul marino +
+ * Estructura común: barra lateral negro ejecutivo en escritorio; en móvil, encabezado negro +
  * barra inferior (inversionista) o menú desplegable (administración).
  */
 export function AppShell({ nav, areaLabel, mobileStyle, banner }: { nav: NavItem[]; areaLabel: string; mobileStyle: 'bottom' | 'drawer'; banner?: ReactNode }) {

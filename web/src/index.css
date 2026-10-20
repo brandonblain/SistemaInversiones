@@ -3,66 +3,73 @@
 @tailwind utilities;
 
 /*
- * TOKENS DE MARCA — VERTICIMAX MÉXICO STAR UP (ver .impeccable.md)
- * Valores OKLCH "L C H" (perceptualmente uniformes); Tailwind los usa como oklch(var(--x) / alfa).
- * - Azul marino: color de plataforma.  - Azul cielo (fondo del logo): acento escaso de "atención".
- * - Rojo (U del logo): solo errores.   - Neutros teñidos hacia el tono del azul marino (262°).
+ * TOKENS DE MARCA — PYMEX FORTEX CAPITAL (paleta del cliente; ver .impeccable.md)
+ * Valores OKLCH "L C H"; Tailwind los usa como oklch(var(--x) / alfa).
+ *   Azul profundo #003366 → botones principales, títulos, activo.   Negro ejecutivo → franjas, encabezado, barra lateral.
+ *   Azul claro    #66B2FF → enlaces y detalles SOLO sobre oscuro (2.2:1 sobre blanco; principal en modo oscuro).
+ *   Rojo          #CC0000 → líneas y acentos decorativos (--signal); los errores también, siempre con ícono y texto.
+ *   Plata         #C0C0C0 → texto secundario sobre negro.   Neutros teñidos hacia el azul profundo (254°).
+ * El logotipo va sobre negro o blanco: sobre azul profundo su flecha azul se pierde.
  */
 :root {
   color-scheme: light;
-  --brand: 0.33 0.1 262;
-  --brand-strong: 0.25 0.085 262;
-  --brand-soft: 0.95 0.02 255;
-  --brand-ink: 0.99 0.004 255;
+  --brand: 0.323 0.103 253.9;
+  --brand-strong: 0.27 0.09 254;
+  --brand-soft: 0.95 0.018 254;
+  --brand-ink: 0.99 0.002 254;
 
-  --nav: 0.22 0.07 262;
-  --nav-hover: 0.28 0.08 262;
-  --nav-active: 0.36 0.1 260;
-  --nav-ink: 0.86 0.03 255;
+  --nav: 0.15 0.01 254;
+  --nav-hover: 0.22 0.016 254;
+  --nav-active: 0.323 0.103 253.9;
+  --nav-ink: 0.84 0.004 254;
 
-  --page: 0.975 0.006 255;
-  --surface: 0.995 0.003 255;
-  --sunken: 0.955 0.01 255;
-  --ink: 0.22 0.03 262;
-  --ink-2: 0.42 0.03 262;
-  --ink-muted: 0.52 0.025 262;
-  --line: 0.9 0.012 255;
+  --page: 0.975 0.004 254;
+  --surface: 0.995 0.002 254;
+  --sunken: 0.955 0.006 254;
+  --ink: 0.2 0.02 254;
+  --ink-2: 0.4 0.02 254;
+  --ink-muted: 0.5 0.016 254;
+  --line: 0.9 0.008 254;
 
-  --accent: 0.62 0.15 243;
-  --accent-soft: 0.955 0.03 238;
-  --accent-ink: 0.38 0.12 250;
+  /* Atención (pendiente de pago, etc.): familia del azul claro */
+  --accent: 0.66 0.14 250;
+  --accent-soft: 0.955 0.025 250;
+  --accent-ink: 0.36 0.11 254;
+
+  /* Rojo corporativo para líneas y acentos (no para texto pequeño sobre negro: 3.6:1) */
+  --signal: 0.531 0.218 29.2;
 
   --ok: 0.48 0.13 150;
   --ok-soft: 0.95 0.04 150;
   --warn: 0.55 0.12 70;
   --warn-soft: 0.96 0.04 85;
-  --bad: 0.52 0.18 25;
-  --bad-soft: 0.95 0.03 20;
-  --info: 0.48 0.12 250;
-  --info-soft: 0.95 0.025 250;
+  --bad: 0.531 0.218 29.2;
+  --bad-soft: 0.955 0.03 25;
+  --info: 0.45 0.12 254;
+  --info-soft: 0.95 0.022 254;
 
-  /* Gráficas: paleta categórica validada (orden fijo, no cíclico) */
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --chart-grid: #e1e0d9;
-  --chart-axis: #898781;
+  /* Gráficas (orden fijo): azul profundo / plata oscura / azul medio */
+  --series-1: #003366;
+  --series-2: #8a9099;
+  --series-3: #3d8fe0;
+  --chart-grid: #e3e6ea;
+  --chart-axis: #7b828c;
 
-  /* Distribución del rendimiento (pagado / reinvertido / pendiente): escala de la marca */
-  --dist-paid: 0.33 0.1 262;
-  --dist-reinvested: 0.55 0.11 255;
-  --dist-pending: 0.68 0.14 240;
+  /* Distribución del rendimiento (pagado / reinvertido / pendiente): escala del azul */
+  --dist-paid: 0.323 0.103 253.9;
+  --dist-reinvested: 0.55 0.12 252;
+  --dist-pending: 0.747 0.135 250.4;
 
   /*
-   * Sitio público: franjas azul marino. A diferencia de --brand-ink (que en modo oscuro se vuelve
-   * oscuro porque el botón primario se aclara), el texto sobre franja es SIEMPRE claro.
+   * Sitio público: franjas en negro ejecutivo. El texto sobre franja es SIEMPRE claro (plata/blanco),
+   * en ambos modos; --brand-ink no sirve aquí porque en modo oscuro se vuelve oscuro.
    */
-  --band: 0.24 0.075 262;
-  --band-raised: 0.31 0.085 261;
-  --band-line: 0.36 0.06 262;
-  --on-band: 0.985 0.004 255;
-  --on-band-2: 0.87 0.03 255;
-  --on-band-accent: 0.82 0.1 238;
+  --band: 0.14 0.008 254;
+  --band-raised: 0.21 0.014 254;
+  --band-line: 0.3 0.014 254;
+  --on-band: 0.985 0 0;
+  --on-band-2: 0.82 0.004 254;
+  --on-band-accent: 0.747 0.135 250.4;
 
   /* Movimiento (Emil Kowalski): curvas fuertes; nunca ease-in en UI */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -72,79 +79,83 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --brand: 0.74 0.11 252;
-    --brand-strong: 0.82 0.09 252;
-    --brand-soft: 0.3 0.06 262;
-    --brand-ink: 0.17 0.03 262;
-    --nav: 0.15 0.04 262;
-    --nav-hover: 0.22 0.05 262;
-    --nav-active: 0.3 0.07 260;
-    --nav-ink: 0.84 0.03 255;
-    --page: 0.17 0.03 262;
-    --surface: 0.215 0.035 262;
-    --sunken: 0.25 0.04 262;
-    --ink: 0.95 0.01 255;
-    --ink-2: 0.83 0.02 255;
-    --ink-muted: 0.7 0.025 255;
-    --line: 0.33 0.04 262;
-    --accent: 0.74 0.13 240;
-    --accent-soft: 0.3 0.075 245;
-    --accent-ink: 0.9 0.06 240;
+    /* Modo oscuro: el azul claro (#66B2FF) pasa a ser el color principal; botones con texto oscuro */
+    --brand: 0.747 0.135 250.4;
+    --brand-strong: 0.81 0.11 250;
+    --brand-soft: 0.29 0.06 254;
+    --brand-ink: 0.15 0.02 254;
+    --nav: 0.12 0.008 254;
+    --nav-hover: 0.19 0.014 254;
+    --nav-active: 0.323 0.103 253.9;
+    --nav-ink: 0.84 0.004 254;
+    --page: 0.18 0.012 254;
+    --surface: 0.22 0.015 254;
+    --sunken: 0.255 0.017 254;
+    --ink: 0.96 0.003 254;
+    --ink-2: 0.84 0.006 254;
+    --ink-muted: 0.72 0.01 254;
+    --line: 0.32 0.016 254;
+    --accent: 0.747 0.135 250.4;
+    --accent-soft: 0.3 0.07 254;
+    --accent-ink: 0.9 0.06 250;
+    --signal: 0.64 0.21 28;
     --ok: 0.74 0.15 150;
     --ok-soft: 0.29 0.05 150;
     --warn: 0.82 0.13 80;
     --warn-soft: 0.31 0.05 80;
-    --bad: 0.72 0.15 25;
-    --bad-soft: 0.3 0.06 25;
-    --info: 0.77 0.1 250;
+    --bad: 0.7 0.19 27;
+    --bad-soft: 0.3 0.07 27;
+    --info: 0.78 0.1 250;
     --info-soft: 0.29 0.05 250;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --chart-grid: #22344f;
-    --chart-axis: #8c9ab4;
-    --dist-paid: 0.62 0.12 255;
-    --dist-reinvested: 0.78 0.08 220;
-    --dist-pending: 0.8 0.12 240;
+    --series-1: #66b2ff;
+    --series-2: #c0c0c0;
+    --series-3: #2f74c8;
+    --chart-grid: #2b323b;
+    --chart-axis: #9aa3ad;
+    --dist-paid: 0.52 0.13 254;
+    --dist-reinvested: 0.66 0.1 245;
+    --dist-pending: 0.82 0.1 250;
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --brand: 0.74 0.11 252;
-  --brand-strong: 0.82 0.09 252;
-  --brand-soft: 0.3 0.06 262;
-  --brand-ink: 0.17 0.03 262;
-  --nav: 0.15 0.04 262;
-  --nav-hover: 0.22 0.05 262;
-  --nav-active: 0.3 0.07 260;
-  --nav-ink: 0.84 0.03 255;
-  --page: 0.17 0.03 262;
-  --surface: 0.215 0.035 262;
-  --sunken: 0.25 0.04 262;
-  --ink: 0.95 0.01 255;
-  --ink-2: 0.83 0.02 255;
-  --ink-muted: 0.7 0.025 255;
-  --line: 0.33 0.04 262;
-  --accent: 0.74 0.13 240;
-  --accent-soft: 0.3 0.075 245;
-  --accent-ink: 0.9 0.06 240;
+  /* Modo oscuro: el azul claro (#66B2FF) pasa a ser el color principal; botones con texto oscuro */
+  --brand: 0.747 0.135 250.4;
+  --brand-strong: 0.81 0.11 250;
+  --brand-soft: 0.29 0.06 254;
+  --brand-ink: 0.15 0.02 254;
+  --nav: 0.12 0.008 254;
+  --nav-hover: 0.19 0.014 254;
+  --nav-active: 0.323 0.103 253.9;
+  --nav-ink: 0.84 0.004 254;
+  --page: 0.18 0.012 254;
+  --surface: 0.22 0.015 254;
+  --sunken: 0.255 0.017 254;
+  --ink: 0.96 0.003 254;
+  --ink-2: 0.84 0.006 254;
+  --ink-muted: 0.72 0.01 254;
+  --line: 0.32 0.016 254;
+  --accent: 0.747 0.135 250.4;
+  --accent-soft: 0.3 0.07 254;
+  --accent-ink: 0.9 0.06 250;
+  --signal: 0.64 0.21 28;
   --ok: 0.74 0.15 150;
   --ok-soft: 0.29 0.05 150;
   --warn: 0.82 0.13 80;
   --warn-soft: 0.31 0.05 80;
-  --bad: 0.72 0.15 25;
-  --bad-soft: 0.3 0.06 25;
-  --info: 0.77 0.1 250;
+  --bad: 0.7 0.19 27;
+  --bad-soft: 0.3 0.07 27;
+  --info: 0.78 0.1 250;
   --info-soft: 0.29 0.05 250;
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --chart-grid: #22344f;
-  --chart-axis: #8c9ab4;
-  --dist-paid: 0.62 0.12 255;
-  --dist-reinvested: 0.78 0.08 220;
-  --dist-pending: 0.8 0.12 240;
+  --series-1: #66b2ff;
+  --series-2: #c0c0c0;
+  --series-3: #2f74c8;
+  --chart-grid: #2b323b;
+  --chart-axis: #9aa3ad;
+  --dist-paid: 0.52 0.13 254;
+  --dist-reinvested: 0.66 0.1 245;
+  --dist-pending: 0.82 0.1 250;
 }
 
 html,

@@ -1,4 +1,4 @@
-# Contrato de API — Portal Privado de Inversionistas (Verticimax)
+# Contrato de API — Portal Privado de Inversionistas (Pymex Fortex Capital)
 
 **Versión:** 1.2.0 · **Monedas:** MXN y USD · **Huso contractual:** `America/Mexico_City`
 **Implementación:** `src/worker/routes/*` · **Consumidor:** `web/src/api/http.ts`

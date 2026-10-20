@@ -1,4 +1,4 @@
-# Verticimax México Star Up — Portal de inversionistas (frontend)
+# Pymex Fortex Capital — Portal de inversionistas (frontend)
 
 React 18 + Vite + TypeScript + Tailwind CSS + Recharts. Se compila a archivos estáticos que sirve Cloudflare Workers Static Assets. El backend (Hono + D1) vive en `src/worker/`.
 

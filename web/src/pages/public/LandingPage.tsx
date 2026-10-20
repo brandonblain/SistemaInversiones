@@ -8,10 +8,10 @@ import { useReveal } from '../../hooks/useReveal';
 import { BRAND } from '../../layouts/brand';
 import { portalHref, site } from '../../lib/site';
 
-// Contenido tomado del material comercial de Verticimax México Star Up.
+// Contenido tomado del material comercial de la empresa (marca actual: Pymex Fortex Capital).
 // Tasas, plazos y capitales son condiciones de referencia; cada contrato fija las definitivas.
 //
-// Color: las franjas azul marino usan los tokens band / on-band (texto siempre claro en ambos modos);
+// Color: las franjas en negro ejecutivo usan los tokens band / on-band (texto siempre claro en ambos modos);
 // las secciones claras usan page / surface / ink, que se adaptan solas al modo oscuro.
 // Imágenes: provienen de la presentación comercial (baja resolución), por eso se muestran a un
 // tamaño cercano al natural y el texto nunca va encima de ellas.
@@ -57,7 +57,8 @@ const SOCIOS = [
 ];
 
 const delay = (i: number) => ({ '--reveal-delay': `${i * 60}ms` }) as CSSProperties;
-const eyebrow = 'text-xs font-bold uppercase tracking-[0.2em]';
+// Encabezado de sección con la línea roja corta del logotipo
+const eyebrow = "flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] before:h-0.5 before:w-6 before:shrink-0 before:bg-signal before:content-['']";
 const ctaOnBand = 'pressable inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg bg-on-band px-6 font-bold text-band hover:bg-on-band-2';
 
 export function LandingPage() {
@@ -73,7 +74,7 @@ export function LandingPage() {
         : { to: '/login', label: 'Acceso clientes', external: false };
 
   useEffect(() => {
-    document.title = 'Verticimax México Star Up · Ecosistema de negocios';
+    document.title = `${BRAND.name} · Ecosistema de negocios`;
   }, []);
 
   useEffect(() => {
@@ -88,11 +89,11 @@ export function LandingPage() {
       {/* ---------- Encabezado ---------- */}
       <header className="band sticky top-0 z-30 border-b border-band-line bg-band">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
-          <a href="#inicio" className="mr-auto flex min-h-[44px] min-w-[44px] items-center gap-2.5" aria-label="Verticimax México Star Up, inicio">
-            <img src={BRAND.emblemSrc} alt="" width={40} height={40} className="h-10 w-auto" />
-            <span className="hidden leading-tight min-[400px]:block">
-              <span className="font-display block text-base font-extrabold tracking-wide text-on-band [font-stretch:118%]">VERTICIMAX</span>
-              <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-on-band-2">México · Star Up</span>
+          <a href="#inicio" className="mr-auto flex min-h-[44px] min-w-[44px] items-center gap-3" aria-label={`${BRAND.name}, inicio`}>
+            <img src={BRAND.emblemDarkSrc} alt="" width={118} height={36} className="h-7 w-auto sm:h-9" />
+            <span className="hidden border-l border-band-line pl-3 leading-tight md:block">
+              <span className="font-display block text-sm font-extrabold uppercase tracking-wide text-on-band [font-stretch:112%]">Pymex Fortex</span>
+              <span className="block text-xs font-semibold uppercase tracking-[0.3em] text-on-band-2">Capital</span>
             </span>
           </a>
           <nav aria-label="Secciones" className="hidden items-center gap-1 lg:flex">
@@ -102,13 +103,13 @@ export function LandingPage() {
               </a>
             ))}
           </nav>
-          <AccessLink access={access} className="pressable inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-on-band px-4 text-sm font-bold text-band hover:bg-on-band-2 lg:ml-4">
+          <AccessLink access={access} className="pressable inline-flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-on-band px-3 text-sm font-bold text-band hover:bg-on-band-2 sm:px-4 lg:ml-4">
             <Icon name="user" className="h-4 w-4" />
             {access.label}
           </AccessLink>
           <button
             type="button"
-            className="pressable inline-flex h-11 w-11 items-center justify-center rounded-lg text-on-band hover:bg-band-raised lg:hidden"
+            className="pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-on-band hover:bg-band-raised lg:hidden"
             aria-expanded={menuOpen}
             aria-controls="menu-sitio"
             aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
@@ -142,7 +143,8 @@ export function LandingPage() {
         <section
           id="ecosistema"
           className="band relative overflow-hidden bg-band text-on-band"
-          style={{ backgroundImage: 'radial-gradient(ellipse 80% 70% at 0% 0%, oklch(var(--band-raised)), transparent 70%)' }}
+          // Halo de azul profundo (#003366) fijo, igual en ambos modos
+          style={{ backgroundImage: 'radial-gradient(ellipse 80% 75% at 0% 0%, oklch(0.323 0.103 253.9 / 0.6), transparent 70%)' }}
         >
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-14 lg:pb-24 lg:pt-20">
             <div>
@@ -164,7 +166,14 @@ export function LandingPage() {
                   <Icon name="user" className="h-4 w-4" /> {access.label}
                 </AccessLink>
               </div>
-              <dl data-reveal style={delay(4)} className="mt-10 grid max-w-lg grid-cols-3 border-t border-band-line pt-6">
+              {/* Línea roja → azul: la flecha del logotipo */}
+              <span
+                aria-hidden
+                data-reveal
+                style={{ ...delay(4), background: 'linear-gradient(90deg, oklch(var(--signal)) 0 30%, oklch(var(--on-band-accent)) 30% 100%)' }}
+                className="mt-10 block h-[3px] max-w-lg rounded-full"
+              />
+              <dl data-reveal style={delay(4)} className="mt-6 grid max-w-lg grid-cols-3">
                 {STATS.map((s, i) => (
                   <div key={s.label} className={cx('pr-3', i > 0 && 'border-l border-band-line pl-3 sm:pl-5')}>
                     <dt className="sr-only">{s.label}</dt>
@@ -177,7 +186,7 @@ export function LandingPage() {
             <figure data-reveal style={delay(2)} className="mx-auto w-full max-w-xl lg:max-w-none">
               <img
                 src="/landing/hero-reunion.jpg"
-                alt="Equipo de Verticimax presentando un proyecto de negocio"
+                alt={`Equipo de ${BRAND.name} presentando un proyecto de negocio`}
                 width={660}
                 height={558}
                 className="aspect-[660/558] w-full rounded-2xl object-cover ring-1 ring-band-line"
@@ -269,7 +278,7 @@ export function LandingPage() {
             <span aria-hidden className="absolute left-5 right-0 top-5 hidden h-px bg-line lg:block" />
             {COBRO.map((c, i) => (
               <li key={c.title} data-reveal style={delay(i)} className="relative">
-                <span className="figure relative flex h-10 w-10 items-center justify-center rounded-full bg-band text-base font-extrabold text-on-band ring-8 ring-page">
+                <span className="figure relative flex h-10 w-10 items-center justify-center rounded-full bg-brand text-base font-extrabold text-brand-ink ring-8 ring-page">
                   {i + 1}
                 </span>
                 <h3 className="mt-4 text-xl font-bold">{c.title}</h3>
@@ -327,10 +336,13 @@ export function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-ink-2 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <span className="flex items-center gap-2">
-              <img src={BRAND.emblemSrc} alt="" width={28} height={28} className="h-7 w-auto" />
-              <span className="font-semibold text-ink">Verticimax México Star Up</span>
+              <picture>
+                <source srcSet={BRAND.emblemDarkSrc} media="(prefers-color-scheme: dark)" />
+                <img src={BRAND.emblemLightSrc} alt="" width={92} height={28} className="h-7 w-auto" />
+              </picture>
+              <span className="font-semibold text-ink">{BRAND.name}</span>
             </span>
-            <span>© {new Date().getFullYear()} Verticimax México Star Up</span>
+            <span>© {new Date().getFullYear()} {BRAND.name}</span>
           </div>
           <p className="mt-5 max-w-[62ch] text-xs leading-relaxed">
             Las tasas, plazos y capitales mostrados son de referencia; las condiciones definitivas se establecen en cada contrato.
