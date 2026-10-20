@@ -101,7 +101,7 @@ export function LandingPage() {
         <MarketTicker />
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
           <a href="#inicio" className="mr-auto flex min-h-[44px] min-w-[44px] items-center gap-3" aria-label={`${BRAND.name}, inicio`}>
-            <img src={BRAND.emblemDarkSrc} alt="" width={118} height={36} className="h-7 w-auto sm:h-9" />
+            <img src={BRAND.logoSrc} alt="" width={62} height={44} className="h-10 w-auto sm:h-11" />
             <span className="hidden border-l border-band-line pl-3 leading-tight md:block">
               <span className="font-display block text-sm font-extrabold uppercase tracking-wide text-on-band [font-stretch:112%]">Pimex Fortex</span>
               <span className="block text-xs font-semibold uppercase tracking-[0.3em] text-on-band-2">Capital</span>
@@ -373,12 +373,12 @@ export function LandingPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <span className="flex items-center gap-2">
               <picture>
-                <source srcSet={BRAND.emblemDarkSrc} media="(prefers-color-scheme: dark)" />
-                <img src={BRAND.emblemLightSrc} alt="" width={92} height={28} className="h-7 w-auto" />
+                <source srcSet={BRAND.logoSrc} media="(prefers-color-scheme: dark)" />
+                <img src={BRAND.logoTileSrc} alt="" width={56} height={40} className="h-10 w-auto rounded-md" />
               </picture>
               <span className="font-semibold text-ink">{BRAND.name}</span>
             </span>
-            <span>© {new Date().getFullYear()} {BRAND.name}</span>
+            <span>© {new Date().getFullYear()} {BRAND.legalName}</span>
           </div>
           <nav aria-label="Documentos legales" className="mt-4">
             <ul className="flex flex-wrap gap-x-4">

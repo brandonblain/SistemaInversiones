@@ -63,7 +63,7 @@ function LegalLayout({ children }: { children: ReactNode }) {
       <header className="band border-b border-band-line bg-band">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link to="/" className="flex min-h-[44px] items-center gap-3" aria-label={`${BRAND.name}, inicio`}>
-            <img src={BRAND.emblemDarkSrc} alt="" width={105} height={32} className="h-8 w-auto" />
+            <img src={BRAND.logoSrc} alt="" width={56} height={40} className="h-10 w-auto" />
             <span className="hidden text-sm font-semibold text-on-band-2 sm:block">Documentos legales</span>
           </Link>
           <Link to="/" className="inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm font-semibold text-on-band hover:bg-band-raised">
@@ -73,7 +73,7 @@ function LegalLayout({ children }: { children: ReactNode }) {
       </header>
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">{children}</main>
       <footer className="border-t border-line">
-        <p className="mx-auto max-w-6xl px-4 py-6 text-xs text-ink-2 sm:px-6">© {new Date().getFullYear()} {BRAND.name}</p>
+        <p className="mx-auto max-w-6xl px-4 py-6 text-xs text-ink-2 sm:px-6">© {new Date().getFullYear()} {BRAND.legalName}</p>
       </footer>
     </div>
   );

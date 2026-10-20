@@ -21,7 +21,7 @@ function BrandMark({ areaLabel, compact = false }: { areaLabel?: string; compact
   // El emblema "PFC" ya lleva la marca; debajo, el nombre completo y el área (sobre negro ejecutivo).
   return (
     <div className={cx('leading-tight', compact && 'flex items-center gap-2.5')}>
-      <img src={BRAND.emblemDarkSrc} alt={BRAND.name} width={compact ? 92 : 132} height={compact ? 28 : 40} className={compact ? 'h-7 w-auto' : 'h-10 w-auto'} />
+      <img src={BRAND.logoSrc} alt={BRAND.name} width={compact ? 56 : 101} height={compact ? 40 : 72} className={compact ? 'h-10 w-auto' : 'h-[72px] w-auto'} />
       {!compact && (
         <>
           <p className="mt-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-nav-ink">{BRAND.name}</p>

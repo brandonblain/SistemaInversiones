@@ -31,7 +31,8 @@ describe('Documentos legales', () => {
 
   it('la declaración de riesgos destaca las advertencias obligatorias', async () => {
     renderApp('/legal/declaracion-de-riesgos');
-    expect(await screen.findByText('Toda inversión conlleva el riesgo de pérdida parcial o total del capital invertido.')).toBeInTheDocument();
+    expect(await screen.findByText(/conlleva riesgos inherentes al mercado financiero, incluido el de pérdida parcial o total/)).toBeInTheDocument();
+    expect(screen.getByText(/no es una institución bancaria ni realiza actividades reguladas de intermediación financiera/)).toBeInTheDocument();
     expect(screen.getByText('Rendimientos pasados no garantizan rendimientos futuros.')).toBeInTheDocument();
   });
 

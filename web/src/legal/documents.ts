@@ -30,7 +30,7 @@ export interface LegalDoc {
   sections: LegalSection[];
 }
 
-const EMPRESA = '[RAZÓN SOCIAL: Pimex Fortex Capital, S.A.P.I. de C.V. — confirmar denominación y figura legal]';
+const EMPRESA = 'Pimex Fortex Capital S.A.S.';
 const DOMICILIO = '[DOMICILIO: calle, número, colonia, código postal, ciudad, estado, México]';
 const CORREO_PRIVACIDAD = '[privacidad@pimexfortexcapital.com.mx]';
 const CORREO_SOPORTE = '[atencion@pimexfortexcapital.com.mx]';
@@ -52,8 +52,9 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. Identidad y domicilio del Responsable',
         blocks: [
-          `${EMPRESA} (en adelante, "Pimex Fortex Capital" o el "Responsable"), con domicilio en ${DOMICILIO}, es responsable del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares vigente (la "LFPDPPP"), su Reglamento y demás disposiciones aplicables.`,
-          `Este Aviso aplica al sitio ${SITIO}, al portal de inversionistas ${PORTAL} y a la relación contractual con nuestros inversionistas. Última actualización: ${FECHA}.`
+          `En ${EMPRESA}, la protección de los datos personales y corporativos es prioritaria. Este Aviso de Privacidad regula la recolección, uso y resguardo de la información de clientes, proveedores y contrapartes comerciales (B2B), en cumplimiento con la legislación aplicable. Los datos se utilizan exclusivamente para la formalización de contratos mercantiles y la comercialización de activos, garantizando absoluta confidencialidad en las relaciones de carácter privado.`,
+          `${EMPRESA} (en adelante, "Pimex Fortex Capital", la "Sociedad" o el "Responsable"), con domicilio en ${DOMICILIO}, es responsable del tratamiento de sus datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares vigente (la "LFPDPPP"), su Reglamento y demás disposiciones aplicables.`,
+          `Este Aviso aplica al sitio ${SITIO}, al portal de clientes ${PORTAL} y a las relaciones comerciales con clientes, proveedores y contrapartes, sean personas físicas o representantes de personas morales. Última actualización: ${FECHA}.`
         ]
       },
       {
@@ -69,7 +70,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
               'Datos técnicos de uso del portal: dirección IP, fecha y hora de acceso, navegador e intentos de inicio de sesión, con fines de seguridad.'
             ]
           },
-          { callout: 'Los datos financieros y patrimoniales requieren su consentimiento expreso, que se recaba al firmar el contrato de inversión o mediante el mecanismo que el Responsable establezca. No recabamos datos personales sensibles.' }
+          { callout: 'Los datos financieros y patrimoniales requieren su consentimiento expreso, que se recaba al firmar el contrato mercantil correspondiente o mediante el mecanismo que el Responsable establezca. No recabamos datos personales sensibles.' }
         ]
       },
       {
@@ -78,10 +79,11 @@ export const LEGAL_DOCS: LegalDoc[] = [
           'Finalidades primarias (necesarias para la relación con usted):',
           {
             list: [
-              'Identificarlo, verificar su identidad y abrir y administrar su cuenta en el portal de inversionistas.',
-              'Formalizar, ejecutar y dar seguimiento a los contratos de inversión: registro de aportaciones, cálculo y confirmación de rendimientos, pagos, reinversiones y liquidaciones.',
+              'Identificarlo, verificar su identidad y abrir y administrar su cuenta en el portal de clientes.',
+              'Formalizar, ejecutar y dar seguimiento a los contratos mercantiles celebrados con usted y a la comercialización de activos: registro de aportaciones, cálculo y confirmación de rendimientos, pagos, reinversiones y liquidaciones que en ellos se pacten.',
               'Cumplir obligaciones fiscales, incluida la emisión de comprobantes fiscales y, en su caso, retenciones.',
-              'Cumplir obligaciones de prevención e identificación de operaciones con recursos de procedencia ilícita (conocimiento del cliente, monitoreo y, cuando proceda, avisos a la autoridad).',
+              'Cumplir obligaciones de identificación de contrapartes y de prevención de operaciones con recursos de procedencia ilícita (conocimiento del cliente, monitoreo y, cuando proceda, avisos a la autoridad).',
+              'Dar de alta y gestionar a proveedores y contrapartes comerciales.',
               'Enviarle avisos operativos de su cuenta (por ejemplo, rendimientos confirmados, pagos registrados o restablecimiento de contraseña).',
               'Atender aclaraciones, quejas y solicitudes de derechos ARCO, y proteger la seguridad del portal.'
             ]
@@ -156,7 +158,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. Aceptación',
         blocks: [
-          `Estos Términos regulan el acceso y uso del sitio ${SITIO} y del portal ${PORTAL} (la "Plataforma"), operados por ${EMPRESA}, con domicilio en ${DOMICILIO}. Al acceder o usar la Plataforma, usted acepta estos Términos. Si no está de acuerdo, absténgase de usarla. Última actualización: ${FECHA}.`
+          `El acceso y uso de este sitio web y de las plataformas digitales de ${EMPRESA} (${SITIO} y ${PORTAL}, en conjunto la "Plataforma"), con domicilio en ${DOMICILIO}, están sujetos a los presentes Términos y Condiciones. Al navegar o contratar nuestros servicios, el usuario acepta sujetarse a ellos y a las disposiciones mercantiles vigentes. Si no está de acuerdo, absténgase de usar la Plataforma. Última actualización: ${FECHA}.`
         ]
       },
       {
@@ -168,7 +170,8 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '3. Objeto de la Plataforma',
         blocks: [
-          'La Plataforma tiene por objeto: (i) informar al público sobre los ramos de negocio y las condiciones de referencia de las inversiones que ofrece Pimex Fortex Capital, y (ii) permitir a los inversionistas con contrato vigente consultar en línea su capital, rendimientos, pagos y avisos.',
+          'Pimex Fortex Capital ofrece servicios de comercialización de activos, unidades móviles y vehículos extranjeros legalizados, desarrollo de software y consultoría, operando bajo un estricto modelo comercial y corporativo, ajeno a la intermediación financiera masiva.',
+          'La Plataforma tiene por objeto: (i) informar sobre los ramos de negocio de la Sociedad y las condiciones de referencia de los proyectos comerciales que estructura, y (ii) permitir a los clientes con contrato vigente consultar en línea su capital, rendimientos, pagos y avisos.',
           'La Plataforma es un medio de consulta. No permite realizar depósitos, retiros ni transferencias; las aportaciones y los pagos se realizan fuera de ella, conforme al contrato de inversión. La información publicada es de referencia: las condiciones definitivas son las del contrato que cada inversionista firma.',
           'Los indicadores de mercado (tipos de cambio, UDIS, tasas y CETES) provienen de Banco de México y se muestran con fines informativos; no modifican saldos ni contratos.'
         ]
@@ -219,7 +222,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '9. Modificaciones',
         blocks: [
-          'Podremos modificar estos Términos en cualquier momento. La versión vigente se publicará en esta página con su fecha de actualización; los cambios relevantes se notificarán a los inversionistas por correo electrónico o mediante un aviso en el portal. El uso posterior de la Plataforma implica la aceptación de los cambios.'
+          'La Sociedad se reserva el derecho de modificar estos Términos, así como las especificaciones y contenidos del sitio, en cualquier momento. La versión vigente se publicará en esta página con su fecha de actualización; los cambios relevantes se notificarán a los clientes por correo electrónico o mediante un aviso en el portal. El uso posterior de la Plataforma implica la aceptación de los cambios.'
         ]
       },
       {
@@ -242,6 +245,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. ¿Qué son las cookies y tecnologías similares?',
         blocks: [
+          'Este sitio web puede utilizar cookies y tecnologías análogas para optimizar la experiencia de navegación, analizar el tráfico y mejorar el rendimiento de nuestros portales y herramientas tecnológicas. Al continuar navegando en el portal de Pimex Fortex Capital S.A.S., el usuario consiente su uso conforme a nuestras directrices técnicas de gestión de datos, las cuales no recopilan información confidencial ni comprometen la seguridad de la sesión. A continuación se detallan las cookies que se usan actualmente.',
           'Las cookies son pequeños archivos que un sitio guarda en su navegador para recordar información entre visitas. Los web beacons (píxeles) son imágenes diminutas que permiten saber si se abrió una página o un correo. Otras tecnologías similares incluyen el almacenamiento local del navegador.',
           `Esta política aplica a ${SITIO} y ${PORTAL}, operados por ${EMPRESA}. Última actualización: ${FECHA}.`
         ]
@@ -270,7 +274,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '3. Si en el futuro usamos otras cookies',
         blocks: [
-          'Si incorporamos cookies analíticas o publicitarias, actualizaremos esta política con su nombre, proveedor, propósito y caducidad, y solicitaremos su consentimiento antes de instalarlas mediante un aviso en el sitio. Podrá aceptarlas o rechazarlas sin afectar el uso de la Plataforma.'
+          'Si incorporamos cookies de analítica de tráfico u otras tecnologías de seguimiento, actualizaremos esta política con su nombre, proveedor, propósito y caducidad, y lo informaremos mediante un aviso visible en el sitio. Podrá deshabilitarlas desde su navegador sin afectar el uso de la Plataforma.'
         ]
       },
       {
@@ -317,9 +321,9 @@ export const LEGAL_DOCS: LegalDoc[] = [
           'I. Declara la Empresa:',
           {
             list: [
-              `Ser una sociedad constituida conforme a las leyes mexicanas, según consta en la escritura pública [NÚMERO], otorgada ante el notario [NÚMERO Y NOMBRE] de ${CIUDAD}, con RFC [RFC DE LA EMPRESA] y domicilio en ${DOMICILIO}.`,
+              `Ser una sociedad por acciones simplificada constituida conforme a la Ley General de Sociedades Mercantiles mediante el sistema electrónico de la Secretaría de Economía, según consta en [FOLIO O BOLETA DE INSCRIPCIÓN EN EL REGISTRO PÚBLICO DE COMERCIO], con RFC [RFC DE LA SOCIEDAD] y domicilio en ${DOMICILIO}.`,
               'Que su representante cuenta con facultades suficientes, que no le han sido revocadas ni limitadas.',
-              '[Estatus regulatorio: precisar la figura legal con la que opera y si cuenta o no con autorización de alguna autoridad financiera.]'
+              'Que opera bajo un modelo comercial y corporativo: no es una institución bancaria ni realiza actividades reguladas de intermediación financiera, y este Contrato es un contrato mercantil privado.'
             ]
           },
           'II. Declara el Inversionista, bajo protesta de decir verdad:',
@@ -497,7 +501,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: 'Advertencias principales',
         blocks: [
-          { callout: 'Toda inversión conlleva el riesgo de pérdida parcial o total del capital invertido.' },
+          { callout: 'Toda actividad comercial, adquisición de activos productivos, desarrollo tecnológico o participación en proyectos comerciales estructurados por Pimex Fortex Capital S.A.S. conlleva riesgos inherentes al mercado financiero, incluido el de pérdida parcial o total de los recursos aportados.' },
           { callout: 'Rendimientos pasados no garantizan rendimientos futuros.' },
           { callout: 'No invierta recursos indispensables para su sustento personal o familiar, ni recursos que pueda necesitar antes del plazo pactado.' }
         ]
@@ -505,8 +509,8 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. Riesgos de la inversión',
         blocks: [
-          'Las inversiones en los ramos de negocio de Pimex Fortex Capital (transporte, movilidad, vehículos eléctricos, alimentos y otros) dependen del desempeño de negocios reales y están expuestas, entre otros, a riesgos de operación, de mercado, de liquidez, de crédito, regulatorios y de tipo de cambio en inversiones en dólares. Las tasas variables referidas a CETES pueden subir o bajar.',
-          'Las tasas, plazos y montos que se publican en el sitio son de referencia; las condiciones definitivas son las de cada contrato.'
+          'Los proyectos en los ramos de negocio de Pimex Fortex Capital (transporte, movilidad, vehículos eléctricos, alimentos y otros) dependen del desempeño de negocios reales y están expuestos, entre otros, a riesgos de operación, de mercado, de liquidez, de crédito, regulatorios y de tipo de cambio en operaciones en dólares. Las tasas variables referidas a CETES pueden subir o bajar.',
+          'Las condiciones de plazos, costos y estimaciones comerciales tienen un carácter referencial y se establecen de manera formal y definitiva en cada contrato mercantil privado.'
         ]
       },
       {
@@ -518,8 +522,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '3. Estatus regulatorio',
         blocks: [
-          `${EMPRESA} es una [sociedad mercantil / figura legal] que opera bajo [esquema legal]. [OPCIÓN A: No es una institución financiera ni cuenta con autorización de la Comisión Nacional Bancaria y de Valores (CNBV) ni de Banco de México, y sus operaciones no están supervisadas por dichas autoridades. Los recursos invertidos no están protegidos por el Instituto para la Protección al Ahorro Bancario (IPAB).] [OPCIÓN B: Cuenta con autorización de [AUTORIDAD] número [NÚMERO] para operar como [FIGURA].]`,
-          '[El abogado debe elegir y completar la opción que corresponda: esta declaración debe ser exacta para no inducir a error al público, conforme a la Ley Federal de Protección al Consumidor y demás normativa aplicable.]'
+          `${EMPRESA} es una sociedad mercantil por acciones simplificada. La sociedad no es una institución bancaria ni realiza actividades reguladas de intermediación financiera; por lo tanto, no está autorizada ni supervisada por la Comisión Nacional Bancaria y de Valores (CNBV) ni por Banco de México, y los recursos aportados no están protegidos por el Instituto para la Protección al Ahorro Bancario (IPAB).`
         ]
       },
       {
@@ -542,7 +545,8 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. Compromiso',
         blocks: [
-          `${EMPRESA} se compromete con el cumplimiento de la Ley Federal para la Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita (LFPIORPI), su Reglamento y las reglas aplicables, y con evitar que sus servicios sean utilizados para operaciones con recursos de procedencia ilícita o para el financiamiento al terrorismo. [Confirmar con el oficial de cumplimiento si la actividad es vulnerable conforme a la LFPIORPI y las obligaciones de aviso que correspondan.]`
+          `En cumplimiento con los estándares de integridad comercial y las normativas aplicables a operaciones de valor (tales como la comercialización de vehículos y bienes), ${EMPRESA} implementa procedimientos internos de identificación de contrapartes (KYC) y mitigación de riesgos operativos (PLD). Esto comprende la validación de identidad, la verificación de la procedencia legal de los recursos en transacciones mercantiles y el resguardo de expedientes bajo rigurosas políticas de confidencialidad comercial.`,
+          'La Sociedad se compromete con el cumplimiento de la Ley Federal para la Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita (LFPIORPI), su Reglamento y las reglas aplicables a las actividades vulnerables que realice, y con evitar que sus servicios sean utilizados para operaciones con recursos de procedencia ilícita o para el financiamiento al terrorismo. [Confirmar con el oficial de cumplimiento las actividades vulnerables, umbrales y avisos que correspondan.]'
         ]
       },
       {
@@ -601,6 +605,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. Área de atención a clientes',
         blocks: [
+          `Para cualquier consulta, aclaración o soporte relacionado con nuestros servicios de consultoría financiera, incubación de negocios, flotas, unidades móviles e infraestructura tecnológica, ${EMPRESA} pone a disposición sus canales oficiales de comunicación corporativa, garantizando una atención profesional y directa.`,
           {
             table: {
               head: ['Medio', 'Dato'],
@@ -634,10 +639,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '3. Autoridades competentes',
         blocks: [
-          '[El abogado debe indicar cuál de las dos autoridades aplica según la figura legal de la empresa.]',
-          'Si la empresa es una entidad financiera, puede acudir a la Comisión Nacional para la Protección y Defensa de los Usuarios de Servicios Financieros (CONDUSEF):',
-          { list: ['Teléfono: 55 5340 0999 [verificar vigencia].', 'Portal: https://www.gob.mx/condusef'] },
-          'Si la empresa es una sociedad mercantil que presta servicios al público consumidor, puede acudir a la Procuraduría Federal del Consumidor (PROFECO):',
+          'Pimex Fortex Capital S.A.S. es una sociedad mercantil y no una entidad financiera. Si después de acudir a nuestra área de atención no queda satisfecho, puede acudir a la Procuraduría Federal del Consumidor (PROFECO) [confirmar con el abogado que aplica a la relación de que se trate]:',
           {
             list: [
               'Teléfono del Consumidor: 55 5568 8722 (Ciudad de México y área metropolitana) y 800 468 8722 (resto del país) [verificar vigencia].',
