@@ -61,6 +61,19 @@ Consulte [docs/deployment-and-operations.md](docs/deployment-and-operations.md):
 
 `npm run deploy:staging` y `npm run deploy:production` compilan la interfaz antes de publicar.
 
+### Dos dominios, un solo Worker (producción)
+| Dominio | Qué muestra |
+| --- | --- |
+| `pimexfortexcapital.com.mx` | Página corporativa. "Acceso clientes" lleva al portal. No expone la API. `/login`, `/app`, `/admin`, `/recuperar` y `/restablecer` redirigen (302) al portal. `www.` redirige (301) al dominio sin www. |
+| `clientes.pimexfortexcapital.com.mx` | Portal: la raíz muestra el login o, con sesión, el panel según el rol. API, cookies y enlaces de recuperación. |
+
+- El Worker atiende todas las peticiones (`run_worker_first: true`) y decide por dominio (`PUBLIC_HOST` / `PORTAL_HOST`, ver `src/worker/middleware/sites.ts`); en el HTML deja `<meta name="site">` para que React sepa qué sitio es. Sin esas variables (local, staging) funciona como un solo sitio.
+- La cookie de sesión no define `Domain`: solo viaja al portal. CSRF acepta escrituras únicamente con `Origin` del portal.
+- Ambos dominios se agregan como **Custom Domains** del Worker (Settings › Domains & Routes). `workers_dev` está desactivado en producción.
+- Probarlo en local con los dos dominios (Chromium resuelve `*.localhost` a 127.0.0.1):
+  `npx wrangler dev --var PUBLIC_HOST:sitio.localhost --var PORTAL_HOST:clientes.localhost --var APP_BASE_URL:http://clientes.localhost:8787`
+  y abrir http://sitio.localhost:8787 y http://clientes.localhost:8787.
+
 ## Documentación
 - [docs/01-alcance-aprobado.md](docs/) y reglas: alcance y decisiones pendientes del cliente.
 - [docs/api-contract.md](docs/api-contract.md): contrato de API v1.1, la fuente única entre frontend y backend.
