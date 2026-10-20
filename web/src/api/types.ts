@@ -160,6 +160,33 @@ export interface ReferenceRate {
   in_use: boolean;
 }
 
+/** Tasa consultada en Banxico (SIE) y su estado frente a lo ya capturado. */
+export interface BanxicoRate {
+  rate_code: ReferenceRateCode;
+  effective_date: string;
+  annual_rate_bps: number;
+  series_id: string;
+  /** NEW: se importaría · SAME: ya está igual · DIFFERENT: ya hay otra cifra capturada (no se sobrescribe). */
+  status: 'NEW' | 'SAME' | 'DIFFERENT';
+  current_bps: number | null;
+}
+
+export interface BanxicoPreview {
+  from: string;
+  to: string;
+  rates: BanxicoRate[];
+  rejected: Array<{ rate_code: ReferenceRateCode; series_id: string; reason: string }>;
+}
+
+export interface BanxicoImportResult {
+  from: string;
+  to: string;
+  imported: number;
+  unchanged: number;
+  conflicts: BanxicoRate[];
+  rejected: BanxicoPreview['rejected'];
+}
+
 export interface CreateReferenceRateInput {
   rate_code: ReferenceRateCode;
   effective_date: string;

@@ -13,7 +13,10 @@ describe('Autenticación', () => {
     await seedAdmin(env);
     await seedInvestor(env, { id: 'usr_inv', email: 'hector.galeana@ficticio.test', name: 'Héctor Galeana' });
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
 
   it('login correcto emite cookie HttpOnly/Secure/SameSite=Strict y /me responde', async () => {
     const res = await postJson(env, '/api/auth/login', { email: 'HECTOR.GALEANA@ficticio.test', password: INVESTOR_PASSWORD });
@@ -56,6 +59,9 @@ describe('Autenticación', () => {
   });
 
   it('MFA obligatorio: admin sin MFA no accede a /api/admin; tras activarlo, el código se exige y no se reutiliza', async () => {
+    // Reloj congelado: si la prueba cruzara una ventana TOTP de 30 s, el "código reutilizado" sería otro código válido.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now());
     const strict = makeEnv({ REQUIRE_ADMIN_MFA: undefined });
     await seedAdmin(strict);
     const admin = await login(strict, 'admin@ficticio.test', ADMIN_PASSWORD);
@@ -66,7 +72,8 @@ describe('Autenticación', () => {
     const setup = await admin.call('POST', '/api/auth/admin/mfa/setup');
     const secret = setup.json.data.secret as string;
     expect(secret).toHaveLength(32);
-    const verify = await admin.call('POST', '/api/auth/admin/mfa/verify', { token: await generateTotpCode(secret) });
+    const usedCode = await generateTotpCode(secret);
+    const verify = await admin.call('POST', '/api/auth/admin/mfa/verify', { token: usedCode });
     expect(verify.status).toBe(200);
     expect((await admin.call('GET', '/api/admin/summary')).status).toBe(200);
     // Un segundo setup no puede reemplazar el secreto activo
@@ -75,9 +82,10 @@ describe('Autenticación', () => {
     const noCode = await postJson(strict, '/api/auth/login', { email: 'admin@ficticio.test', password: ADMIN_PASSWORD });
     expect(((await noCode.json()) as any).error.code).toBe('MFA_REQUIRED');
     // El código usado en la verificación ya no sirve (anti-replay)
-    const replay = await postJson(strict, '/api/auth/login', { email: 'admin@ficticio.test', password: ADMIN_PASSWORD, mfa_token: await generateTotpCode(secret) });
+    const replay = await postJson(strict, '/api/auth/login', { email: 'admin@ficticio.test', password: ADMIN_PASSWORD, mfa_token: usedCode });
     expect(replay.status).toBe(401);
     expect(((await replay.json()) as any).error.code).toBe('MFA_INVALID');
+    vi.useRealTimers();
   });
 
   it('MFA válido con un contador nuevo permite entrar', async () => {

@@ -11,6 +11,7 @@ import { confirmYield, executeReinvestment, previewYield, recordExternalPayment,
 import { balancesFor, currentReferenceRate, INVESTMENT_COLUMNS, latestReferenceRates, TERMS_JOIN, toDetail, toListItem, totalsByCurrency, yieldEntriesWithSettlement, type InvestmentRow } from '../services/read-models';
 import { runScheduledMaintenance } from '../services/scheduled-jobs';
 import { adminStatistics } from '../services/statistics';
+import { fetchCetesRates, type BanxicoRate } from '../services/banxico';
 import type { Env, AppVariables } from '../index';
 
 export const adminRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
@@ -502,6 +503,84 @@ adminRoutes.get('/reference-rates', async (c) => {
     success: true,
     data: rows.results.map((r) => ({ ...r, in_use: Number(r.in_use) === 1 })),
     pagination: pagination(page, pageSize, total?.n ?? 0)
+  });
+});
+
+/** Rango de consulta a Banxico: por omisión las últimas 5 semanas; máximo un año; nunca fechas futuras. */
+function banxicoRange(from: unknown, to: unknown) {
+  const today = todayInContractZone();
+  const end = typeof to === 'string' && to ? to : today;
+  const start = typeof from === 'string' && from ? from : addDays(end, -35);
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  if (!iso.test(start) || !iso.test(end)) throw badRequest('INVALID_INPUT', 'Fechas con formato AAAA-MM-DD.');
+  if (start > end) throw badRequest('INVALID_INPUT', 'La fecha inicial es posterior a la final.');
+  if (end > today) throw badRequest('INVALID_INPUT', 'No se consultan fechas futuras.');
+  if (addDays(start, 366) < end) throw badRequest('INVALID_INPUT', 'Consulte como máximo un año a la vez.');
+  return { from: start, to: end };
+}
+
+/** Clasifica cada tasa de Banxico contra lo ya capturado: nueva, igual o diferente (no se sobrescribe). */
+async function classifyBanxico(db: D1Database, rates: BanxicoRate[]) {
+  if (!rates.length) return [];
+  const dates = [...new Set(rates.map((r) => r.effective_date))];
+  const existing = await db
+    .prepare(`SELECT rate_code, effective_date, annual_rate_bps FROM reference_rates WHERE effective_date IN (${dates.map(() => '?').join(',')})`)
+    .bind(...dates)
+    .all<{ rate_code: string; effective_date: string; annual_rate_bps: number }>();
+  const byKey = new Map(existing.results.map((r) => [`${r.rate_code}|${r.effective_date}`, r.annual_rate_bps]));
+  return rates.map((r) => {
+    const current = byKey.get(`${r.rate_code}|${r.effective_date}`);
+    const status = current === undefined ? 'NEW' : current === r.annual_rate_bps ? 'SAME' : 'DIFFERENT';
+    return { ...r, status, current_bps: current ?? null };
+  });
+}
+
+/** Vista previa: consulta Banxico y muestra qué se importaría. No escribe nada. */
+adminRoutes.get('/reference-rates/banxico/preview', async (c) => {
+  const range = banxicoRange(c.req.query('from'), c.req.query('to'));
+  const { rates, rejected } = await fetchCetesRates(c.env, range.from, range.to);
+  return c.json({ success: true, data: { ...range, rates: await classifyBanxico(c.env.DB, rates), rejected } });
+});
+
+/**
+ * Importa SOLO las tasas nuevas del rango. Los valores se vuelven a consultar en el servidor (no se
+ * aceptan cifras del navegador) y nunca se sobrescribe una tasa ya capturada.
+ */
+adminRoutes.post('/reference-rates/banxico/import', async (c) => {
+  const admin = c.get('user');
+  const body = await readJson(c);
+  const range = banxicoRange(body.from, body.to);
+  const { rates, rejected } = await fetchCetesRates(c.env, range.from, range.to);
+  const classified = await classifyBanxico(c.env.DB, rates);
+  const fresh = classified.filter((r) => r.status === 'NEW');
+  const db = c.env.DB;
+  if (fresh.length) {
+    await withDb(() =>
+      db.batch([
+        ...fresh.map((r) =>
+          db.prepare('INSERT INTO reference_rates (id, rate_code, effective_date, annual_rate_bps, source, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?)')
+            .bind(generateSecureToken('rrt'), r.rate_code, r.effective_date, r.annual_rate_bps, `Banxico SIE ${r.series_id}`, admin.id)
+        ),
+        auditStatement(db, {
+          userId: admin.id,
+          action: 'REFERENCE_RATES_IMPORTED',
+          entityType: 'REFERENCE_RATE',
+          entityId: `banxico:${range.from}:${range.to}`,
+          ipAddress: clientIp(c),
+          newValues: { source: 'Banxico SIE', ...range, imported: fresh.map((r) => ({ rate_code: r.rate_code, effective_date: r.effective_date, annual_rate_bps: r.annual_rate_bps })) }
+        })
+      ])
+    );
+  }
+  return c.json({
+    success: true,
+    data: {
+      ...range,
+      imported: fresh.length,
+      unchanged: classified.filter((r) => r.status === 'SAME').length,
+      conflicts: classified.filter((r) => r.status === 'DIFFERENT'),
+      rejected
+    }
   });
 });
 

@@ -1,4 +1,4 @@
-# Pymex Fortex Capital — Portal privado de inversionistas
+# Pimex Fortex Capital — Portal privado de inversionistas
 
 Un solo proyecto para Cloudflare Workers:
 

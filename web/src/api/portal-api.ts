@@ -30,6 +30,8 @@ import type {
   RecordPaymentInput,
   ReferenceRate,
   ReferenceRateCode,
+  BanxicoPreview,
+  BanxicoImportResult,
   ReinvestInput,
   Session,
   UploadDocumentInput,
@@ -83,5 +85,9 @@ export interface PortalApi {
     referenceRates(q: PageQuery & { rate_code?: ReferenceRateCode | '' }): Promise<Paginated<ReferenceRate>>;
     createReferenceRate(input: CreateReferenceRateInput): Promise<{ id: string }>;
     deleteReferenceRate(id: string): Promise<void>;
+    /** Consulta Banxico (SIE) sin escribir nada. */
+    banxicoPreview(range?: { from?: string; to?: string }): Promise<BanxicoPreview>;
+    /** Importa solo las tasas nuevas del rango (el servidor vuelve a consultar Banxico). */
+    banxicoImport(range: { from: string; to: string }): Promise<BanxicoImportResult>;
   };
 }

@@ -8,7 +8,7 @@ import { useReveal } from '../../hooks/useReveal';
 import { BRAND } from '../../layouts/brand';
 import { portalHref, site } from '../../lib/site';
 
-// Contenido tomado del material comercial de la empresa (marca actual: Pymex Fortex Capital).
+// Contenido tomado del material comercial de la empresa (marca actual: Pimex Fortex Capital).
 // Tasas, plazos y capitales son condiciones de referencia; cada contrato fija las definitivas.
 //
 // Color: las franjas en negro ejecutivo usan los tokens band / on-band (texto siempre claro en ambos modos);
@@ -30,17 +30,19 @@ const STATS = [
 ];
 
 const RAMOS = [
-  { title: 'Transporte', detail: 'Movilidad personal, transporte público y transporte de carga.', img: '/landing/ramo-transporte.jpg', w: 370, h: 171 },
-  { title: 'Alimentos', detail: 'Restaurantes de comida rápida en operación.', img: '/landing/ramo-alimentos.jpg', w: 494, h: 245 },
+  { title: 'Transporte', detail: 'Movilidad personal, transporte público y transporte de carga.', img: '/landing/ramo-transporte.jpg', w: 500, h: 250 },
+  { title: 'Alimentos', detail: 'Restaurantes de comida rápida en operación.', img: '/landing/ramo-alimentos.jpg', w: 500, h: 250 },
   { title: 'Bienes raíces', detail: 'Desarrollos inmobiliarios y turísticos.', img: '/landing/ramo-bienes-raices.jpg', w: 503, h: 245 }
 ];
 
-const OPCIONES: Array<{ name: string; tasa: string; nota: string; capital: string; plazo: string; img?: string; compact?: boolean }> = [
-  { name: 'Transporte', tasa: '25 %', nota: 'anual fija', capital: '$400,000.00', plazo: '18 meses', img: '/landing/ramo-transporte.jpg' },
-  { name: 'Movilidad', tasa: '16 %', nota: 'anual fija', capital: '$250,000.00', plazo: '12 meses', img: '/landing/ramo-movilidad.jpg' },
-  { name: 'Vehículos eléctricos', tasa: '16 %', nota: 'anual fija', capital: 'Según contrato', plazo: 'Según contrato', img: '/landing/ramo-vehiculos-electricos.jpg' },
-  { name: 'Fast Food', tasa: '13 %', nota: 'anual fija', capital: '$100,000.00', plazo: '12 meses', img: '/landing/ramo-alimentos.jpg' },
-  { name: 'CETES', tasa: 'CETES − 1', nota: 'punto · variable, solo en pesos', capital: 'Según contrato', plazo: 'Según contrato', compact: true }
+// Miniaturas cuadradas de 288 px. Movilidad y vehículos eléctricos: fotos con licencia Unsplash
+// (saif71.com y Michael Förtsch); el resto, fotos entregadas por el cliente.
+const OPCIONES: Array<{ name: string; tasa: string; nota: string; capital: string; plazo: string; img: string; compact?: boolean }> = [
+  { name: 'Transporte', tasa: '25 %', nota: 'anual fija', capital: '$400,000.00', plazo: '18 meses', img: '/landing/op-transporte.jpg' },
+  { name: 'Movilidad', tasa: '16 %', nota: 'anual fija', capital: '$250,000.00', plazo: '12 meses', img: '/landing/op-movilidad.jpg' },
+  { name: 'Vehículos eléctricos', tasa: '16 %', nota: 'anual fija', capital: 'Según contrato', plazo: 'Según contrato', img: '/landing/op-electricos.jpg' },
+  { name: 'Fast Food', tasa: '13 %', nota: 'anual fija', capital: '$100,000.00', plazo: '12 meses', img: '/landing/op-fastfood.jpg' },
+  { name: 'CETES', tasa: 'CETES − 1', nota: 'punto · variable, solo en pesos', capital: 'Según contrato', plazo: 'Según contrato', img: '/landing/op-cetes.jpg', compact: true }
 ];
 
 const COBRO = [
@@ -92,7 +94,7 @@ export function LandingPage() {
           <a href="#inicio" className="mr-auto flex min-h-[44px] min-w-[44px] items-center gap-3" aria-label={`${BRAND.name}, inicio`}>
             <img src={BRAND.emblemDarkSrc} alt="" width={118} height={36} className="h-7 w-auto sm:h-9" />
             <span className="hidden border-l border-band-line pl-3 leading-tight md:block">
-              <span className="font-display block text-sm font-extrabold uppercase tracking-wide text-on-band [font-stretch:112%]">Pymex Fortex</span>
+              <span className="font-display block text-sm font-extrabold uppercase tracking-wide text-on-band [font-stretch:112%]">Pimex Fortex</span>
               <span className="block text-xs font-semibold uppercase tracking-[0.3em] text-on-band-2">Capital</span>
             </span>
           </a>
@@ -183,13 +185,13 @@ export function LandingPage() {
                 ))}
               </dl>
             </div>
-            <figure data-reveal style={delay(2)} className="mx-auto w-full max-w-xl lg:max-w-none">
+            <figure data-reveal style={delay(2)} className="mx-auto w-full max-w-[500px] lg:mr-0">
               <img
-                src="/landing/hero-reunion.jpg"
-                alt={`Equipo de ${BRAND.name} presentando un proyecto de negocio`}
-                width={660}
-                height={558}
-                className="aspect-[660/558] w-full rounded-2xl object-cover ring-1 ring-band-line"
+                src="/landing/hero-socios.jpg"
+                alt="Socios capital y emprendedores conversando frente a un desarrollo en construcción"
+                width={500}
+                height={343}
+                className="aspect-[500/343] w-full rounded-2xl object-cover ring-1 ring-band-line"
               />
             </figure>
           </div>
@@ -238,13 +240,7 @@ export function LandingPage() {
                   style={delay(i)}
                   className="grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 border-b border-band-line py-5 md:grid-cols-[64px_minmax(0,1fr)_17rem_10rem] md:gap-x-6 lg:grid-cols-[72px_minmax(0,1fr)_20rem_11rem] lg:gap-x-10"
                 >
-                  {o.img ? (
-                    <img src={o.img} alt="" width={72} height={72} loading="lazy" className="aspect-square w-full rounded-xl object-cover" />
-                  ) : (
-                    <span aria-hidden className="flex aspect-square w-full items-center justify-center rounded-xl bg-band-raised">
-                      <Icon name="chart" className="h-7 w-7 text-on-band-accent" />
-                    </span>
-                  )}
+                  <img src={o.img} alt="" width={72} height={72} loading="lazy" className="aspect-square w-full rounded-xl object-cover" />
                   <h3 className="text-lg font-bold leading-snug sm:text-xl">{o.name}</h3>
                   <dl className="col-span-2 col-start-2 row-start-2 grid grid-cols-2 gap-4 md:col-span-1 md:col-start-3 md:row-start-1">
                     <div>

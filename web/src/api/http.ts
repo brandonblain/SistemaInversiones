@@ -112,6 +112,8 @@ export const httpApi: PortalApi = {
     createReferenceRate: (input) => request('POST', '/api/admin/reference-rates', input),
     deleteReferenceRate: async (id) => {
       await request('DELETE', `/api/admin/reference-rates/${encodeURIComponent(id)}`);
-    }
+    },
+    banxicoPreview: (range = {}) => request('GET', `/api/admin/reference-rates/banxico/preview${qs(range)}`),
+    banxicoImport: (range) => request('POST', '/api/admin/reference-rates/banxico/import', range)
   }
 };

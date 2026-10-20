@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * TOKENS DE MARCA — PYMEX FORTEX CAPITAL (paleta del cliente; ver .impeccable.md)
+ * TOKENS DE MARCA — PIMEX FORTEX CAPITAL (paleta del cliente; ver .impeccable.md)
  * Valores OKLCH "L C H"; Tailwind los usa como oklch(var(--x) / alfa).
  *   Azul profundo #003366 → botones principales, títulos, activo.   Negro ejecutivo → franjas, encabezado, barra lateral.
  *   Azul claro    #66B2FF → enlaces y detalles SOLO sobre oscuro (2.2:1 sobre blanco; principal en modo oscuro).

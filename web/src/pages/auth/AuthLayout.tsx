@@ -14,7 +14,11 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
       <main className="flex flex-1 items-center justify-center px-4 py-10" style={{ backgroundImage: 'radial-gradient(ellipse at top, oklch(var(--nav-active) / 0.9), transparent 60%)' }}>
         <div className="w-full max-w-sm">
           <div className="mb-6 flex flex-col items-center text-center">
-            <img src={BRAND.logoDarkSrc} alt={BRAND.name} width={256} height={115} className="mb-6 w-64 max-w-full" />
+            <img src={BRAND.emblemDarkSrc} alt="" width={224} height={68} className="w-56 max-w-full" />
+            <p className="font-display mb-6 mt-3 text-lg font-extrabold uppercase leading-tight tracking-wide text-white [font-stretch:112%]">
+              Pimex Fortex
+              <span className="block text-xs font-semibold tracking-[0.35em] text-nav-ink">Capital</span>
+            </p>
             <h1 className="text-2xl font-bold text-white">{title}</h1>
             {subtitle && <p className="mt-1 text-sm text-nav-ink">{subtitle}</p>}
           </div>

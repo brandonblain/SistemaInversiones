@@ -22,8 +22,15 @@ Las variables **no se heredan** entre entornos: cada bloque `env.*` las define t
 ```bash
 npx wrangler secret put EMAIL_API_KEY --env production   # clave del proveedor de correo (Resend u otro compatible)
 npx wrangler secret put EMAIL_API_KEY --env staging      # opcional, si staging debe enviar correos reales
+npx wrangler secret put BANXICO_TOKEN --env production   # token de la API REST del SIE de Banxico (tasas CETES)
 ```
 La versión anterior de esta guía pedía `JWT_SECRET` y `ADMIN_MFA_SECRET`, pero el código no los usa: las sesiones son tokens aleatorios guardados como hash en D1, y cada administrador tiene su propio secreto MFA.
+
+### Tasas CETES desde Banxico (SIE)
+1. Solicite el token (gratuito) en https://www.banxico.org.mx/SieAPIRest/service/v1/token y guárdelo como secreto `BANXICO_TOKEN`. El token nunca se envía al navegador ni se guarda en D1.
+2. En **Administración › Tasas CETES › Importar desde Banxico**: *Consultar Banxico* muestra la vista previa (no escribe nada) e *Importar* guarda solo las tasas nuevas, con fuente `Banxico SIE <serie>` y registro en la bitácora. Nunca se sobrescribe una tasa ya capturada: si difiere, se reporta.
+3. Series (subasta semanal, tasa de rendimiento): CETES 28 `SF43936`, 91 `SF43939`, 182 `SF43942`, 364 `SF43945` (`src/worker/services/banxico.ts`). Como salvaguarda, si el título que devuelve Banxico no menciona el plazo esperado, esa serie se rechaza. Verifique las de 91/182/364 en el catálogo del SIE la primera vez.
+4. Límites de Banxico: 200 consultas cada 5 minutos y 10 000 al día. Sin token, la importación responde 503 y la captura manual sigue disponible.
 
 ### Correo
 1. Verifique el dominio remitente en el proveedor (SPF/DKIM). **No modifique los registros MX existentes del cliente.**

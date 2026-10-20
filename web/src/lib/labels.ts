@@ -94,7 +94,7 @@ export const investmentTypeLabel: Record<InvestmentType, string> = {
 };
 
 /**
- * Condiciones de referencia publicadas por Pymex Fortex Capital (material comercial).
+ * Condiciones de referencia publicadas por Pimex Fortex Capital (material comercial).
  * Solo prellenan el formulario; el contrato firmado manda.
  */
 export const investmentTypeReference: Partial<Record<InvestmentType, { capital_cents?: number; months?: number; rate_bps: number }>> = {

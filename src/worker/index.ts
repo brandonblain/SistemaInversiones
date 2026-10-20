@@ -27,6 +27,8 @@ export interface Env {
   ASSETS?: Fetcher;
   /** Dominio de la página corporativa (p. ej. pimexfortexcapital.com.mx). Vacío = sitio combinado. */
   PUBLIC_HOST?: string;
+  /** Token de la API REST del SIE de Banxico (secreto). Sin él, la importación de CETES responde 503. */
+  BANXICO_TOKEN?: string;
   /** Dominio del portal de clientes (p. ej. clientes.pimexfortexcapital.com.mx). Vacío = sitio combinado. */
   PORTAL_HOST?: string;
 }

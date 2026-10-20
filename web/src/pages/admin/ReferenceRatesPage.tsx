@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { api } from '../../api';
-import type { ReferenceRate, ReferenceRateCode } from '../../api/types';
+import type { BanxicoImportResult, BanxicoPreview, BanxicoRate, ReferenceRate, ReferenceRateCode } from '../../api/types';
 import { DataTable, Pagination, type Column } from '../../components/DataTable';
 import { Alert, Async, Badge, Button, Card, EmptyState, errorMessage, PageHeader, SelectInput, TextInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
@@ -50,11 +50,12 @@ export function ReferenceRatesPage() {
     <>
       <PageHeader
         title="Tasas de referencia (CETES)"
-        subtitle="Capture la tasa publicada por Banxico. Las inversiones a CETES usan la tasa vigente al inicio de cada periodo más su diferencial."
+        subtitle="Impórtelas directamente de Banxico o captúrelas a mano. Las inversiones a CETES usan la tasa vigente al inicio de cada periodo más su diferencial."
       />
       <Alert tone="warn" title="Pendiente de confirmar con el cliente">
         Plazo de CETES que aplica (28, 91, 182 o 364 días) y fecha de observación (hoy: la última tasa capturada con fecha igual o anterior al inicio del periodo).
       </Alert>
+      <BanxicoImport onImported={() => { setPage(1); setNonce((n) => n + 1); }} />
       <RateForm onSaved={() => { setPage(1); setNonce((n) => n + 1); }} />
       <Card className="mt-4" title="Historial de tasas">
         <div className="mb-4 max-w-xs">
@@ -74,6 +75,115 @@ export function ReferenceRatesPage() {
         </Async>
       </Card>
     </>
+  );
+}
+
+const daysAgo = (iso: string, days: number) => {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+};
+
+const statusBadge = (r: BanxicoRate) =>
+  r.status === 'NEW' ? (
+    <Badge tone="info">Nueva</Badge>
+  ) : r.status === 'SAME' ? (
+    <Badge>Ya capturada</Badge>
+  ) : (
+    <Badge tone="warn">Capturada con {formatRateBps(r.current_bps ?? 0)} · no se cambia</Badge>
+  );
+
+/**
+ * Importación desde la API del SIE de Banxico. Primero se consulta (vista previa, sin escribir nada) y luego
+ * se importan solo las tasas nuevas; las ya capturadas nunca se sobrescriben. El token vive en el servidor.
+ */
+function BanxicoImport({ onImported }: { onImported: () => void }) {
+  const today = todayInContractZone();
+  const [range, setRange] = useState({ from: daysAgo(today, 35), to: today });
+  const [preview, setPreview] = useState<BanxicoPreview | null>(null);
+  const [result, setResult] = useState<BanxicoImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<'preview' | 'import' | null>(null);
+  const fresh = preview?.rates.filter((r) => r.status === 'NEW').length ?? 0;
+
+  const consult = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (pending) return;
+    setError(null);
+    setResult(null);
+    setPending('preview');
+    try {
+      setPreview(await api.admin.banxicoPreview(range));
+    } catch (err) {
+      setPreview(null);
+      setError(errorMessage(err));
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const importNow = async () => {
+    if (pending || !preview) return;
+    setError(null);
+    setPending('import');
+    try {
+      const res = await api.admin.banxicoImport({ from: preview.from, to: preview.to });
+      setResult(res);
+      setPreview(await api.admin.banxicoPreview({ from: preview.from, to: preview.to }));
+      onImported();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const columns: Column<BanxicoRate>[] = [
+    { key: 'date', header: 'Fecha', primary: true, render: (r) => formatDate(r.effective_date) },
+    { key: 'code', header: 'Instrumento', render: (r) => referenceRateLabel[r.rate_code] },
+    { key: 'rate', header: 'Tasa anual', align: 'right', render: (r) => <strong>{formatRateBps(r.annual_rate_bps)}</strong> },
+    { key: 'status', header: 'Estado', render: statusBadge }
+  ];
+
+  return (
+    <Card className="mt-4" title="Importar desde Banxico">
+      <form onSubmit={consult} noValidate className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+        <TextInput label="Desde" type="date" value={range.from} max={range.to} onChange={(e) => setRange({ ...range, from: e.target.value })} />
+        <TextInput label="Hasta" type="date" value={range.to} max={today} onChange={(e) => setRange({ ...range, to: e.target.value })} />
+        <div className="sm:col-span-2 lg:col-span-1">
+          <Button type="submit" variant="secondary" icon="search" loading={pending === 'preview'}>Consultar Banxico</Button>
+        </div>
+      </form>
+      <p className="mt-2 text-xs text-ink-muted">Tasas de rendimiento de la subasta semanal de CETES (SIE de Banco de México). La consulta no guarda nada.</p>
+
+      {error && <div className="mt-4"><Alert tone="bad">{error}</Alert></div>}
+      {result && (
+        <div className="mt-4">
+          <Alert tone="ok" title={`${result.imported} ${result.imported === 1 ? 'tasa importada' : 'tasas importadas'}`}>
+            {result.unchanged} ya estaban capturadas.{result.conflicts.length > 0 && ` ${result.conflicts.length} con otra cifra capturada no se modificaron.`}
+          </Alert>
+        </div>
+      )}
+      {preview && (
+        <div className="mt-4 space-y-3">
+          {preview.rejected.length > 0 && (
+            <Alert tone="warn" title="Series no importadas">
+              {preview.rejected.map((r) => `${referenceRateLabel[r.rate_code]} (${r.series_id}): ${r.reason}`).join(' ')}
+            </Alert>
+          )}
+          <DataTable
+            caption={`Tasas de Banxico del ${formatDate(preview.from)} al ${formatDate(preview.to)}`}
+            columns={columns}
+            rows={preview.rates}
+            rowKey={(r) => `${r.rate_code}-${r.effective_date}`}
+            empty={<EmptyState icon="percent" title="Banxico no publicó tasas en ese periodo" />}
+          />
+          <Button icon="download" onClick={importNow} disabled={fresh === 0} loading={pending === 'import'}>
+            {fresh === 0 ? 'No hay tasas nuevas' : `Importar ${fresh} ${fresh === 1 ? 'tasa nueva' : 'tasas nuevas'}`}
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -105,7 +215,7 @@ function RateForm({ onSaved }: { onSaved: () => void }) {
   };
 
   return (
-    <Card className="mt-4" title="Capturar tasa">
+    <Card className="mt-4" title="Capturar tasa a mano">
       <form onSubmit={submit} noValidate className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {error && <div className="sm:col-span-2 lg:col-span-4"><Alert tone="bad">{error}</Alert></div>}
         {ok && <div className="sm:col-span-2 lg:col-span-4"><Alert tone="ok">{ok}</Alert></div>}

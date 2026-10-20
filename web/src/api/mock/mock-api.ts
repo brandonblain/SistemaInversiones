@@ -7,6 +7,8 @@ import type {
   AdminInvestmentRow,
   AdminStatistics,
   AdminYieldEntry,
+  BanxicoPreview,
+  BanxicoRate,
   CurrencyTotals,
   HistoryEntry,
   InvestmentDetail,
@@ -14,6 +16,7 @@ import type {
   NotificationEvent,
   PageQuery,
   Paginated,
+  ReferenceRateCode,
   Session
 } from '../types';
 import {
@@ -757,6 +760,42 @@ export const mockApi: PortalApi = {
       if (db.yields.some((y) => y.reference_rate_id === id)) return fail(409, 'REFERENCE_RATE_IN_USE', 'Esta tasa ya se usó en un rendimiento confirmado; no se puede modificar ni borrar.');
       db.rates = db.rates.filter((r) => r.id !== id);
       audit('REFERENCE_RATE_DELETED', 'REFERENCE_RATE', id, {});
+    },
+    async banxicoPreview(range = {}) {
+      requireAdmin();
+      return mockBanxico(range.from, range.to);
+    },
+    async banxicoImport(range) {
+      requireAdmin();
+      const p = mockBanxico(range.from, range.to);
+      const fresh = p.rates.filter((r) => r.status === 'NEW');
+      for (const r of fresh) {
+        db.rates.push({ id: nextId(db, 'rrt'), rate_code: r.rate_code, effective_date: r.effective_date, annual_rate_bps: r.annual_rate_bps, source: `Banxico SIE ${r.series_id}`, created_at: nowIso() });
+      }
+      if (fresh.length) audit('REFERENCE_RATES_IMPORTED', 'REFERENCE_RATE', `banxico:${p.from}:${p.to}`, { imported: fresh.length });
+      return { from: p.from, to: p.to, imported: fresh.length, unchanged: p.rates.filter((r) => r.status === 'SAME').length, conflicts: p.rates.filter((r) => r.status === 'DIFFERENT'), rejected: p.rejected };
     }
   })
 };
+
+/** Banxico simulado (datos FICTICIOS): una tasa semanal por plazo en las últimas 5 semanas. */
+function mockBanxico(from?: string, to?: string) {
+  const end = to || today();
+  const start = from || addDaysIso(end, -35);
+  const series = { CETES_28: ['SF43936', 715], CETES_91: ['SF43939', 728], CETES_182: ['SF43942', 741], CETES_364: ['SF43945', 755] } as const;
+  const rates: BanxicoRate[] = [];
+  for (let d = end, w = 0; d >= start; d = addDaysIso(d, -7), w++) {
+    for (const [code, [sid, base]] of Object.entries(series) as Array<[ReferenceRateCode, readonly [string, number]]>) {
+      const bps = base - w * 2;
+      const current = db.rates.find((r) => r.rate_code === code && r.effective_date === d);
+      rates.push({ rate_code: code, effective_date: d, annual_rate_bps: bps, series_id: sid, status: !current ? 'NEW' : current.annual_rate_bps === bps ? 'SAME' : 'DIFFERENT', current_bps: current?.annual_rate_bps ?? null });
+    }
+  }
+  return { from: start, to: end, rates, rejected: [] as BanxicoPreview['rejected'] };
+}
+
+function addDaysIso(iso: string, days: number) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
