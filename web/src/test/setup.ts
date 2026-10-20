@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { resetMockState } from '../api/mock/mock-api';
 
 // jsdom no implementa ResizeObserver ni matchMedia (usados por Recharts y el tema).
@@ -20,6 +20,9 @@ window.matchMedia ??= ((q: string) => ({
   removeListener() {},
   dispatchEvent: () => false
 })) as any;
+
+// findBy*/waitFor esperan 1 s por omisión; con la máquina ocupada (suite completa en paralelo) no alcanza.
+configure({ asyncUtilTimeout: 5000 });
 
 beforeEach(() => resetMockState());
 afterEach(() => cleanup());

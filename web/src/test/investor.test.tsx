@@ -67,7 +67,7 @@ describe('Área del inversionista', () => {
     renderApp('/app/inversiones/inv_fict_002', { loginAs: INVESTOR_ID });
     await screen.findByText('Condiciones del contrato');
     await user.click(screen.getByRole('tab', { name: 'Evolución' }));
-    await user.click(await screen.findByRole('button', { name: 'Ver como tabla' }, { timeout: 8000 }));
+    await user.click(await screen.findByRole('button', { name: 'Ver como tabla' }, { timeout: 15000 }));
     expect(screen.getByRole('columnheader', { name: 'Reinvertido' })).toBeInTheDocument();
     expect(screen.getByText(/No incluyen proyecciones/)).toBeInTheDocument();
   });

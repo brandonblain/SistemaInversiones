@@ -29,6 +29,9 @@ export default defineConfig({
     env: { VITE_USE_MOCKS: 'true', VITE_MOCK_LATENCY_MS: '0' },
     css: false,
     // Pruebas de pantallas completas (tablas, filtros, gráficas) en jsdom: holgura al correr en paralelo
-    testTimeout: 15000
+    testTimeout: 20000,
+    // Pocas pantallas pesadas a la vez (Recharts en jsdom): evita fallas por falta de CPU, no por el código
+    minWorkers: 1,
+    maxWorkers: 4
   }
 });
