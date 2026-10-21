@@ -110,34 +110,34 @@ export function LandingPage() {
       {/* ---------- Encabezado ---------- */}
       <header className="band sticky top-0 z-30 border-b border-band-line bg-band">
         <MarketTicker />
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
-          <a href="#inicio" className="mr-auto flex min-h-[44px] min-w-[44px] items-center gap-3" aria-label={`${BRAND.name}, inicio`}>
-            <img src={BRAND.logoSrc} alt="" width={62} height={44} className="h-10 w-auto sm:h-11" />
-            <span className="hidden border-l border-band-line pl-3 leading-tight md:block">
-              <span className="font-display block text-sm font-extrabold uppercase tracking-wide text-on-band [font-stretch:112%]">Pimex Fortex</span>
-              <span className="block text-xs font-semibold uppercase tracking-[0.3em] text-on-band-2">Capital</span>
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3.5 sm:px-6 sm:py-4 lg:py-5">
+          <a href="#inicio" className="mr-auto flex min-h-[56px] min-w-[56px] items-center gap-4" aria-label={`${BRAND.name}, inicio`}>
+            <img src={BRAND.logoSrc} alt="" width={110} height={80} className="h-14 w-auto drop-shadow-md transition-transform duration-200 hover:scale-105 sm:h-16 lg:h-20" />
+            <span className="hidden border-l-2 border-band-line/80 pl-4 leading-tight md:block">
+              <span className="font-display block text-lg font-black uppercase tracking-wider text-on-band [font-stretch:112%]">Pimex Fortex</span>
+              <span className="block text-xs font-bold uppercase tracking-[0.35em] text-on-band-2">Capital</span>
             </span>
           </a>
-          <nav aria-label="Secciones" className="hidden items-center gap-1 lg:flex">
+          <nav aria-label="Secciones" className="hidden items-center gap-2 lg:flex">
             {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm font-medium text-on-band-2 transition-colors hover:bg-band-raised hover:text-on-band">
+              <a key={n.href} href={n.href} className="inline-flex min-h-[44px] items-center rounded-lg px-3.5 text-sm font-semibold text-on-band-2 transition-colors hover:bg-band-raised hover:text-on-band">
                 {n.label}
               </a>
             ))}
           </nav>
-          <AccessLink access={access} className="pressable inline-flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-on-band px-3 text-sm font-bold text-band hover:bg-on-band-2 sm:px-4 lg:ml-4">
+          <AccessLink access={access} className="pressable inline-flex min-h-[48px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-on-band px-5 text-sm font-bold text-band shadow-md hover:bg-on-band-2 lg:ml-4">
             <Icon name="user" className="h-4 w-4" />
             {access.label}
           </AccessLink>
           <button
             type="button"
-            className="pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-on-band hover:bg-band-raised lg:hidden"
+            className="pressable inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-on-band hover:bg-band-raised lg:hidden"
             aria-expanded={menuOpen}
             aria-controls="menu-sitio"
             aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
             onClick={() => setMenuOpen((v) => !v)}
           >
-            <Icon name={menuOpen ? 'x' : 'menu'} className="h-5 w-5" />
+            <Icon name={menuOpen ? 'x' : 'menu'} className="h-6 w-6" />
           </button>
         </div>
         {menuOpen && (
