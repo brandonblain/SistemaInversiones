@@ -6,12 +6,12 @@ async function seedBase(db: D1Database) {
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES ('u_adm', 'a@ficticio.test', 'x', 'ADMIN')"),
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES ('u_inv', 'i@ficticio.test', 'x', 'INVESTOR')"),
     db.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv1', 'u_inv', 'FICT-1', 'FOREIGN_VEHICLES', 'MXN', '2026-01-01', '2027-01-01', 1000000, 1000000)`
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
+       VALUES ('inv1', 'u_inv', 'FICT-1', 'TRANSPORT', 'FOREIGN_VEHICLES', 'MXN', '2026-01-01', '2027-01-01', 1000000, 1000000)`
     ),
     db.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv2', 'u_inv', 'FICT-2', 'ELECTRIC_MOBILITY', 'USD', '2026-01-01', '2027-01-01', 1000000, 1000000)`
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
+       VALUES ('inv2', 'u_inv', 'FICT-2', 'ELECTRIC_VEHICLES', 'ELECTRIC_MOBILITY', 'USD', '2026-01-01', '2027-01-01', 1000000, 1000000)`
     )
   ]);
 }
@@ -39,7 +39,13 @@ describe('Migraciones D1 0001 → 0003', () => {
     await expect(db.prepare("UPDATE investments SET investment_type = 'CRYPTO' WHERE id = 'inv1'").run()).rejects.toThrow(/CHECK/);
     await expect(db.prepare("UPDATE investments SET currency = 'EUR' WHERE id = 'inv1'").run()).rejects.toThrow(/CHECK/);
     // CETES solo en pesos
-    await expect(db.prepare("UPDATE investments SET investment_type = 'CETES' WHERE id = 'inv2'").run()).rejects.toThrow(/CHECK/);
+    await expect(db.prepare("UPDATE investments SET investment_type = 'CETES', business_line = 'CETES' WHERE id = 'inv2'").run()).rejects.toThrow(/CHECK/);
+    // Línea de negocio: obligatoria, del catálogo y coherente con CETES
+    await expect(db.prepare("UPDATE investments SET business_line = 'CRYPTO' WHERE id = 'inv1'").run()).rejects.toThrow(/CHECK/);
+    await expect(db.prepare("UPDATE investments SET business_line = 'CETES' WHERE id = 'inv1'").run()).rejects.toThrow(/INVALID_BUSINESS_LINE/);
+    await expect(
+      db.prepare("INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents) VALUES ('inv3','u_inv','FICT-3','TRANSPORT','MXN','2026-01-01','2027-01-01',1,1)").run()
+    ).rejects.toThrow(/INVALID_BUSINESS_LINE/);
     // Términos: tasa fija XOR referencia + diferencial; modalidad anual permitida
     await db.prepare("INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, payout_frequency, effective_from) VALUES ('t1','inv1','FIXED',1200,'ANNUAL','2026-01-01')").run();
     await db.prepare("INSERT INTO investment_terms (id, investment_id, rate_type, reference_rate_code, spread_bps, payout_frequency, effective_from) VALUES ('t2','inv1','REFERENCE','CETES_28',-100,'MONTHLY','2026-01-01')").run();
@@ -110,5 +116,35 @@ describe('Migraciones D1 0001 → 0003', () => {
       ])
     ).rejects.toThrow(/ALLOCATION_EXCEEDS_PENDING/);
     expect(await db.prepare("SELECT id FROM payment_records WHERE id = 'pX'").first()).toBeNull();
+  });
+});
+
+describe('Migración 0005 sobre una base con contratos (caso de producción)', () => {
+  it('convierte los giros anteriores sin borrar términos ni movimientos de capital', async () => {
+    const { default: Database } = await import('better-sqlite3');
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const dir = join(process.cwd(), 'migrations');
+    const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    for (const f of files.filter((f) => f < '0005')) sqlite.exec(readFileSync(join(dir, f), 'utf8'));
+    sqlite.exec(`
+      INSERT INTO users (id, email, password_hash, role) VALUES ('u_adm','a@ficticio.test','x','ADMIN'), ('u_hg','h@ficticio.test','x','INVESTOR');
+      INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents) VALUES
+        ('i_t','u_hg','NAY-0004','TRANSPORT','MXN','2021-08-12','2027-08-12',10500000,10500000),
+        ('i_m','u_hg','FICT-M','MOBILITY','MXN','2026-01-01','2027-01-01',1,1),
+        ('i_e','u_hg','FICT-E','ELECTRIC_VEHICLES','USD','2026-01-01','2027-01-01',1,1),
+        ('i_f','u_hg','FICT-F','FAST_FOOD','MXN','2026-01-01','2027-01-01',1,1),
+        ('i_c','u_hg','FICT-C','CETES','MXN','2026-01-01','2027-01-01',1,1);
+      INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, payout_frequency, effective_from) VALUES ('t1','i_t','FIXED',2500,'MONTHLY','2021-08-12');
+      INSERT INTO capital_movements (id, investment_id, movement_type, amount_cents, effective_date, recorded_by_user_id) VALUES ('m1','i_t','INITIAL_DEPOSIT',10500000,'2021-08-12','u_adm');
+    `);
+    sqlite.exec(readFileSync(join(dir, files.find((f) => f.startsWith('0005'))!), 'utf8'));
+    const lines = Object.fromEntries((sqlite.prepare('SELECT code, business_line FROM investments').all() as Array<{ code: string; business_line: string }>).map((r) => [r.code, r.business_line]));
+    expect(lines).toEqual({ 'NAY-0004': 'CARGO_TRANSPORT', 'FICT-M': 'ELECTRIC_MOBILITY', 'FICT-E': 'ELECTRIC_MOBILITY', 'FICT-F': 'FOOD_TRUCKS', 'FICT-C': 'CETES' });
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM investment_terms').get()).toEqual({ n: 1 });
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM capital_movements').get()).toEqual({ n: 1 });
+    expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
   });
 });

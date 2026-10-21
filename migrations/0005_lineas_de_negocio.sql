@@ -1,35 +1,41 @@
--- Migración 0005: giros de contrato = líneas de negocio de Pimex Fortex Capital S.A.S.
---   ELECTRIC_MOBILITY  Movilidad y vehículos eléctricos
---   FOOD_TRUCKS        Food trucks y unidades móviles gastronómicas
---   FOREIGN_VEHICLES   Vehículos extranjeros legalizados
---   TECH_SOLUTIONS     Soluciones tecnológicas y creativas
---   CETES              Se conserva (CETES − 1 punto, solo en pesos)
+-- Migración 0005: líneas de negocio de Pimex Fortex Capital S.A.S. como giro de cada contrato.
 --
--- Cambiar una restricción CHECK obliga a reconstruir `investments` (SQLite no altera CHECK).
--- Igual que 0003 y 0004, se detiene sin tocar nada si ya hay contratos capturados.
--- Producción tiene 0 contratos al crear esta migración. Bases locales: npm run setup:local -- --reset
+-- Se agrega la columna `business_line` en lugar de reconstruir `investments`: producción ya tiene contratos,
+-- y en D1 (llaves foráneas siempre activas) borrar la tabla dispararía el borrado en cascada de
+-- `investment_terms` y chocaría con los libros protegidos (capital_movements no admite borrados).
+--
+--   business_line       giro mostrado y filtrado en el portal
+--     ELECTRIC_MOBILITY   Movilidad y vehículos eléctricos
+--     FOOD_TRUCKS         Food trucks y unidades móviles gastronómicas
+--     FOREIGN_VEHICLES    Vehículos extranjeros legalizados
+--     CARGO_TRANSPORT     Transporte de carga
+--     TECH_SOLUTIONS      Soluciones tecnológicas y creativas
+--     CETES               CETES − 1 punto (solo en pesos)
+--   investment_type     columna heredada; solo distingue CETES (regla "CETES solo en pesos")
+--
+-- Los contratos existentes conservan todos sus datos; su giro se convierte así:
+--   MOBILITY, ELECTRIC_VEHICLES → ELECTRIC_MOBILITY · FAST_FOOD → FOOD_TRUCKS · TRANSPORT → CARGO_TRANSPORT
 
-CREATE TABLE _mig0005_requiere_base_sin_contratos (n INTEGER NOT NULL CHECK (n = 0));
-INSERT INTO _mig0005_requiere_base_sin_contratos SELECT COUNT(*) FROM investments;
-DROP TABLE _mig0005_requiere_base_sin_contratos;
+ALTER TABLE investments ADD COLUMN business_line TEXT NULL
+  CHECK (business_line IS NULL OR business_line IN ('ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'FOREIGN_VEHICLES', 'CARGO_TRANSPORT', 'TECH_SOLUTIONS', 'CETES'));
 
-DROP INDEX IF EXISTS idx_investments_user;
-DROP TABLE investments;
-CREATE TABLE investments (
-  id TEXT PRIMARY KEY,
-  investor_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  code TEXT NOT NULL UNIQUE,
-  investment_type TEXT NOT NULL CHECK (investment_type IN ('ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'FOREIGN_VEHICLES', 'TECH_SOLUTIONS', 'CETES')),
-  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('DRAFT', 'ACTIVE', 'MATURED', 'CANCELLED')),
-  currency TEXT NOT NULL CHECK (currency IN ('MXN', 'USD')),
-  start_date TEXT NOT NULL,
-  maturity_date TEXT NOT NULL,
-  initial_capital_cents INTEGER NOT NULL CHECK (initial_capital_cents > 0),
-  current_capital_cents INTEGER NOT NULL CHECK (current_capital_cents >= 0),
-  notes TEXT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  CHECK (investment_type != 'CETES' OR currency = 'MXN'),
-  CHECK (maturity_date > start_date)
-);
-CREATE INDEX IF NOT EXISTS idx_investments_user ON investments(investor_user_id);
+UPDATE investments SET business_line = CASE investment_type
+  WHEN 'MOBILITY' THEN 'ELECTRIC_MOBILITY'
+  WHEN 'ELECTRIC_VEHICLES' THEN 'ELECTRIC_MOBILITY'
+  WHEN 'FAST_FOOD' THEN 'FOOD_TRUCKS'
+  WHEN 'TRANSPORT' THEN 'CARGO_TRANSPORT'
+  WHEN 'CETES' THEN 'CETES'
+END;
+
+-- Todo contrato tiene línea de negocio, y "CETES" coincide en ambas columnas.
+CREATE TRIGGER IF NOT EXISTS trg_investment_business_line_insert
+BEFORE INSERT ON investments
+WHEN NEW.business_line IS NULL OR ((NEW.business_line = 'CETES') <> (NEW.investment_type = 'CETES'))
+BEGIN SELECT RAISE(ABORT, 'INVALID_BUSINESS_LINE'); END;
+
+CREATE TRIGGER IF NOT EXISTS trg_investment_business_line_update
+BEFORE UPDATE OF business_line, investment_type ON investments
+WHEN NEW.business_line IS NULL OR ((NEW.business_line = 'CETES') <> (NEW.investment_type = 'CETES'))
+BEGIN SELECT RAISE(ABORT, 'INVALID_BUSINESS_LINE'); END;
+
+CREATE INDEX IF NOT EXISTS idx_investments_business_line ON investments(business_line);

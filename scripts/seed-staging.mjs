@@ -60,8 +60,10 @@ for (const inv of investors) {
   }
   for (const i of inv.investments) {
     const invId = id('inv');
+    // investment_type es la columna heredada (migración 0005): solo distingue CETES
+    const legacyType = (t) => (t === 'CETES' ? 'CETES' : t === 'ELECTRIC_MOBILITY' ? 'ELECTRIC_VEHICLES' : t === 'FOOD_TRUCKS' ? 'FAST_FOOD' : 'TRANSPORT');
     out.push(
-      `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, status, start_date, maturity_date, initial_capital_cents, current_capital_cents, notes) VALUES (${q(invId)}, ${q(inv.id)}, ${q(i.code)}, ${q(i.type)}, ${q(i.currency ?? 'MXN')}, ${q(i.status ?? 'ACTIVE')}, ${q(i.start)}, ${q(i.end)}, ${i.capital}, ${i.capital}, 'Contrato FICTICIO de staging');`
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, currency, status, start_date, maturity_date, initial_capital_cents, current_capital_cents, notes) VALUES (${q(invId)}, ${q(inv.id)}, ${q(i.code)}, ${q(legacyType(i.type))}, ${q(i.type)}, ${q(i.currency ?? 'MXN')}, ${q(i.status ?? 'ACTIVE')}, ${q(i.start)}, ${q(i.end)}, ${i.capital}, ${i.capital}, 'Contrato FICTICIO de staging');`
     );
     out.push(
       i.cetes

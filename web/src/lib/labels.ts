@@ -89,6 +89,7 @@ export const investmentTypeLabel: Record<InvestmentType, string> = {
   ELECTRIC_MOBILITY: 'Movilidad y vehículos eléctricos',
   FOOD_TRUCKS: 'Food trucks y unidades móviles',
   FOREIGN_VEHICLES: 'Vehículos extranjeros legalizados',
+  CARGO_TRANSPORT: 'Transporte de carga',
   TECH_SOLUTIONS: 'Soluciones tecnológicas y creativas',
   CETES: 'CETES'
 };
@@ -98,6 +99,7 @@ export const investmentTypeHint: Record<InvestmentType, string> = {
   ELECTRIC_MOBILITY: 'Comercialización y arrendamiento de vehículos eléctricos ligeros.',
   FOOD_TRUCKS: 'Renta y venta de food trucks y unidades móviles comerciales.',
   FOREIGN_VEHICLES: 'Vehículos con pedimento de importación definitiva, listos para su venta.',
+  CARGO_TRANSPORT: 'Unidades para el transporte de carga y mercancía.',
   TECH_SOLUTIONS: 'Software, aplicaciones, drones, video, audio y diseño.',
   CETES: 'Tasa variable: CETES más un diferencial (p. ej. − 1 punto). Solo en pesos.'
 };

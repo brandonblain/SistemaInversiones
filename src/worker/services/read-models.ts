@@ -60,7 +60,7 @@ const emptyBalance = (): Balance => ({
   yield_pending_cents: 0
 });
 
-export const INVESTMENT_COLUMNS = `i.id, i.investor_user_id, i.code, i.investment_type, i.status, i.currency, i.start_date, i.maturity_date,
+export const INVESTMENT_COLUMNS = `i.id, i.investor_user_id, i.code, i.business_line AS investment_type, i.status, i.currency, i.start_date, i.maturity_date,
   i.initial_capital_cents, i.current_capital_cents, i.notes, i.created_at,
   t.rate_type, t.fixed_annual_rate_bps, t.reference_rate_code, t.spread_bps,
   t.payout_frequency, t.day_count_convention, t.capitalization_policy`;

@@ -44,7 +44,7 @@ export async function adminStatistics(db: D1Database, investorId: string | null)
     await db
       .prepare(
         `SELECT i.id, i.code, i.investor_user_id, p.full_name AS investor_name, u.email AS investor_email, i.currency, i.status,
-                i.investment_type, i.initial_capital_cents, i.current_capital_cents, i.maturity_date,
+                i.business_line AS investment_type, i.initial_capital_cents, i.current_capital_cents, i.maturity_date,
                 t.payout_frequency, t.rate_type, t.fixed_annual_rate_bps
          FROM investments i
          JOIN users u ON u.id = i.investor_user_id

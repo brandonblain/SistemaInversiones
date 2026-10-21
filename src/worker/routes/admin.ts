@@ -17,7 +17,12 @@ import type { Env, AppVariables } from '../index';
 export const adminRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 adminRoutes.use('*', authMiddleware, requireAdmin);
 
-const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'FOREIGN_VEHICLES', 'TECH_SOLUTIONS', 'CETES'] as const;
+// Giro del contrato = línea de negocio (columna business_line, migración 0005). La API conserva el nombre
+// `investment_type`; la columna heredada investments.investment_type solo distingue CETES.
+const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'FOREIGN_VEHICLES', 'CARGO_TRANSPORT', 'TECH_SOLUTIONS', 'CETES'] as const;
+/** Valor para la columna heredada (su CHECK solo admite los códigos anteriores): CETES o un código no-CETES. */
+const legacyInvestmentType = (line: (typeof INVESTMENT_TYPES)[number]) =>
+  line === 'CETES' ? 'CETES' : line === 'ELECTRIC_MOBILITY' ? 'ELECTRIC_VEHICLES' : line === 'FOOD_TRUCKS' ? 'FAST_FOOD' : 'TRANSPORT';
 const CURRENCIES = ['MXN', 'USD'] as const;
 const REFERENCE_RATES = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'] as const;
 const STATUSES = ['DRAFT', 'ACTIVE', 'MATURED', 'CANCELLED'] as const;
@@ -194,7 +199,7 @@ adminRoutes.get('/investments', async (c) => {
   const type = c.req.query('investment_type') ?? '';
   if (type) {
     if (!(INVESTMENT_TYPES as readonly string[]).includes(type)) throw badRequest('INVALID_INPUT', 'Giro de contrato no válido.');
-    conds.push('i.investment_type = ?');
+    conds.push('i.business_line = ?');
     binds.push(type);
   }
   const investorFilter = c.req.query('investor_id') ?? '';
@@ -207,7 +212,7 @@ adminRoutes.get('/investments', async (c) => {
   const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n ${from} WHERE ${where}`).bind(...binds).first<{ n: number }>();
   const rows = await c.env.DB
     .prepare(
-      `SELECT i.id, i.investor_user_id, i.code, i.investment_type, i.status, i.currency, i.start_date, i.maturity_date,
+      `SELECT i.id, i.investor_user_id, i.code, i.business_line AS investment_type, i.status, i.currency, i.start_date, i.maturity_date,
               i.initial_capital_cents, i.current_capital_cents, p.full_name AS investor_name, u.email AS investor_email,
               t.rate_type, t.fixed_annual_rate_bps, t.reference_rate_code, t.spread_bps,
               t.payout_frequency, t.day_count_convention, t.capitalization_policy
@@ -274,9 +279,9 @@ adminRoutes.post('/investments', async (c) => {
   await withDb(() =>
     db.batch([
       db.prepare(
-        `INSERT INTO investments (id, investor_user_id, code, investment_type, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, notes)
-         VALUES (?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?)`
-      ).bind(invId, investorId, code, investmentType, currency, start, maturity, capital, capital, notes),
+        `INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, notes)
+         VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?)`
+      ).bind(invId, investorId, code, legacyInvestmentType(investmentType), investmentType, currency, start, maturity, capital, capital, notes),
       db.prepare(
         `INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, reference_rate_code, spread_bps, payout_frequency, day_count_convention, capitalization_policy, effective_from)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`

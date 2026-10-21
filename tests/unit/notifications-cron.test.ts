@@ -7,8 +7,8 @@ import { makeEnv, seedAdmin, seedInvestor } from '../helpers/app';
 async function seedInvestment(env: ReturnType<typeof makeEnv>, id: string, userId: string, start: string, maturity: string) {
   await env.DB.batch([
     env.DB.prepare(
-      `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES (?, ?, ?, 'FOOD_TRUCKS', 'MXN', ?, ?, 10000000, 10000000)`
+      `INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
+       VALUES (?, ?, ?, 'FAST_FOOD', 'FOOD_TRUCKS', 'MXN', ?, ?, 10000000, 10000000)`
     ).bind(id, userId, `FICT-${id}`, start, maturity),
     env.DB.prepare(
       `INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, payout_frequency, effective_from) VALUES (?, ?, 'FIXED', 1300, 'MONTHLY', ?)`

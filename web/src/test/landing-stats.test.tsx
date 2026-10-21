@@ -16,7 +16,7 @@ describe('Página web pública', () => {
     expect(screen.getByText(/somos una firma especializada en consultoría financiera y una incubadora de negocios/)).toBeInTheDocument();
     // Líneas de negocio
     expect(screen.getByRole('heading', { name: 'Nuestras líneas de negocio y soluciones' })).toBeInTheDocument();
-    for (const name of ['Movilidad y Vehículos Eléctricos', 'Food Trucks y Unidades Móviles Gastronómicas', 'Vehículos Extranjeros Legalizados', 'Soluciones Tecnológicas y Creativas']) {
+    for (const name of ['Movilidad y Vehículos Eléctricos', 'Food Trucks y Unidades Móviles Gastronómicas', 'Vehículos Extranjeros Legalizados', 'Transporte de Carga', 'Soluciones Tecnológicas y Creativas']) {
       expect(screen.getByRole('heading', { name })).toBeInTheDocument();
     }
     expect(screen.getByText(/impulsamos a emprendedores para que desarrollen su modelo de negocios/)).toBeInTheDocument();

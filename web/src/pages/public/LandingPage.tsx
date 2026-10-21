@@ -15,7 +15,8 @@ import { LEGAL_DOCS } from '../../legal/documents';
 //
 // Color: las franjas en negro ejecutivo usan los tokens band / on-band (texto siempre claro en ambos modos);
 // las secciones claras usan page / surface / ink, que se adaptan solas al modo oscuro.
-// Imágenes: todas entregadas por el cliente (portada, líneas de negocio y misión/visión). Se muestran
+// Imágenes: entregadas por el cliente (portada, líneas de negocio y misión/visión), salvo Transporte de carga
+// (Unsplash, Alex Kalinin; la foto anterior era una vista previa con marca de agua). Se muestran
 // cerca de su tamaño natural y sin texto encima.
 
 const NAV = [
@@ -26,7 +27,7 @@ const NAV = [
 ];
 
 const STATS = [
-  { value: '4', label: 'líneas de negocio' },
+  { value: '5', label: 'líneas de negocio' },
   { value: 'B2B', label: 'negocios entre empresas' },
   { value: 'S.A.S.', label: 'sociedad mercantil mexicana' }
 ];
@@ -61,6 +62,12 @@ const LINEAS = [
     kind: 'Comercialización',
     text: 'Adquisición de vehículos de procedencia extranjera debidamente legalizados mediante pedimento de importación definitiva a nombre de la empresa, listos para su venta comercial y óptima integración al mercado.',
     img: '/landing/linea-vehiculos.jpg'
+  },
+  {
+    title: 'Transporte de Carga',
+    kind: 'Comercialización y Arrendamiento',
+    text: 'Unidades de transporte de carga para empresas y emprendedores que mueven mercancía, con esquemas de adquisición o arrendamiento mercantil para integrarlas a su operación.',
+    img: '/landing/linea-transporte-carga.jpg'
   },
   {
     title: 'Soluciones Tecnológicas y Creativas',
@@ -168,7 +175,7 @@ export function LandingPage() {
                 Negocios B2B para desarrollar los negocios de emprendedores.
               </h1>
               <p data-reveal style={delay(2)} className="mt-5 max-w-[46ch] text-lg leading-relaxed text-on-band-2">
-                Desarrollando así la más rentable y sustentable incubadora de negocios: movilidad eléctrica, food trucks, vehículos legalizados y soluciones tecnológicas.
+                Desarrollando así la más rentable y sustentable incubadora de negocios: movilidad eléctrica, food trucks, vehículos legalizados, transporte de carga y soluciones tecnológicas.
               </p>
               <div data-reveal style={delay(3)} className="mt-8 flex flex-col gap-3 min-[460px]:flex-row min-[460px]:items-center">
                 <a href="#lineas" className={ctaOnBand}>
@@ -280,17 +287,21 @@ export function LandingPage() {
             </p>
           </div>
           <ol className="mt-10 grid gap-5 md:grid-cols-2">
-            {LINEAS.map((l, i) => (
-              <li key={l.title} data-reveal style={delay(i)} className="flex flex-col overflow-hidden rounded-card border border-line bg-surface">
-                <img src={l.img} alt="" width={640} height={320} loading="lazy" className="aspect-[2/1] w-full object-cover" />
-                <div className="flex-1 p-6">
-                  <p className="figure text-sm font-bold text-brand">{String(i + 1).padStart(2, '0')}</p>
-                  <h3 className="mt-1 text-xl font-bold text-ink">{l.title}</h3>
-                  <p className="mt-3 text-sm font-semibold uppercase tracking-wide text-ink-2">{l.kind}</p>
-                  <p className="mt-1.5 leading-relaxed text-ink-2">{l.text}</p>
-                </div>
-              </li>
-            ))}
+            {LINEAS.map((l, i) => {
+              // Con un número impar de líneas, la última ocupa todo el ancho (imagen a la izquierda)
+              const wide = LINEAS.length % 2 === 1 && i === LINEAS.length - 1;
+              return (
+                <li key={l.title} data-reveal style={delay(i)} className={cx('flex flex-col overflow-hidden rounded-card border border-line bg-surface', wide && 'md:col-span-2 md:flex-row')}>
+                  <img src={l.img} alt="" width={640} height={320} loading="lazy" className={cx('aspect-[2/1] w-full object-cover', wide && 'md:aspect-auto md:w-1/2 md:self-stretch')} />
+                  <div className="flex-1 p-6">
+                    <p className="figure text-sm font-bold text-brand">{String(i + 1).padStart(2, '0')}</p>
+                    <h3 className="mt-1 text-xl font-bold text-ink">{l.title}</h3>
+                    <p className="mt-3 text-sm font-semibold uppercase tracking-wide text-ink-2">{l.kind}</p>
+                    <p className="mt-1.5 leading-relaxed text-ink-2">{l.text}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </section>
 
