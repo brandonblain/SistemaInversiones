@@ -248,11 +248,11 @@ export function LandingPage() {
             <figure data-reveal className="mx-auto w-full max-w-md lg:max-w-none">
               <img
                 src="/landing/mision-vision.jpg"
-                alt="Apretón de manos entre socios comerciales sobre una ciudad"
-                width={640}
-                height={640}
+                alt="Equipo de trabajo conversando en una reunión de negocios"
+                width={589}
+                height={442}
                 loading="lazy"
-                className="aspect-square w-full rounded-2xl object-cover ring-1 ring-band-line"
+                className="aspect-[4/3] w-full rounded-2xl object-cover ring-1 ring-band-line"
               />
             </figure>
             <div>
