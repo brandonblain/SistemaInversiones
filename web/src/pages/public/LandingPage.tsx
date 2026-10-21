@@ -15,8 +15,7 @@ import { LEGAL_DOCS } from '../../legal/documents';
 //
 // Color: las franjas en negro ejecutivo usan los tokens band / on-band (texto siempre claro en ambos modos);
 // las secciones claras usan page / surface / ink, que se adaptan solas al modo oscuro.
-// Imágenes: entregadas por el cliente (portada, líneas de negocio y misión/visión), salvo Transporte de carga
-// (Unsplash, Alex Kalinin; la foto anterior era una vista previa con marca de agua). Se muestran
+// Imágenes: todas entregadas por el cliente (portada, líneas de negocio y misión/visión). Se muestran
 // cerca de su tamaño natural y sin texto encima.
 
 const NAV = [
