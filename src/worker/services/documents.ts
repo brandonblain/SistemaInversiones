@@ -34,7 +34,7 @@ export async function uploadPrivateDocument(db: D1Database, bucket: R2Bucket, in
   if (!contentType) throw new AppError(415, 'UNSUPPORTED_FILE_TYPE', 'Solo se admiten archivos PDF, PNG o JPEG válidos.');
 
   const inv = await db.prepare('SELECT id FROM investments WHERE id = ?').bind(input.investmentId).first<{ id: string }>();
-  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
+  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
 
   const docId = generateSecureToken('doc');
   const safeName = (input.originalFilename || 'documento').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);

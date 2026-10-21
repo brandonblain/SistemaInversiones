@@ -52,7 +52,7 @@ export function LoginPage() {
   };
 
   return (
-    <AuthLayout title="Iniciar sesión" subtitle={needsMfa ? 'Verificación en dos pasos' : 'Consulte sus inversiones y rendimientos'}>
+    <AuthLayout title="Iniciar sesión" subtitle={needsMfa ? 'Verificación en dos pasos' : 'Consulte sus contratos y rendimientos'}>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {notice && <Alert tone="warn">{notice}</Alert>}
         {error && <Alert tone="bad">{error}</Alert>}

@@ -82,11 +82,11 @@ export default function StatsCharts({ stats, currency }: { stats: AdminStatistic
       {byType.length > 0 && (
         <figure>
           <figcaption className="mb-1">
-            <span className="block font-semibold text-ink">Capital vigente por ramo ({currency})</span>
+            <span className="block font-semibold text-ink">Capital vigente por giro ({currency})</span>
           </figcaption>
           {asTable ? (
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-line text-left text-xs text-ink-muted"><th className="py-2">Ramo</th><th className="py-2 text-right">Inversiones</th><th className="py-2 text-right">Capital vigente</th><th className="py-2 text-right">Rend. confirmado</th></tr></thead>
+              <thead><tr className="border-b border-line text-left text-xs text-ink-muted"><th className="py-2">Giro</th><th className="py-2 text-right">Contratos</th><th className="py-2 text-right">Capital vigente</th><th className="py-2 text-right">Rend. confirmado</th></tr></thead>
               <tbody>
                 {byType.map((x) => (
                   <tr key={x.investment_type} className="border-b border-line"><td className="py-2">{x.label}</td><td className="tabular py-2 text-right">{x.investments_count}</td><td className="tabular py-2 text-right">{money(x.capital_cents)}</td><td className="tabular py-2 text-right">{money(x.yield_confirmed_cents)}</td></tr>
@@ -94,7 +94,7 @@ export default function StatsCharts({ stats, currency }: { stats: AdminStatistic
               </tbody>
             </table>
           ) : (
-            <div className="w-full" style={{ height: Math.max(120, byType.length * 52 + 30) }} role="img" aria-label={`Barras horizontales: capital vigente por ramo en ${currency}`}>
+            <div className="w-full" style={{ height: Math.max(120, byType.length * 52 + 30) }} role="img" aria-label={`Barras horizontales: capital vigente por giro en ${currency}`}>
               <ResponsiveContainer>
                 <BarChart data={byType} layout="vertical" margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
                   <CartesianGrid horizontal={false} stroke={t.grid} />

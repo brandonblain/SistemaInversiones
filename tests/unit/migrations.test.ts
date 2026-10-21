@@ -7,11 +7,11 @@ async function seedBase(db: D1Database) {
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES ('u_inv', 'i@ficticio.test', 'x', 'INVESTOR')"),
     db.prepare(
       `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv1', 'u_inv', 'FICT-1', 'TRANSPORT', 'MXN', '2026-01-01', '2027-01-01', 1000000, 1000000)`
+       VALUES ('inv1', 'u_inv', 'FICT-1', 'FOREIGN_VEHICLES', 'MXN', '2026-01-01', '2027-01-01', 1000000, 1000000)`
     ),
     db.prepare(
       `INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents)
-       VALUES ('inv2', 'u_inv', 'FICT-2', 'MOBILITY', 'USD', '2026-01-01', '2027-01-01', 1000000, 1000000)`
+       VALUES ('inv2', 'u_inv', 'FICT-2', 'ELECTRIC_MOBILITY', 'USD', '2026-01-01', '2027-01-01', 1000000, 1000000)`
     )
   ]);
 }

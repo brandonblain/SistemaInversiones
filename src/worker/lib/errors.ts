@@ -26,7 +26,7 @@ const TRIGGER_ERRORS: Record<string, AppError> = {
   YIELD_PERIOD_OVERLAP: conflict('YIELD_PERIOD_OVERLAP', 'El periodo se traslapa con un rendimiento automático ya confirmado.'),
   YIELD_ENTRY_IMMUTABLE: conflict('YIELD_ENTRY_IMMUTABLE', 'Las partidas confirmadas no se modifican; registre un ajuste o una reversión.'),
   YIELD_HAS_SETTLEMENTS: conflict('YIELD_HAS_SETTLEMENTS', 'No se puede reversar un rendimiento con pagos o reinversión asignados.'),
-  ALLOCATION_YIELD_NOT_ALLOCATABLE: badRequest('ALLOCATION_YIELD_NOT_ALLOCATABLE', 'La partida no pertenece a la inversión o no está confirmada.'),
+  ALLOCATION_YIELD_NOT_ALLOCATABLE: badRequest('ALLOCATION_YIELD_NOT_ALLOCATABLE', 'La partida no pertenece al contrato o no está confirmada.'),
   ALLOCATION_EXCEEDS_PENDING: conflict('ALLOCATION_EXCEEDS_PENDING', 'La asignación excede el saldo pendiente de la partida.'),
   ALLOCATION_EXCEEDS_PAYMENT: badRequest('ALLOCATION_EXCEEDS_PAYMENT', 'El total asignado no puede ser mayor que el monto del pago.'),
   REINVEST_YIELD_NOT_ELIGIBLE: conflict('REINVEST_YIELD_NOT_ELIGIBLE', 'La partida no puede reinvertirse: debe estar confirmada, completa y sin pagos.'),
@@ -42,7 +42,7 @@ export function mapDbError(err: unknown): AppError | null {
     if (msg.includes(key)) return appErr;
   }
   if (/UNIQUE constraint failed: payment_records/i.test(msg) || msg.includes('uq_payment_reference')) {
-    return conflict('DUPLICATE_PAYMENT_REFERENCE', 'Ya existe un pago confirmado con esa referencia bancaria en esta inversión.');
+    return conflict('DUPLICATE_PAYMENT_REFERENCE', 'Ya existe un pago confirmado con esa referencia bancaria en este contrato.');
   }
   if (/UNIQUE constraint failed: yield_entries\.reversal_of_yield_id/i.test(msg)) {
     return conflict('ALREADY_REVERSED', 'Esta partida ya fue reversada.');
@@ -54,7 +54,7 @@ export function mapDbError(err: unknown): AppError | null {
     return conflict('EMAIL_ALREADY_EXISTS', 'El correo electrónico ya está registrado.');
   }
   if (/UNIQUE constraint failed: investments\.code/i.test(msg)) {
-    return conflict('CODE_ALREADY_EXISTS', 'Ya existe una inversión con ese código.');
+    return conflict('CODE_ALREADY_EXISTS', 'Ya existe un contrato con ese código.');
   }
   if (/UNIQUE constraint failed: reference_rates/i.test(msg)) {
     return conflict('REFERENCE_RATE_EXISTS', 'Ya existe una tasa capturada para ese plazo y fecha.');

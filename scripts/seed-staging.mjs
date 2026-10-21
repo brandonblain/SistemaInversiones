@@ -24,24 +24,24 @@ const investors = [
     id: 'usr_fict_01', email: 'hector.galeana@ficticio.test', name: 'Héctor Galeana', phone: '+52 55 0000 0001', address: 'Domicilio FICTICIO, Ciudad de México',
     beneficiaries: [['Beneficiaria FICTICIA Galeana', 'SPOUSE', 6000], ['Beneficiario FICTICIO Galeana', 'CHILD', 4000]],
     investments: [
-      { code: 'FICT-2026-001', type: 'MOBILITY', start: '2026-01-15', end: '2027-01-15', capital: 25_000_000, bps: 1600, freq: 'MONTHLY', cap: 'NONE' },
-      { code: 'FICT-2025-002', type: 'TRANSPORT', start: '2025-11-01', end: '2027-05-01', capital: 40_000_000, bps: 2500, freq: 'SEMIANNUAL', cap: 'COMPOUND_TO_CAPITAL' },
-      { code: 'FICT-2025-003', type: 'FAST_FOOD', start: '2025-01-10', end: '2026-01-10', capital: 10_000_000, bps: 1300, freq: 'AT_MATURITY', cap: 'NONE', status: 'MATURED' }
+      { code: 'FICT-2026-001', type: 'ELECTRIC_MOBILITY', start: '2026-01-15', end: '2027-01-15', capital: 25_000_000, bps: 1600, freq: 'MONTHLY', cap: 'NONE' },
+      { code: 'FICT-2025-002', type: 'FOREIGN_VEHICLES', start: '2025-11-01', end: '2027-05-01', capital: 40_000_000, bps: 2500, freq: 'SEMIANNUAL', cap: 'COMPOUND_TO_CAPITAL' },
+      { code: 'FICT-2025-003', type: 'FOOD_TRUCKS', start: '2025-01-10', end: '2026-01-10', capital: 10_000_000, bps: 1300, freq: 'AT_MATURITY', cap: 'NONE', status: 'MATURED' }
     ]
   },
   {
     id: 'usr_fict_02', email: 'cesar.daniel@ficticio.test', name: 'Cesar Daniel', phone: '+52 33 0000 0002', address: 'Domicilio FICTICIO, Guadalajara, Jalisco',
     beneficiaries: [['Beneficiaria FICTICIA Daniel', 'PARENT', 10000]],
     investments: [
-      { code: 'FICT-2026-004', type: 'TRANSPORT', start: '2026-03-01', end: '2027-09-01', capital: 40_000_000, bps: 2500, freq: 'MONTHLY', cap: 'NONE' },
-      { code: 'FICT-2026-006', type: 'TRANSPORT', currency: 'USD', start: '2026-04-01', end: '2028-04-01', capital: 2_000_000, bps: 1200, freq: 'ANNUAL', cap: 'NONE' }
+      { code: 'FICT-2026-004', type: 'FOREIGN_VEHICLES', start: '2026-03-01', end: '2027-09-01', capital: 40_000_000, bps: 2500, freq: 'MONTHLY', cap: 'NONE' },
+      { code: 'FICT-2026-006', type: 'FOREIGN_VEHICLES', currency: 'USD', start: '2026-04-01', end: '2028-04-01', capital: 2_000_000, bps: 1200, freq: 'ANNUAL', cap: 'NONE' }
     ]
   },
   {
     id: 'usr_fict_03', email: 'victoria.perez@ficticio.test', name: 'Victoria Pérez', phone: '+52 222 000 0003', address: 'Domicilio FICTICIO, Puebla, Puebla',
     beneficiaries: [['Beneficiario FICTICIO Pérez', 'CHILD', 5000], ['Beneficiaria FICTICIA Pérez', 'CHILD', 5000]],
     investments: [
-      { code: 'FICT-2026-005', type: 'FAST_FOOD', start: '2026-05-01', end: '2027-05-01', capital: 10_000_000, bps: 1300, freq: 'MONTHLY', cap: 'NONE' },
+      { code: 'FICT-2026-005', type: 'FOOD_TRUCKS', start: '2026-05-01', end: '2027-05-01', capital: 10_000_000, bps: 1300, freq: 'MONTHLY', cap: 'NONE' },
       // CETES 28 días − 1 punto (−100 pb)
       { code: 'FICT-2026-007', type: 'CETES', start: '2026-06-01', end: '2027-06-01', capital: 20_000_000, cetes: 'CETES_28', spread: -100, freq: 'MONTHLY', cap: 'NONE' }
     ]

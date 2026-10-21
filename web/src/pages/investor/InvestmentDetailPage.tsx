@@ -27,12 +27,12 @@ export function InvestmentDetailPage() {
 
   const back = (
     <Link to="/app/inversiones" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
-      <Icon name="chevronLeft" className="h-4 w-4" /> Mis inversiones
+      <Icon name="chevronLeft" className="h-4 w-4" /> Mis contratos
     </Link>
   );
 
   return (
-    <Async state={inv} loading={<><PageHeader back={back} title="Inversión" /><LoadingBlock rows={6} /></>}>
+    <Async state={inv} loading={<><PageHeader back={back} title="Contrato" /><LoadingBlock rows={6} /></>}>
       {(d) => (
         <>
           <PageHeader
@@ -40,7 +40,7 @@ export function InvestmentDetailPage() {
             title={<span className="flex flex-wrap items-center gap-3">{d.code} <InvestmentStatusBadge status={d.status} /></span>}
             subtitle={`${investmentTypeLabel[d.investment_type]} · ${d.currency} · ${rateSummary(d.terms)} · cobro ${payoutFrequencyLabel[d.terms.payout_frequency].toLowerCase()} · ${formatDate(d.start_date)} – ${formatDate(d.maturity_date)}`}
           />
-          <Tabs label="Secciones de la inversión" tabs={tabs} value={tab} onChange={setTab} />
+          <Tabs label="Secciones del contrato" tabs={tabs} value={tab} onChange={setTab} />
 
           <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
             {tab === 'resumen' && (
@@ -59,7 +59,7 @@ export function InvestmentDetailPage() {
                 <Card title="Condiciones del contrato">
                   <DefinitionList
                     items={[
-                      { label: 'Ramo', value: investmentTypeLabel[d.investment_type] },
+                      { label: 'Giro', value: investmentTypeLabel[d.investment_type] },
                       { label: 'Moneda', value: currencyLabel[d.currency] ?? d.currency },
                       { label: 'Capital inicial', value: formatMoney(d.initial_capital_cents, d.currency) },
                       { label: 'Tasa', value: rateSummary(d.terms) },

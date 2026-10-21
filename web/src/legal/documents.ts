@@ -89,7 +89,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
             ]
           },
           'Finalidades secundarias (no necesarias; puede negarse):',
-          { list: ['Enviarle ofertas de nuevas oportunidades de inversión.', 'Enviarle boletines informativos y análisis de mercado.'] },
+          { list: ['Enviarle ofertas de nuevas oportunidades de negocio.', 'Enviarle boletines informativos y análisis de mercado.'] },
           'La negativa a las finalidades secundarias no será motivo para negarle los servicios.'
         ]
       },
@@ -152,7 +152,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
     slug: 'terminos-y-condiciones',
     title: 'Términos y Condiciones de Uso',
     short: 'Términos y condiciones',
-    summary: 'Reglas para usar el sitio y el portal de inversionistas.',
+    summary: 'Reglas para usar el sitio y el portal de clientes.',
     group: 'sitio',
     sections: [
       {
@@ -164,7 +164,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '2. Mayoría de edad y capacidad',
         blocks: [
-          'El portal de inversionistas es exclusivo para personas mayores de dieciocho (18) años, con plena capacidad legal y con Registro Federal de Contribuyentes (RFC) mexicano vigente, así como para personas morales debidamente constituidas que actúen por conducto de sus representantes. Al usar el portal, usted declara cumplir con estos requisitos.'
+          'El portal de clientes es exclusivo para personas mayores de dieciocho (18) años, con plena capacidad legal y con Registro Federal de Contribuyentes (RFC) mexicano vigente, así como para personas morales debidamente constituidas que actúen por conducto de sus representantes. Al usar el portal, usted declara cumplir con estos requisitos.'
         ]
       },
       {
@@ -172,7 +172,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
         blocks: [
           'Pimex Fortex Capital ofrece servicios de comercialización de activos, unidades móviles y vehículos extranjeros legalizados, desarrollo de software y consultoría, operando bajo un estricto modelo comercial y corporativo, ajeno a la intermediación financiera masiva.',
           'La Plataforma tiene por objeto: (i) informar sobre los ramos de negocio de la Sociedad y las condiciones de referencia de los proyectos comerciales que estructura, y (ii) permitir a los clientes con contrato vigente consultar en línea su capital, rendimientos, pagos y avisos.',
-          'La Plataforma es un medio de consulta. No permite realizar depósitos, retiros ni transferencias; las aportaciones y los pagos se realizan fuera de ella, conforme al contrato de inversión. La información publicada es de referencia: las condiciones definitivas son las del contrato que cada inversionista firma.',
+          'La Plataforma es un medio de consulta. No permite realizar depósitos, retiros ni transferencias; las aportaciones y los pagos se realizan fuera de ella, conforme al contrato celebrado. La información publicada es de referencia: las condiciones definitivas son las del contrato que cada cliente firma.',
           'Los indicadores de mercado (tipos de cambio, UDIS, tasas y CETES) provienen de Banco de México y se muestran con fines informativos; no modifican saldos ni contratos.'
         ]
       },
@@ -253,7 +253,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '2. Cookies que usamos',
         blocks: [
-          'Usamos únicamente una cookie técnica, indispensable para el funcionamiento seguro del portal de inversionistas. El sitio público no instala cookies.',
+          'Usamos únicamente una cookie técnica, indispensable para el funcionamiento seguro del portal de clientes. El sitio público no instala cookies.',
           {
             table: {
               head: ['Nombre', 'Proveedor', 'Tipo y propósito', 'Caducidad'],
@@ -262,7 +262,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
                   'auth_session',
                   'Pimex Fortex Capital (clientes.pimexfortexcapital.com.mx)',
                   'Técnica / esencial. Mantiene la sesión iniciada de forma segura. Es HttpOnly (no la puede leer ningún código de la página), Secure (solo viaja cifrada) y SameSite=Strict (no se envía desde otros sitios, lo que ayuda a prevenir fraudes).',
-                  'Al cerrar sesión, o a las 12 horas (administración) o 7 días (inversionistas).'
+                  'Al cerrar sesión, o a las 12 horas (administración) o 7 días (clientes).'
                 ]
               ]
             }
@@ -294,7 +294,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '5. Efectos de deshabilitar las cookies',
         blocks: [
-          'Si bloquea la cookie auth_session, no podrá iniciar sesión ni consultar su información en el portal de inversionistas, porque es la que protege y mantiene su sesión. El sitio público seguirá funcionando con normalidad.'
+          'Si bloquea la cookie auth_session, no podrá iniciar sesión ni consultar su información en el portal de clientes, porque es la que protege y mantiene su sesión. El sitio público seguirá funcionando con normalidad.'
         ]
       }
     ]
@@ -302,17 +302,17 @@ export const LEGAL_DOCS: LegalDoc[] = [
 
   // ---------------------------------------------------------------------------------------------------
   {
-    slug: 'contrato-marco-de-inversion',
-    title: 'Contrato Marco de Inversión y Participación',
-    short: 'Contrato marco de inversión',
-    summary: 'Modelo de las condiciones generales que rigen cada inversión.',
+    slug: 'contrato-marco',
+    title: 'Contrato Marco de Participación Comercial',
+    short: 'Contrato marco',
+    summary: 'Modelo de las condiciones generales que rigen cada contrato.',
     group: 'inversionistas',
     sections: [
       {
         title: 'Partes',
         blocks: [
-          `CONTRATO MARCO DE INVERSIÓN Y PARTICIPACIÓN que celebran, por una parte, ${EMPRESA} (la "Empresa"), representada por [NOMBRE DEL REPRESENTANTE LEGAL], y, por la otra, [NOMBRE O DENOMINACIÓN DEL INVERSIONISTA] (el "Inversionista"), persona [física / moral], conforme a las siguientes declaraciones y cláusulas.`,
-          '[Modelo de referencia. Las condiciones particulares de cada proyecto se pactan en el Anexo de Condiciones Particulares que firma cada Inversionista.]'
+          `CONTRATO MARCO DE PARTICIPACIÓN COMERCIAL que celebran, por una parte, ${EMPRESA} (la "Empresa"), representada por [NOMBRE DEL REPRESENTANTE LEGAL], y, por la otra, [NOMBRE O DENOMINACIÓN DEL CLIENTE] (el "Cliente"), persona [física / moral], conforme a las siguientes declaraciones y cláusulas.`,
+          '[Modelo de referencia. Las condiciones particulares de cada proyecto se pactan en el Anexo de Condiciones Particulares que firma cada Cliente.]'
         ]
       },
       {
@@ -326,7 +326,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
               'Que opera bajo un modelo comercial y corporativo: no es una institución bancaria ni realiza actividades reguladas de intermediación financiera, y este Contrato es un contrato mercantil privado.'
             ]
           },
-          'II. Declara el Inversionista, bajo protesta de decir verdad:',
+          'II. Declara el Cliente, bajo protesta de decir verdad:',
           {
             list: [
               'Tener capacidad legal para obligarse en los términos de este Contrato y, en su caso, que su representante cuenta con facultades suficientes.',
@@ -339,7 +339,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: 'Cláusula primera. Objeto',
         blocks: [
-          'El Inversionista aporta recursos a la Empresa para participar en los ramos de negocio que se indiquen en el Anexo de Condiciones Particulares (transporte, movilidad, vehículos eléctricos, alimentos, CETES u otros), en los términos que ahí se pacten.'
+          'El Cliente aporta recursos a la Empresa para participar en los ramos de negocio que se indiquen en el Anexo de Condiciones Particulares (transporte, movilidad, vehículos eléctricos, alimentos, CETES u otros), en los términos que ahí se pacten.'
         ]
       },
       {
@@ -352,14 +352,14 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: 'Cláusula tercera. Confidencialidad y datos personales',
         blocks: [
-          'La información del Inversionista se tratará conforme al Aviso de Privacidad y al Convenio de Confidencialidad, que forman parte de este Contrato.'
+          'La información del Cliente se tratará conforme al Aviso de Privacidad y al Convenio de Confidencialidad, que forman parte de este Contrato.'
         ]
       },
       {
         title: 'Cláusula cuarta. Legislación y jurisdicción',
         blocks: [
           `Este Contrato se rige por las leyes federales de los Estados Unidos Mexicanos. Para su interpretación y cumplimiento, las partes se someten a los tribunales competentes de ${CIUDAD}, renunciando a cualquier otro fuero.`,
-          'Firmado en [LUGAR], el [FECHA]. — La Empresa: [FIRMA]. — El Inversionista: [FIRMA].'
+          'Firmado en [LUGAR], el [FECHA]. — La Empresa: [FIRMA]. — El Cliente: [FIRMA].'
         ]
       }
     ]
@@ -376,19 +376,19 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. Partes y objeto',
         blocks: [
-          `Convenio que celebran ${EMPRESA} (la "Empresa") y [NOMBRE DEL INVERSIONISTA / CLIENTE] (el "Cliente"), para establecer las obligaciones de la Empresa respecto de la información financiera y patrimonial del Cliente.`
+          `Convenio que celebran ${EMPRESA} (la "Empresa") y [NOMBRE O DENOMINACIÓN DEL CLIENTE] (el "Cliente"), para establecer las obligaciones de la Empresa respecto de la información financiera y patrimonial del Cliente.`
         ]
       },
       {
         title: '2. Información Confidencial',
         blocks: [
-          'Se considera Información Confidencial, de manera enunciativa y no limitativa: estados de cuenta, balances, montos invertidos, rendimientos, pagos y reinversiones; estrategias de inversión y composición de su portafolio; claves y credenciales de acceso; documentos de identidad, fiscales y bancarios; datos de beneficiarios, y cualquier otra información financiera o patrimonial del Cliente, en cualquier formato.'
+          'Se considera Información Confidencial, de manera enunciativa y no limitativa: estados de cuenta, balances, montos invertidos, rendimientos, pagos y reinversiones; estrategias y composición de su portafolio; claves y credenciales de acceso; documentos de identidad, fiscales y bancarios; datos de beneficiarios, y cualquier otra información financiera o patrimonial del Cliente, en cualquier formato.'
         ]
       },
       {
         title: '3. Obligación de no divulgación',
         blocks: [
-          'La Empresa se obliga a guardar estricta confidencialidad sobre la Información Confidencial, a usarla únicamente para los fines del contrato de inversión y a NO divulgarla, venderla, rentarla, monetizarla ni transferirla a terceros, salvo en los casos de excepción previstos en este Convenio.'
+          'La Empresa se obliga a guardar estricta confidencialidad sobre la Información Confidencial, a usarla únicamente para los fines del contrato celebrado y a NO divulgarla, venderla, rentarla, monetizarla ni transferirla a terceros, salvo en los casos de excepción previstos en este Convenio.'
         ]
       },
       {
@@ -412,7 +412,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
               'Cifrado de la información en tránsito (HTTPS/TLS) y almacenamiento en infraestructura en la nube con controles de acceso.',
               'Contraseñas guardadas únicamente como valores protegidos (hash), nunca en texto legible.',
               'Verificación en dos pasos obligatoria para el personal de administración y bloqueo temporal ante intentos fallidos de acceso.',
-              'Sesiones protegidas con cookies HttpOnly, Secure y SameSite=Strict, y separación del acceso: cada inversionista solo puede consultar su propia información.',
+              'Sesiones protegidas con cookies HttpOnly, Secure y SameSite=Strict, y separación del acceso: cada cliente solo puede consultar su propia información.',
               'Documentos guardados en almacenamiento privado, accesible solo para la administración.',
               'Bitácora de las operaciones administrativas y acceso restringido del personal, sujeto a obligaciones de confidencialidad.'
             ]
@@ -452,7 +452,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
         ]
       },
       {
-        title: '1. Riesgos de la inversión',
+        title: '1. Riesgos de los proyectos',
         blocks: [
           'Los proyectos en los ramos de negocio de Pimex Fortex Capital (transporte, movilidad, vehículos eléctricos, alimentos y otros) dependen del desempeño de negocios reales y están expuestos, entre otros, a riesgos de operación, de mercado, de liquidez, de crédito, regulatorios y de tipo de cambio en operaciones en dólares. Las tasas variables referidas a CETES pueden subir o bajar.',
           'Las condiciones de plazos, costos y estimaciones comerciales tienen un carácter referencial y se establecen de manera formal y definitiva en cada contrato mercantil privado.'
@@ -461,7 +461,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '2. Naturaleza de la información',
         blocks: [
-          'El contenido del sitio y del portal es informativo y no constituye asesoría financiera, fiscal ni legal personalizada, ni una recomendación de inversión. Cada inversionista debe evaluar, por sí mismo o con asesores independientes, si la inversión es adecuada para su situación. Los indicadores de mercado provienen de Banco de México y son informativos.'
+          'El contenido del sitio y del portal es informativo y no constituye asesoría financiera, fiscal ni legal personalizada, ni una recomendación de inversión. Cada cliente debe evaluar, por sí mismo o con asesores independientes, si su participación es adecuada para su situación. Los indicadores de mercado provienen de Banco de México y son informativos.'
         ]
       },
       {
@@ -473,7 +473,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '4. Limitación de responsabilidad',
         blocks: [
-          'En la medida permitida por la ley, Pimex Fortex Capital no será responsable por decisiones de inversión tomadas únicamente con base en la información del sitio, ni por pérdidas derivadas de los riesgos descritos, sin perjuicio de las obligaciones que asume en cada contrato.'
+          'En la medida permitida por la ley, Pimex Fortex Capital no será responsable por decisiones tomadas únicamente con base en la información del sitio, ni por pérdidas derivadas de los riesgos descritos, sin perjuicio de las obligaciones que asume en cada contrato.'
         ]
       }
     ]
@@ -517,8 +517,8 @@ export const LEGAL_DOCS: LegalDoc[] = [
           {
             list: [
               'No se aceptan depósitos en efectivo, en ventanilla ni en tiendas de conveniencia, ni cualquier otro medio sin trazabilidad.',
-              'Las aportaciones deben provenir exclusivamente de cuentas bancarias a nombre del propio inversionista; no se aceptan fondos de terceros.',
-              'Los pagos de rendimientos y devoluciones de capital se realizan únicamente a cuentas a nombre del propio inversionista.',
+              'Las aportaciones deben provenir exclusivamente de cuentas bancarias a nombre del propio cliente; no se aceptan fondos de terceros.',
+              'Los pagos de rendimientos y devoluciones de capital se realizan únicamente a cuentas a nombre del propio cliente.',
               'Las operaciones se monitorean para detectar montos o patrones inusuales respecto del perfil del cliente.'
             ]
           }
@@ -572,7 +572,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
           {
             list: [
               `Escriba a ${CORREO_SOPORTE} desde el correo registrado en su cuenta, con el asunto "Aclaración".`,
-              'Indique su nombre completo, el código de la inversión (por ejemplo, INV-2026-001), la fecha y el concepto del movimiento, y explique el motivo de su aclaración.',
+              'Indique su nombre completo, el código del contrato (por ejemplo, INV-2026-001), la fecha y el concepto del movimiento, y explique el motivo de su aclaración.',
               'Adjunte la documentación de soporte que tenga (comprobantes de transferencia o capturas del portal).',
               'Recibirá un número de folio para dar seguimiento.',
               'La respuesta se le enviará por escrito dentro del plazo indicado; si se requiere un ajuste, se reflejará en su portal una vez confirmado por la administración.'

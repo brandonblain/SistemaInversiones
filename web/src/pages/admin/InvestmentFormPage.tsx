@@ -5,7 +5,7 @@ import type { CapitalizationPolicy, Currency, DayCountConvention, InvestmentType
 import { Alert, Async, Button, Card, cx, errorMessage, PageHeader, SelectInput, TextArea, TextInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
 import { addMonthsToDate, centsToPlainPesos, formatMoney, formatRateBps, formatSpreadBps, todayInContractZone } from '../../lib/format';
-import { capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel, referenceRateLabel } from '../../lib/labels';
+import { capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeHint, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel, referenceRateLabel } from '../../lib/labels';
 import { parsePercentToBps, parsePesosToCents, parseSignedPercentToBps } from '../../lib/parse';
 
 type Errors = Partial<Record<'type' | 'investor' | 'code' | 'capital' | 'rate' | 'spread' | 'start' | 'maturity', string>>;
@@ -70,8 +70,8 @@ export function InvestmentFormPage() {
 
   const validate = (): Errors => {
     const e: Errors = {};
-    if (!form.investment_type) e.type = 'Seleccione el tipo de inversión.';
-    if (!form.investor_user_id) e.investor = 'Seleccione al inversionista.';
+    if (!form.investment_type) e.type = 'Seleccione el giro del contrato.';
+    if (!form.investor_user_id) e.investor = 'Seleccione al cliente.';
     if (!/^[A-Z0-9-]{3,30}$/i.test(form.code.trim())) e.code = 'Use de 3 a 30 letras, números o guiones.';
     if (capitalCents === null || capitalCents <= 0) e.capital = 'Escriba un monto válido, por ejemplo 500,000.00';
     if (!isCetes && (rateBps === null || rateBps <= 0)) e.rate = 'Escriba la tasa anual, por ejemplo 14 o 14.25';
@@ -117,13 +117,13 @@ export function InvestmentFormPage() {
 
   return (
     <>
-      <PageHeader title="Nueva inversión" subtitle="Registre las condiciones tal como aparecen en el contrato firmado." />
+      <PageHeader title="Nuevo contrato" subtitle="Registre las condiciones tal como aparecen en el contrato firmado." />
       <Card>
         <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
           {error && <div className="sm:col-span-2"><Alert tone="bad">{error}</Alert></div>}
 
           <fieldset className="sm:col-span-2">
-            <legend className="label">Tipo de inversión</legend>
+            <legend className="label">Giro del contrato</legend>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup">
               {(Object.keys(investmentTypeLabel) as InvestmentType[]).map((t) => {
                 const ref = investmentTypeReference[t];
@@ -154,7 +154,7 @@ export function InvestmentFormPage() {
                     <span className="mt-1 text-xs text-ink-muted">
                       {ref
                         ? `Referencia: ${[ref.capital_cents ? formatMoney(ref.capital_cents, 'MXN') : null, ref.months ? `${ref.months} meses` : null, formatRateBps(ref.rate_bps)].filter(Boolean).join(' · ')}`
-                        : 'Tasa variable: CETES más un diferencial (p. ej. − 1 punto). Solo en pesos.'}
+                        : investmentTypeHint[t]}
                     </span>
                   </label>
                 );
@@ -171,7 +171,7 @@ export function InvestmentFormPage() {
           <div className="sm:col-span-2">
             <Async state={investors}>
               {(res) => (
-                <SelectInput label="Inversionista" value={form.investor_user_id} onChange={set('investor_user_id')} error={errors.investor}>
+                <SelectInput label="Cliente" value={form.investor_user_id} onChange={set('investor_user_id')} error={errors.investor}>
                   <option value="">Seleccione…</option>
                   {res.data.map((i) => (
                     <option key={i.id} value={i.id}>{i.full_name ?? i.email} — {i.email}</option>

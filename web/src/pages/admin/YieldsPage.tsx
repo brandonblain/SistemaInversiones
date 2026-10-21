@@ -27,7 +27,7 @@ export function YieldsPage() {
         </div>
       </Card>
       {investmentId ? <YieldWorkspace key={investmentId} investmentId={investmentId} /> : (
-        <Card className="mt-4"><EmptyState icon="percent" title="Seleccione una inversión">Verá sus partidas y podrá calcular un nuevo periodo.</EmptyState></Card>
+        <Card className="mt-4"><EmptyState icon="percent" title="Seleccione un contrato">Verá sus partidas y podrá calcular un nuevo periodo.</EmptyState></Card>
       )}
     </>
   );

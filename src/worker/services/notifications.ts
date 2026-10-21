@@ -20,7 +20,7 @@ export interface SendEmailPayload {
 export type EmailSender = (payload: SendEmailPayload) => Promise<{ success: boolean; error?: string }>;
 
 export const MAX_ATTEMPTS = 3;
-const FOOTER = '\n\nEste es un aviso automático de su portal privado de inversiones. No responda a este mensaje.';
+const FOOTER = '\n\nEste es un aviso automático de su portal privado de clientes. No responda a este mensaje.';
 /** Política de contenido: ningún correo puede llevar importes. */
 const MONEY_PATTERN = /\$\s*\d|\d+\s*(MXN|pesos|centavos)/i;
 

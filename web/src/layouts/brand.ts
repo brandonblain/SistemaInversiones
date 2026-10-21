@@ -5,7 +5,7 @@ export const BRAND = {
   name: 'Pimex Fortex Capital',
   legalName: 'Pimex Fortex Capital S.A.S.',
   shortName: 'PFC',
-  tagline: 'Portal de inversionistas',
+  tagline: 'Portal de clientes',
   /** Logotipo completo sin fondo, para superficies negras (encabezados, barra lateral, login). Proporción ≈ 1.4 : 1. */
   logoSrc: '/brand/logo-mapa.png',
   /** Logotipo con su fondo negro original, para mostrarse como recuadro sobre fondos claros. */

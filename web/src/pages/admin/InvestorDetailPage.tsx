@@ -12,7 +12,7 @@ import { investmentTypeLabel, payoutFrequencyLabel, rateSummary, relationshipLab
 
 const columns: Column<InvestmentListItem>[] = [
   { key: 'code', header: 'Código', primary: true, render: (r) => <span className="font-semibold text-brand">{r.code}</span> },
-  { key: 'type', header: 'Ramo', render: (r) => investmentTypeLabel[r.investment_type] },
+  { key: 'type', header: 'Giro', render: (r) => investmentTypeLabel[r.investment_type] },
   { key: 'status', header: 'Estado', render: (r) => <InvestmentStatusBadge status={r.status} /> },
   { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMoney(r.current_capital_cents, r.currency) },
   { key: 'rate', header: 'Tasa', render: (r) => rateSummary(r.terms) },
@@ -35,7 +35,7 @@ export function InvestorDetailPage() {
 
   const back = (
     <Link to="/admin/clientes" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
-      <Icon name="chevronLeft" className="h-4 w-4" /> Inversionistas
+      <Icon name="chevronLeft" className="h-4 w-4" /> Clientes
     </Link>
   );
 
@@ -47,10 +47,10 @@ export function InvestorDetailPage() {
             back={back}
             title={d.profile?.full_name ?? d.user.email}
             subtitle={d.user.email}
-            actions={<LinkButton to={`/admin/inversiones/nueva?cliente=${d.user.id}`} icon="plus">Nueva inversión</LinkButton>}
+            actions={<LinkButton to={`/admin/inversiones/nueva?cliente=${d.user.id}`} icon="plus">Nuevo contrato</LinkButton>}
           />
           <div className="space-y-6">
-            <Card title="Datos del inversionista">
+            <Card title="Datos del cliente">
               <DefinitionList
                 items={[
                   { label: 'Cuenta', value: d.user.is_active ? <Badge tone="ok">Activa</Badge> : <Badge tone="bad">Deshabilitada</Badge> },
@@ -73,14 +73,14 @@ export function InvestorDetailPage() {
             <Card title="Estadísticas del cliente">
               <Async state={stats} loading={<LoadingBlock rows={6} />}>{(s) => <StatsOverview stats={s} scope="cliente" />}</Async>
             </Card>
-            <Card title="Inversiones">
+            <Card title="Contratos">
               <DataTable
-                caption="Inversiones del inversionista"
+                caption="Contratos del cliente"
                 columns={columns}
                 rows={d.investments}
                 rowKey={(r) => r.id}
                 onRowClick={(r) => navigate(`/admin/inversiones/${r.id}`)}
-                empty={<EmptyState title="Sin inversiones registradas" />}
+                empty={<EmptyState title="Sin contratos registrados" />}
               />
             </Card>
           </div>

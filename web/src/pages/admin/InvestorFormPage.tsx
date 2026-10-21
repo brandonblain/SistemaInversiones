@@ -54,7 +54,7 @@ export function InvestorFormPage() {
 
   return (
     <>
-      <PageHeader title="Nuevo cliente" subtitle="Se creará su cuenta de acceso al portal con rol de inversionista." />
+      <PageHeader title="Nuevo cliente" subtitle="Se creará su cuenta de acceso al portal con rol de cliente." />
       <Card>
         <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
           {error && <div className="sm:col-span-2"><Alert tone="bad">{error}</Alert></div>}
@@ -63,7 +63,7 @@ export function InvestorFormPage() {
           <TextInput label="Teléfono (opcional)" type="tel" value={form.phone} onChange={set('phone')} />
           <TextInput label="RFC (opcional)" value={form.rfc} onChange={set('rfc')} error={errors.rfc} />
           <TextInput label="Domicilio (opcional)" value={form.address} onChange={set('address')} />
-          <div className="sm:col-span-2"><TextArea label="Notas internas (no visibles para el inversionista)" value={form.notes} onChange={set('notes')} /></div>
+          <div className="sm:col-span-2"><TextArea label="Notas internas (no visibles para el cliente)" value={form.notes} onChange={set('notes')} /></div>
 
           <div className="border-t border-line pt-4 sm:col-span-2">
             {errors.beneficiaries && <div className="mb-3"><Alert tone="bad">{errors.beneficiaries}</Alert></div>}
@@ -78,7 +78,7 @@ export function InvestorFormPage() {
             </div>
           </div>
           <div className="sm:col-span-2">
-            <Alert tone="info">Entregue la contraseña temporal por un medio seguro y pida al inversionista cambiarla en su primer acceso.</Alert>
+            <Alert tone="info">Entregue la contraseña temporal por un medio seguro y pida al cliente cambiarla en su primer acceso.</Alert>
           </div>
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit" loading={pending}>Crear cliente</Button>

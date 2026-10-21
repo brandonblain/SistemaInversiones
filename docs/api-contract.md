@@ -99,7 +99,7 @@ El inversionista **no tiene rutas de documentos**.
 
 ```jsonc
 // InvestmentListItem
-{ "id", "code", "investment_type": "FAST_FOOD|MOBILITY|TRANSPORT|ELECTRIC_VEHICLES|CETES", "status": "DRAFT|ACTIVE|MATURED|CANCELLED",
+{ "id", "code", "investment_type": "ELECTRIC_MOBILITY|FOOD_TRUCKS|FOREIGN_VEHICLES|TECH_SOLUTIONS|CETES", "status": "DRAFT|ACTIVE|MATURED|CANCELLED",
   "currency": "MXN|USD", "start_date", "maturity_date", "current_capital_cents",
   "terms": { "rate_type": "FIXED|REFERENCE",
              "fixed_annual_rate_bps",                 // FIXED; null en REFERENCE
@@ -153,7 +153,7 @@ El inversionista **no tiene rutas de documentos**.
 ### Inversiones
 - `GET /investments?q=&status=&currency=&investment_type=&investor_id=&page=&pageSize=`: `q` busca por código, nombre o correo. Cada fila incluye además los saldos `yield_confirmed_cents`, `yield_paid_cents`, `yield_reinvested_cents` y `yield_pending_cents`. Cada fila trae `{ id, investor_user_id, code, investment_type, status, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, investor_name, investor_email, fixed_annual_rate_bps, payout_frequency, day_count_convention, capitalization_policy }`.
 - `POST /investments`: cuerpo `{ investor_user_id, code, investment_type, currency, start_date, maturity_date, capital_cents, payout_frequency, day_count_convention, capitalization_policy, notes? }` más la tasa:
-  - **tasa fija** (Fast Food, Movilidad, Transporte, Vehículos eléctricos): `fixed_annual_rate_bps`;
+  - **tasa fija** (Movilidad y vehículos eléctricos, Food trucks, Vehículos extranjeros legalizados, Soluciones tecnológicas): `fixed_annual_rate_bps`;
   - **CETES**: `reference_rate_code` y `spread_bps`, con `currency` obligatoriamente `MXN`.
   - **Todos son obligatorios** (no se suponen convenciones).
   - Crea en una sola operación la inversión, sus términos, el capital inicial y la auditoría.

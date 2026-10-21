@@ -19,9 +19,9 @@ describe('Estadísticas de administración', () => {
 
   it('generales: totales por moneda, distribución por ramo y modalidad, tasa ponderada, por cliente', async () => {
     // Héctor: 2 en MXN (1,000,000 al 10 % y 3,000,000 al 20 %); Cesar: 1 en USD
-    const a = await createInvestment(admin, hector, { capital_cents: 100_000_000, fixed_annual_rate_bps: 1000, investment_type: 'MOBILITY' });
-    await createInvestment(admin, hector, { capital_cents: 300_000_000, fixed_annual_rate_bps: 2000, investment_type: 'TRANSPORT', payout_frequency: 'ANNUAL' });
-    const usd = await createInvestment(admin, cesar, { currency: 'USD', capital_cents: 2_000_000, fixed_annual_rate_bps: 1200, investment_type: 'TRANSPORT' });
+    const a = await createInvestment(admin, hector, { capital_cents: 100_000_000, fixed_annual_rate_bps: 1000, investment_type: 'ELECTRIC_MOBILITY' });
+    await createInvestment(admin, hector, { capital_cents: 300_000_000, fixed_annual_rate_bps: 2000, investment_type: 'FOREIGN_VEHICLES', payout_frequency: 'ANNUAL' });
+    const usd = await createInvestment(admin, cesar, { currency: 'USD', capital_cents: 2_000_000, fixed_annual_rate_bps: 1200, investment_type: 'FOREIGN_VEHICLES' });
     const ya = await confirmPeriod(admin, a, '2026-01-15', '2026-02-15');
     await admin.call('POST', '/api/admin/payments', { investment_id: a, amount_cents: 1000, paid_at: '2026-02-16T12:00:00Z', reference: 'SPEI-ST-1', allocations: [{ yield_entry_id: ya.id, amount_cents: 1000 }] });
     await confirmPeriod(admin, usd, '2026-01-15', '2026-02-15');
@@ -37,7 +37,7 @@ describe('Estadísticas de administración', () => {
     });
     expect(s.totals[1]).toMatchObject({ currency: 'USD', investors_count: 1, capital_cents: 2_000_000 });
 
-    expect(s.by_type.filter((t: any) => t.currency === 'MXN').map((t: any) => t.investment_type)).toEqual(['TRANSPORT', 'MOBILITY']);
+    expect(s.by_type.filter((t: any) => t.currency === 'MXN').map((t: any) => t.investment_type)).toEqual(['FOREIGN_VEHICLES', 'ELECTRIC_MOBILITY']);
     expect(s.by_payout.find((p: any) => p.payout_frequency === 'ANNUAL').capital_cents).toBe(300_000_000);
 
     const febMxn = s.monthly.find((m: any) => m.currency === 'MXN' && m.month === '2026-02');
@@ -61,12 +61,12 @@ describe('Estadísticas de administración', () => {
 
   it('la lista de inversiones trae saldos y filtra por moneda, ramo y cliente; solo admin', async () => {
     const a = await createInvestment(admin, hector);
-    await createInvestment(admin, cesar, { currency: 'USD', investment_type: 'TRANSPORT' });
+    await createInvestment(admin, cesar, { currency: 'USD', investment_type: 'FOREIGN_VEHICLES' });
     const y = await confirmPeriod(admin, a, '2026-01-15', '2026-02-15');
     const all = (await admin.call('GET', '/api/admin/investments')).json.data;
     expect(all.find((r: any) => r.id === a)).toMatchObject({ yield_confirmed_cents: y.amount, yield_pending_cents: y.amount, yield_paid_cents: 0 });
     expect((await admin.call('GET', '/api/admin/investments?currency=USD')).json.data).toHaveLength(1);
-    expect((await admin.call('GET', '/api/admin/investments?investment_type=MOBILITY')).json.data).toHaveLength(1);
+    expect((await admin.call('GET', '/api/admin/investments?investment_type=ELECTRIC_MOBILITY')).json.data).toHaveLength(1);
     expect((await admin.call('GET', `/api/admin/investments?investor_id=${cesar}`)).json.data).toHaveLength(1);
     const inv = await login(env, 'hector.galeana@ficticio.test', INVESTOR_PASSWORD);
     expect((await inv.call('GET', '/api/admin/statistics')).status).toBe(403);

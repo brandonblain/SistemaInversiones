@@ -197,8 +197,8 @@ describe('Motor financiero vía API', () => {
   });
 
   it('dos inversiones del mismo cliente con modalidades distintas se calculan por separado', async () => {
-    const a = await createInvestment(admin, investorId, { payout_frequency: 'MONTHLY', investment_type: 'MOBILITY' });
-    const b = await createInvestment(admin, investorId, { payout_frequency: 'AT_MATURITY', investment_type: 'FAST_FOOD', capital_cents: 10_000_000, fixed_annual_rate_bps: 1300 });
+    const a = await createInvestment(admin, investorId, { payout_frequency: 'MONTHLY', investment_type: 'ELECTRIC_MOBILITY' });
+    const b = await createInvestment(admin, investorId, { payout_frequency: 'AT_MATURITY', investment_type: 'FOOD_TRUCKS', capital_cents: 10_000_000, fixed_annual_rate_bps: 1300 });
     await confirmPeriod(admin, a, '2026-01-15', '2026-02-15');
     expect((await summaryOf(b)).yield_confirmed_cents).toBe(0);
     expect((await summaryOf(a)).yield_confirmed_cents).toBeGreaterThan(0);

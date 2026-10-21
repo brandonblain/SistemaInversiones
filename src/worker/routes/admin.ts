@@ -17,7 +17,7 @@ import type { Env, AppVariables } from '../index';
 export const adminRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 adminRoutes.use('*', authMiddleware, requireAdmin);
 
-const INVESTMENT_TYPES = ['FAST_FOOD', 'MOBILITY', 'TRANSPORT', 'ELECTRIC_VEHICLES', 'CETES'] as const;
+const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'FOREIGN_VEHICLES', 'TECH_SOLUTIONS', 'CETES'] as const;
 const CURRENCIES = ['MXN', 'USD'] as const;
 const REFERENCE_RATES = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'] as const;
 const STATUSES = ['DRAFT', 'ACTIVE', 'MATURED', 'CANCELLED'] as const;
@@ -148,7 +148,7 @@ adminRoutes.get('/investors/:id', async (c) => {
   const db = c.env.DB;
   const id = c.req.param('id');
   const user = await db.prepare("SELECT id, email, is_active, created_at FROM users WHERE id = ? AND role = 'INVESTOR'").bind(id).first<{ id: string; email: string; is_active: number; created_at: string }>();
-  if (!user) throw new AppError(404, 'NOT_FOUND', 'Inversionista no encontrado.');
+  if (!user) throw new AppError(404, 'NOT_FOUND', 'Cliente no encontrado.');
   const profile = await db.prepare('SELECT id, full_name, rfc, phone, address FROM investor_profiles WHERE user_id = ?').bind(id).first();
   const beneficiaries = await db
     .prepare('SELECT id, full_name, relationship, percentage_bps FROM investor_beneficiaries WHERE investor_user_id = ? ORDER BY percentage_bps DESC, created_at')
@@ -193,7 +193,7 @@ adminRoutes.get('/investments', async (c) => {
   }
   const type = c.req.query('investment_type') ?? '';
   if (type) {
-    if (!(INVESTMENT_TYPES as readonly string[]).includes(type)) throw badRequest('INVALID_INPUT', 'Tipo de inversión no válido.');
+    if (!(INVESTMENT_TYPES as readonly string[]).includes(type)) throw badRequest('INVALID_INPUT', 'Giro de contrato no válido.');
     conds.push('i.investment_type = ?');
     binds.push(type);
   }
@@ -235,7 +235,7 @@ adminRoutes.get('/statistics', async (c) => {
   const investorId = c.req.query('investor_id') ?? '';
   if (investorId) {
     const exists = await c.env.DB.prepare("SELECT id FROM users WHERE id = ? AND role = 'INVESTOR'").bind(investorId).first();
-    if (!exists) throw new AppError(404, 'NOT_FOUND', 'Inversionista no encontrado.');
+    if (!exists) throw new AppError(404, 'NOT_FOUND', 'Cliente no encontrado.');
   }
   return c.json({ success: true, data: await adminStatistics(c.env.DB, investorId || null) });
 });
@@ -243,13 +243,13 @@ adminRoutes.get('/statistics', async (c) => {
 adminRoutes.post('/investments', async (c) => {
   const admin = c.get('user');
   const body = await readJson(c);
-  const investorId = str(body, 'investor_user_id', 'Inversionista', { max: 100 });
+  const investorId = str(body, 'investor_user_id', 'Cliente', { max: 100 });
   const code = str(body, 'code', 'Código de contrato', { min: 3, max: 30 }).toUpperCase();
   if (!/^[A-Z0-9-]{3,30}$/.test(code)) throw badRequest('INVALID_INPUT', 'El código solo admite letras, números y guiones.', { field: 'code' });
-  const investmentType = oneOf(body, 'investment_type', 'Tipo de inversión', INVESTMENT_TYPES);
+  const investmentType = oneOf(body, 'investment_type', 'Giro del contrato', INVESTMENT_TYPES);
   const currency = oneOf(body, 'currency', 'Moneda', CURRENCIES);
   if (investmentType === 'CETES' && currency !== 'MXN') {
-    throw badRequest('INVALID_INPUT', 'Las inversiones a CETES solo pueden ser en pesos (MXN).', { field: 'currency' });
+    throw badRequest('INVALID_INPUT', 'Los contratos a CETES solo pueden ser en pesos (MXN).', { field: 'currency' });
   }
   const start = date(body, 'start_date', 'Fecha de inicio');
   const maturity = date(body, 'maturity_date', 'Fecha de vencimiento');
@@ -267,8 +267,8 @@ adminRoutes.post('/investments', async (c) => {
 
   const db = c.env.DB;
   const investor = await db.prepare("SELECT id, is_active FROM users WHERE id = ? AND role = 'INVESTOR'").bind(investorId).first<{ id: string; is_active: number }>();
-  if (!investor) throw badRequest('INVALID_INPUT', 'El inversionista no existe.', { field: 'investor_user_id' });
-  if (investor.is_active !== 1) throw badRequest('INVESTOR_INACTIVE', 'La cuenta del inversionista está deshabilitada.');
+  if (!investor) throw badRequest('INVALID_INPUT', 'El cliente no existe.', { field: 'investor_user_id' });
+  if (investor.is_active !== 1) throw badRequest('INVESTOR_INACTIVE', 'La cuenta del cliente está deshabilitada.');
 
   const invId = generateSecureToken('inv');
   await withDb(() =>
@@ -303,7 +303,7 @@ adminRoutes.get('/investments/:id', async (c) => {
     .prepare(`SELECT ${INVESTMENT_COLUMNS}, p.full_name AS investor_name FROM investments i ${TERMS_JOIN} LEFT JOIN investor_profiles p ON p.user_id = i.investor_user_id WHERE i.id = ?`)
     .bind(c.req.param('id'))
     .first<InvestmentRow>();
-  if (!row) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
+  if (!row) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
   const b = (await balancesFor(c.env.DB, [row.id])).get(row.id)!;
   const detail = toDetail(row, b, { investor_name: (row.investor_name as string | null) ?? null });
   return c.json({ success: true, data: { ...detail, current_reference_rate: await currentReferenceRate(c.env.DB, row) } });
@@ -312,7 +312,7 @@ adminRoutes.get('/investments/:id', async (c) => {
 adminRoutes.get('/investments/:id/yields', async (c) => {
   const id = c.req.param('id');
   const exists = await c.env.DB.prepare('SELECT id FROM investments WHERE id = ?').bind(id).first();
-  if (!exists) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
+  if (!exists) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
   return c.json({ success: true, data: await yieldEntriesWithSettlement(c.env.DB, id, c.req.query('pending') === '1') });
 });
 
@@ -321,7 +321,7 @@ adminRoutes.get('/investments/:id/yields', async (c) => {
 // ======================================================================
 adminRoutes.post('/yields/preview', async (c) => {
   const body = await readJson(c);
-  const id = str(body, 'investment_id', 'Inversión');
+  const id = str(body, 'investment_id', 'Contrato');
   const { reference_rate_id: _internal, ...preview } = await previewYield(c.env, id, date(body, 'period_start', 'Inicio del periodo'), date(body, 'period_end', 'Fin del periodo'));
   return c.json({ success: true, data: preview });
 });
@@ -330,7 +330,7 @@ adminRoutes.post('/yields/confirm', async (c) => {
   const body = await readJson(c);
   const expected = body.amount_cents === undefined || body.amount_cents === null ? null : int(body, 'amount_cents', 'Importe esperado');
   const res = await confirmYield(c.env, {
-    investmentId: str(body, 'investment_id', 'Inversión'),
+    investmentId: str(body, 'investment_id', 'Contrato'),
     start: date(body, 'period_start', 'Inicio del periodo'),
     end: date(body, 'period_end', 'Fin del periodo'),
     expectedAmountCents: expected,
@@ -344,7 +344,7 @@ adminRoutes.post('/yields/confirm', async (c) => {
 adminRoutes.post('/yields/manual', async (c) => {
   const body = await readJson(c);
   const res = await recordManualYield(c.env, {
-    investmentId: str(body, 'investment_id', 'Inversión'),
+    investmentId: str(body, 'investment_id', 'Contrato'),
     start: date(body, 'period_start', 'Inicio del periodo'),
     end: date(body, 'period_end', 'Fin del periodo'),
     amountCents: int(body, 'amount_cents', 'Importe (centavos)', { min: -MAX_CAPITAL_CENTS, max: MAX_CAPITAL_CENTS }),
@@ -394,7 +394,7 @@ adminRoutes.post('/payments', async (c) => {
     return { yieldEntryId: str(o, 'yield_entry_id', `Partida de la asignación ${i + 1}`), amountCents: int(o, 'amount_cents', `Importe de la asignación ${i + 1}`, { min: 1, max: MAX_CAPITAL_CENTS }) };
   });
   const res = await recordExternalPayment(c.env, {
-    investmentId: str(body, 'investment_id', 'Inversión'),
+    investmentId: str(body, 'investment_id', 'Contrato'),
     amountCents: int(body, 'amount_cents', 'Monto del pago (centavos)', { min: 1, max: MAX_CAPITAL_CENTS }),
     paidAt: dateTime(body, 'paid_at', 'Fecha de pago'),
     reference: str(body, 'reference', 'Referencia bancaria', { min: 3, max: 100 }),

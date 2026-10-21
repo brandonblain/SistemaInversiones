@@ -56,10 +56,10 @@ describe('Administración: CETES y dólares', () => {
     expect(screen.getByText('6.20 %')).toBeInTheDocument();
   });
 
-  it('nueva inversión a CETES: fuerza pesos y registra el diferencial', async () => {
+  it('nuevo contrato a CETES: fuerza pesos y registra el diferencial', async () => {
     const user = userEvent.setup();
     renderApp('/admin/inversiones/nueva', { loginAs: ADMIN_ID });
-    await user.selectOptions(await screen.findByLabelText('Inversionista'), 'usr_fict_02');
+    await user.selectOptions(await screen.findByLabelText('Cliente'), 'usr_fict_02');
     await user.click(screen.getByRole('radio', { name: /CETES/ }));
     expect(screen.getByLabelText('Moneda')).toBeDisabled();
     expect(screen.queryByLabelText('Tasa anual fija (%)')).not.toBeInTheDocument();
@@ -75,10 +75,10 @@ describe('Administración: CETES y dólares', () => {
     expect(await screen.findByText('FICT-CETES-01', { selector: 'h1 *, h1' })).toBeInTheDocument();
   });
 
-  it('nueva inversión en dólares', async () => {
+  it('nuevo contrato en dólares', async () => {
     const user = userEvent.setup();
     renderApp('/admin/inversiones/nueva', { loginAs: ADMIN_ID });
-    await user.selectOptions(await screen.findByLabelText('Inversionista'), 'usr_fict_02');
+    await user.selectOptions(await screen.findByLabelText('Cliente'), 'usr_fict_02');
     await user.click(screen.getByRole('radio', { name: /Movilidad/ }));
     await user.selectOptions(screen.getByLabelText('Moneda'), 'USD');
     // Las condiciones de referencia (en pesos) no se ofrecen para dólares

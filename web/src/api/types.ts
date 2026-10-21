@@ -14,7 +14,7 @@ export type YieldStatus = 'DRAFT' | 'CONFIRMED' | 'REVERSED';
 export type YieldSource = 'AUTO' | 'MANUAL' | 'ADJUSTMENT' | 'REVERSAL';
 export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED';
 /** PROPUESTO: ramo del negocio en el que se apalanca la inversión. */
-export type InvestmentType = 'FAST_FOOD' | 'MOBILITY' | 'TRANSPORT' | 'ELECTRIC_VEHICLES' | 'CETES';
+export type InvestmentType = 'ELECTRIC_MOBILITY' | 'FOOD_TRUCKS' | 'FOREIGN_VEHICLES' | 'TECH_SOLUTIONS' | 'CETES';
 export type Relationship = 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER';
 
 /** PROPUESTO: beneficiario del inversionista. percentage_bps: 10000 = 100.00 %. */

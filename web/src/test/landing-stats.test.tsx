@@ -9,12 +9,19 @@ describe('Página web pública', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Negocios B2B para desarrollar los negocios de emprendedores.' })).toBeInTheDocument();
     const header = screen.getByRole('banner');
     expect(within(header).getByRole('link', { name: /Acceso clientes/ })).toHaveAttribute('href', '/login');
-    for (const name of ['Transporte', 'Camiones para tu emprendimiento', 'Bienes raíces']) {
+    // Nuestra empresa
+    expect(screen.getByRole('heading', { name: 'Quiénes somos' })).toBeInTheDocument();
+    expect(screen.getByText('Misión')).toBeInTheDocument();
+    expect(screen.getByText('Visión')).toBeInTheDocument();
+    expect(screen.getByText(/somos una firma especializada en consultoría financiera y una incubadora de negocios/)).toBeInTheDocument();
+    // Líneas de negocio
+    expect(screen.getByRole('heading', { name: 'Nuestras líneas de negocio y soluciones' })).toBeInTheDocument();
+    for (const name of ['Movilidad y Vehículos Eléctricos', 'Food Trucks y Unidades Móviles Gastronómicas', 'Vehículos Extranjeros Legalizados', 'Soluciones Tecnológicas y Creativas']) {
       expect(screen.getByRole('heading', { name })).toBeInTheDocument();
     }
     expect(screen.getByText(/impulsamos a emprendedores para que desarrollen su modelo de negocios/)).toBeInTheDocument();
     // Retirados a pedido del cliente
-    for (const gone of ['Alimentos', 'Giros en los que apalancamos tu inversión', 'Al cobrar tus rendimientos, puedes hacerlo así:', 'Mensual', '¿Ya eres inversionista?']) {
+    for (const gone of ['Alimentos', 'Ramos de negocios reales, que puedes ver y entender.', 'Giros en los que apalancamos tu inversión', 'Al cobrar tus rendimientos, puedes hacerlo así:', 'Mensual', '¿Ya eres inversionista?']) {
       expect(screen.queryByRole('heading', { name: gone })).not.toBeInTheDocument();
     }
     expect(screen.queryByText('Héctor Galeana')).not.toBeInTheDocument();
@@ -46,7 +53,7 @@ describe('Página web pública', () => {
     await user.keyboard('{Escape}');
     expect(document.getElementById('menu-sitio')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Abrir menú' }));
-    await user.click(within(document.getElementById('menu-sitio')!).getByRole('link', { name: /Ramos/ }));
+    await user.click(within(document.getElementById('menu-sitio')!).getByRole('link', { name: /Líneas de negocio/ }));
     expect(document.getElementById('menu-sitio')).toBeNull();
   });
 
@@ -66,14 +73,14 @@ describe('Estadísticas de administración', () => {
     expect(screen.getByText('Vencimientos en los próximos 90 días')).toBeInTheDocument();
   });
 
-  it('por cliente y todas las inversiones con saldos y filtros', async () => {
+  it('por cliente y todos los contratos con saldos y filtros', async () => {
     const user = userEvent.setup();
     renderApp('/admin/estadisticas', { loginAs: ADMIN_ID });
     await user.click(await screen.findByRole('tab', { name: 'Por cliente' }));
     expect((await screen.findAllByText('Héctor Galeana')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Cesar Daniel').length).toBe(4); // tabla + tarjeta, en MXN y USD
 
-    await user.click(screen.getByRole('tab', { name: 'Todas las inversiones' }));
+    await user.click(screen.getByRole('tab', { name: 'Todos los contratos' }));
     expect((await screen.findAllByText('FICT-2026-007')).length).toBeGreaterThan(0);
     await user.selectOptions(screen.getByLabelText('Moneda'), 'USD');
     await screen.findAllByText('FICT-2026-006');

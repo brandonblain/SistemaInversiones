@@ -50,9 +50,9 @@ export async function resolveCalculationContext(db: D1Database, investmentId: st
     .prepare('SELECT id, code, status, start_date, maturity_date, investor_user_id, currency FROM investments WHERE id = ?')
     .bind(investmentId)
     .first<CalculationContext['investment']>();
-  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
+  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
   if (inv.status !== 'ACTIVE' && inv.status !== 'MATURED') {
-    throw new AppError(409, 'INVESTMENT_NOT_ACTIVE', `No se calculan rendimientos de una inversión en estado ${inv.status}.`);
+    throw new AppError(409, 'INVESTMENT_NOT_ACTIVE', `No se calculan rendimientos de un contrato en estado ${inv.status}.`);
   }
   if (end <= start) throw new AppError(400, 'INVALID_PERIOD', 'La fecha final debe ser posterior a la inicial. El periodo incluye el inicio y excluye el fin.');
   if (start < inv.start_date || end > inv.maturity_date) {
@@ -91,7 +91,7 @@ export async function resolveCalculationContext(db: D1Database, investmentId: st
   }
 
   const capitalCents = await getCapitalAsOf(db, investmentId, start);
-  if (capitalCents <= 0) throw new AppError(409, 'NO_CAPITAL', 'La inversión no tiene capital vigente al inicio del periodo.');
+  if (capitalCents <= 0) throw new AppError(409, 'NO_CAPITAL', 'El contrato no tiene capital vigente al inicio del periodo.');
 
   const rate = await resolveRate(db, terms, start);
 
@@ -118,7 +118,7 @@ export async function resolveRate(
   start: string
 ): Promise<{ appliedBps: number; detail: RateDetail }> {
   if (terms.rate_type === 'FIXED') {
-    if (!terms.fixed_annual_rate_bps) throw new AppError(409, 'TERMS_NOT_FOUND', 'La inversión no tiene tasa fija registrada.');
+    if (!terms.fixed_annual_rate_bps) throw new AppError(409, 'TERMS_NOT_FOUND', 'El contrato no tiene tasa fija registrada.');
     return {
       appliedBps: terms.fixed_annual_rate_bps,
       detail: { rateType: 'FIXED', referenceRateCode: null, referenceRateId: null, referenceRateBps: null, referenceRateDate: null, spreadBps: null }

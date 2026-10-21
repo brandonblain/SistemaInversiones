@@ -22,12 +22,12 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
           {USING_MOCKS && (
             <div className="mt-4 rounded-lg border border-dashed border-white/30 p-3 text-xs text-nav-ink">
               <p className="font-semibold text-white">Accesos de prueba (datos FICTICIOS)</p>
-              <p>Inversionista: hector.galeana@ficticio.test</p>
+              <p>Cliente: hector.galeana@ficticio.test</p>
               <p>Administración: admin@ficticio.test · código MFA 123456</p>
               <p>Contraseña de ambos: Ficticio123!</p>
             </div>
           )}
-          <p className="mt-6 text-center text-xs text-nav-ink/80">Acceso privado y exclusivo para inversionistas de {BRAND.name}.</p>
+          <p className="mt-6 text-center text-xs text-nav-ink/80">Acceso privado y exclusivo para clientes de {BRAND.name}.</p>
           <p className="mt-1 flex flex-wrap justify-center gap-x-4 text-xs">
             <Link to="/legal/aviso-de-privacidad" className="inline-flex min-h-[44px] items-center text-nav-ink hover:text-white hover:underline">Aviso de privacidad</Link>
             <Link to="/legal/terminos-y-condiciones" className="inline-flex min-h-[44px] items-center text-nav-ink hover:text-white hover:underline">Términos y condiciones</Link>

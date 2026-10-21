@@ -5,8 +5,8 @@ import { AppShell, type NavItem } from './AppShell';
 const nav: NavItem[] = [
   { to: '/admin', label: 'Resumen', icon: 'chart', end: true },
   { to: '/admin/estadisticas', label: 'Estadísticas', icon: 'table' },
-  { to: '/admin/clientes', label: 'Inversionistas', icon: 'users' },
-  { to: '/admin/inversiones', label: 'Inversiones', icon: 'list' },
+  { to: '/admin/clientes', label: 'Clientes', icon: 'users' },
+  { to: '/admin/inversiones', label: 'Contratos', icon: 'list' },
   { to: '/admin/rendimientos', label: 'Rendimientos', icon: 'percent' },
   { to: '/admin/pagos', label: 'Pagos externos', icon: 'cash' },
   { to: '/admin/tasas', label: 'Tasas CETES', icon: 'chart' },

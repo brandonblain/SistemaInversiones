@@ -224,7 +224,7 @@ export function createMockDb(): MockDb {
     ],
     investments: [
       {
-        id: 'inv_fict_001', investor_user_id: 'usr_fict_01', code: 'FICT-2026-001', investment_type: 'MOBILITY', currency: 'MXN', status: 'ACTIVE',
+        id: 'inv_fict_001', investor_user_id: 'usr_fict_01', code: 'FICT-2026-001', investment_type: 'ELECTRIC_MOBILITY', currency: 'MXN', status: 'ACTIVE',
         start_date: '2026-01-15', maturity_date: '2027-01-15',
         initial_capital_cents: 25_000_000, current_capital_cents: 25_000_000, rate_bps: 1600,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
@@ -232,7 +232,7 @@ export function createMockDb(): MockDb {
         notes: 'Contrato FICTICIO de prueba', created_at: '2026-01-15T17:00:00Z'
       },
       {
-        id: 'inv_fict_002', investor_user_id: 'usr_fict_01', code: 'FICT-2025-002', investment_type: 'TRANSPORT', currency: 'MXN', status: 'ACTIVE',
+        id: 'inv_fict_002', investor_user_id: 'usr_fict_01', code: 'FICT-2025-002', investment_type: 'FOREIGN_VEHICLES', currency: 'MXN', status: 'ACTIVE',
         start_date: '2025-11-01', maturity_date: '2027-05-01',
         initial_capital_cents: 40_000_000, current_capital_cents: 40_000_000, rate_bps: 2500,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
@@ -240,7 +240,7 @@ export function createMockDb(): MockDb {
         notes: null, created_at: '2025-11-01T17:00:00Z'
       },
       {
-        id: 'inv_fict_003', investor_user_id: 'usr_fict_01', code: 'FICT-2025-003', investment_type: 'FAST_FOOD', currency: 'MXN', status: 'MATURED',
+        id: 'inv_fict_003', investor_user_id: 'usr_fict_01', code: 'FICT-2025-003', investment_type: 'FOOD_TRUCKS', currency: 'MXN', status: 'MATURED',
         start_date: '2025-01-10', maturity_date: '2026-01-10',
         initial_capital_cents: 10_000_000, current_capital_cents: 10_000_000, rate_bps: 1300,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
@@ -248,7 +248,7 @@ export function createMockDb(): MockDb {
         notes: null, created_at: '2025-01-10T17:00:00Z'
       },
       {
-        id: 'inv_fict_004', investor_user_id: 'usr_fict_02', code: 'FICT-2026-004', investment_type: 'TRANSPORT', currency: 'MXN', status: 'ACTIVE',
+        id: 'inv_fict_004', investor_user_id: 'usr_fict_02', code: 'FICT-2026-004', investment_type: 'FOREIGN_VEHICLES', currency: 'MXN', status: 'ACTIVE',
         start_date: '2026-03-01', maturity_date: '2027-09-01',
         initial_capital_cents: 40_000_000, current_capital_cents: 40_000_000, rate_bps: 2500,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
@@ -256,7 +256,7 @@ export function createMockDb(): MockDb {
         notes: null, created_at: '2026-03-01T17:00:00Z'
       },
       {
-        id: 'inv_fict_005', investor_user_id: 'usr_fict_03', code: 'FICT-2026-005', investment_type: 'FAST_FOOD', currency: 'MXN', status: 'ACTIVE',
+        id: 'inv_fict_005', investor_user_id: 'usr_fict_03', code: 'FICT-2026-005', investment_type: 'FOOD_TRUCKS', currency: 'MXN', status: 'ACTIVE',
         start_date: '2026-05-01', maturity_date: '2027-05-01',
         initial_capital_cents: 10_000_000, current_capital_cents: 10_000_000, rate_bps: 1300,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
@@ -264,12 +264,12 @@ export function createMockDb(): MockDb {
         notes: 'Pago mensual para complementar pensión (FICTICIO)', created_at: '2026-05-01T17:00:00Z'
       },
       {
-        id: 'inv_fict_006', investor_user_id: 'usr_fict_02', code: 'FICT-2026-006', investment_type: 'TRANSPORT', currency: 'USD', status: 'ACTIVE',
+        id: 'inv_fict_006', investor_user_id: 'usr_fict_02', code: 'FICT-2026-006', investment_type: 'FOREIGN_VEHICLES', currency: 'USD', status: 'ACTIVE',
         start_date: '2026-04-01', maturity_date: '2028-04-01',
         initial_capital_cents: 2_000_000, current_capital_cents: 2_000_000, rate_bps: 1200,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
         payout_frequency: 'ANNUAL', day_count_convention: 'ACT_365', capitalization_policy: 'NONE',
-        notes: 'Inversión en dólares FICTICIA', created_at: '2026-04-01T17:00:00Z'
+        notes: 'Contrato en dólares FICTICIO', created_at: '2026-04-01T17:00:00Z'
       },
       {
         id: 'inv_fict_007', investor_user_id: 'usr_fict_03', code: 'FICT-2026-007', investment_type: 'CETES', currency: 'MXN', status: 'ACTIVE',

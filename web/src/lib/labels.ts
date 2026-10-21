@@ -17,8 +17,8 @@ import type {
 export const investmentStatusLabel: Record<InvestmentStatus, string> = {
   DRAFT: 'Borrador',
   ACTIVE: 'Vigente',
-  MATURED: 'Vencida',
-  CANCELLED: 'Cancelada'
+  MATURED: 'Vencido',
+  CANCELLED: 'Cancelado'
 };
 
 /** "A liquidación": interpretación pendiente de confirmar con el cliente (docs/01, decisión 1). */
@@ -30,7 +30,7 @@ export const payoutFrequencyLabel: Record<PayoutFrequency, string> = {
 };
 
 export const capitalizationLabel: Record<CapitalizationPolicy, string> = {
-  NONE: 'Pago al inversionista',
+  NONE: 'Pago al cliente',
   COMPOUND_TO_CAPITAL: 'Reinversión a capital'
 };
 
@@ -77,7 +77,7 @@ export const notificationEventLabel: Record<string, string> = {
 
 /** Glosario de indicadores: un solo texto para cada concepto, usado en tarjetas y ayudas. */
 export const kpiHelp = {
-  capital: 'Capital invertido que actualmente genera rendimiento según contrato.',
+  capital: 'Capital aportado que actualmente genera rendimiento según contrato.',
   generated: 'Rendimiento calculado (devengado) para los periodos ya transcurridos.',
   confirmed: 'Rendimiento revisado y confirmado por la administración.',
   reinvested: 'Rendimiento que, por contrato, se sumó a su capital.',
@@ -86,24 +86,27 @@ export const kpiHelp = {
 } as const;
 
 export const investmentTypeLabel: Record<InvestmentType, string> = {
-  FAST_FOOD: 'Fast Food',
-  MOBILITY: 'Movilidad',
-  TRANSPORT: 'Transporte',
-  ELECTRIC_VEHICLES: 'Vehículos eléctricos',
+  ELECTRIC_MOBILITY: 'Movilidad y vehículos eléctricos',
+  FOOD_TRUCKS: 'Food trucks y unidades móviles',
+  FOREIGN_VEHICLES: 'Vehículos extranjeros legalizados',
+  TECH_SOLUTIONS: 'Soluciones tecnológicas y creativas',
   CETES: 'CETES'
 };
 
-/**
- * Condiciones de referencia publicadas por Pimex Fortex Capital (material comercial).
- * Solo prellenan el formulario; el contrato firmado manda.
- */
-export const investmentTypeReference: Partial<Record<InvestmentType, { capital_cents?: number; months?: number; rate_bps: number }>> = {
-  MOBILITY: { capital_cents: 25_000_000, months: 12, rate_bps: 1600 },
-  TRANSPORT: { capital_cents: 40_000_000, months: 18, rate_bps: 2500 },
-  FAST_FOOD: { capital_cents: 10_000_000, months: 12, rate_bps: 1300 },
-  // Solo la tasa está definida en el material; capital y plazo los fija cada contrato.
-  ELECTRIC_VEHICLES: { rate_bps: 1600 }
+/** Descripción breve de cada giro (formulario de nuevo contrato). */
+export const investmentTypeHint: Record<InvestmentType, string> = {
+  ELECTRIC_MOBILITY: 'Comercialización y arrendamiento de vehículos eléctricos ligeros.',
+  FOOD_TRUCKS: 'Renta y venta de food trucks y unidades móviles comerciales.',
+  FOREIGN_VEHICLES: 'Vehículos con pedimento de importación definitiva, listos para su venta.',
+  TECH_SOLUTIONS: 'Software, aplicaciones, drones, video, audio y diseño.',
+  CETES: 'Tasa variable: CETES más un diferencial (p. ej. − 1 punto). Solo en pesos.'
 };
+
+/**
+ * Condiciones de referencia por giro para prellenar el formulario. Las líneas de negocio actuales no
+ * publican condiciones de referencia: cada contrato fija las suyas.
+ */
+export const investmentTypeReference: Partial<Record<InvestmentType, { capital_cents?: number; months?: number; rate_bps: number }>> = {};
 
 export const relationshipLabel: Record<Relationship, string> = {
   SPOUSE: 'Cónyuge',

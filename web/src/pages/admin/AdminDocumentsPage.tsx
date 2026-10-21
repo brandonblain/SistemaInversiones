@@ -63,7 +63,7 @@ export function AdminDocumentsPage() {
         <div className="mb-4 max-w-xl">
           <InvestmentPicker
             value={filter}
-            label="Filtrar por inversión"
+            label="Filtrar por contrato"
             onChange={(id) => { setParams(id ? { inversion: id } : {}, { replace: true }); setPage(1); }}
           />
         </div>
@@ -132,7 +132,7 @@ function UploadForm({ defaultInvestmentId, onUploaded, onCancel }: { defaultInve
     e.preventDefault();
     if (pending) return;
     setOk(null);
-    if (!investmentId) return setError('Seleccione la inversión a la que pertenece el documento.');
+    if (!investmentId) return setError('Seleccione el contrato al que pertenece el documento.');
     if (!file) return setError('Seleccione un archivo.');
     if (title.trim().length < 3) return setError('Escriba un título descriptivo.');
     setPending(true);
@@ -157,7 +157,7 @@ function UploadForm({ defaultInvestmentId, onUploaded, onCancel }: { defaultInve
         {error && <div className="sm:col-span-2"><Alert tone="bad">{error}</Alert></div>}
         {ok && <div className="sm:col-span-2"><Alert tone="ok">{ok}</Alert></div>}
         <div className="sm:col-span-2">
-          <InvestmentPicker value={investmentId} onChange={setInvestmentId} label="Inversión" />
+          <InvestmentPicker value={investmentId} onChange={setInvestmentId} label="Contrato" />
         </div>
         <div className="sm:col-span-2">
           <label className="label" htmlFor="doc-file">Archivo (PDF, PNG o JPEG · máx. 15 MB)</label>

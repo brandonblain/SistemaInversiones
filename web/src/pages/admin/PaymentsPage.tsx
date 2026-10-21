@@ -11,8 +11,8 @@ import { mexicoCityLocalToIso, parsePesosToCents } from '../../lib/parse';
 
 const paymentColumns: Column<AdminPaymentRow>[] = [
   { key: 'date', header: 'Fecha de pago', primary: true, render: (r) => formatDateTime(r.paid_at) },
-  { key: 'inv', header: 'Inversión', render: (r) => r.investment_code },
-  { key: 'who', header: 'Inversionista', hideOnMobile: true, render: (r) => r.investor_name ?? '—' },
+  { key: 'inv', header: 'Contrato', render: (r) => r.investment_code },
+  { key: 'who', header: 'Cliente', hideOnMobile: true, render: (r) => r.investor_name ?? '—' },
   { key: 'ref', header: 'Referencia', render: (r) => r.reference },
   { key: 'amount', header: 'Monto', align: 'right', render: (r) => formatMoney(r.amount_cents, r.currency) },
   { key: 'alloc', header: 'Asignado', align: 'right', render: (r) => formatMoney(r.allocated_cents, r.currency) }
@@ -48,7 +48,7 @@ export function PaymentsPage() {
           }}
         />
       )}
-      <Card className="mt-4" title={investmentId ? 'Pagos de esta inversión' : 'Pagos registrados'}>
+      <Card className="mt-4" title={investmentId ? 'Pagos de este contrato' : 'Pagos registrados'}>
         <Async state={history}>
           {(res) => (
             <>
@@ -113,7 +113,7 @@ function PaymentForm({ investmentId, onSaved, onEdit }: { investmentId: string; 
         notes: form.notes.trim() || undefined,
         allocations: allocCents.map((a) => ({ yield_entry_id: a.yield_entry_id, amount_cents: a.amount_cents! }))
       });
-      onSaved(`Pago ${form.reference.trim()} registrado. Se notificará al inversionista por correo (sin montos).`);
+      onSaved(`Pago ${form.reference.trim()} registrado. Se notificará al cliente por correo (sin montos).`);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -138,7 +138,7 @@ function PaymentForm({ investmentId, onSaved, onEdit }: { investmentId: string; 
             <fieldset>
               <legend className="mb-2 text-sm font-semibold text-ink">Asignar a rendimientos pendientes</legend>
               {entries.length === 0 ? (
-                <p className="text-sm text-ink-muted">Esta inversión no tiene rendimientos confirmados pendientes de pago.</p>
+                <p className="text-sm text-ink-muted">Este contrato no tiene rendimientos confirmados pendientes de pago.</p>
               ) : (
                 <ul className="divide-y divide-line rounded-lg border border-line">
                   {entries.map((y) => (

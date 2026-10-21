@@ -72,8 +72,8 @@ function requireAdmin(): MockUser {
 function ownedInvestment(id: string): MockInvestment {
   const u = currentUser();
   const inv = db.investments.find((i) => i.id === id);
-  if (!inv) return fail(404, 'NOT_FOUND', 'Inversión no encontrada.');
-  if (u.role === 'INVESTOR' && inv.investor_user_id !== u.id) fail(403, 'FORBIDDEN', 'Acceso no autorizado a esta inversión.');
+  if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
+  if (u.role === 'INVESTOR' && inv.investor_user_id !== u.id) fail(403, 'FORBIDDEN', 'Acceso no autorizado a este contrato.');
   return inv;
 }
 
@@ -530,7 +530,7 @@ export const mockApi: PortalApi = {
     async investor(id) {
       requireAdmin();
       const u = db.users.find((x) => x.id === id && x.role === 'INVESTOR');
-      if (!u) return fail(404, 'NOT_FOUND', 'Inversionista no encontrado.');
+      if (!u) return fail(404, 'NOT_FOUND', 'Cliente no encontrado.');
       return {
         user: { id: u.id, email: u.email, is_active: u.is_active, created_at: u.created_at },
         profile: u.profile ? { ...u.profile } : null,
@@ -585,13 +585,13 @@ export const mockApi: PortalApi = {
     async investment(id) {
       requireAdmin();
       const inv = db.investments.find((i) => i.id === id);
-      if (!inv) return fail(404, 'NOT_FOUND', 'Inversión no encontrada.');
+      if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
       return { ...detail(inv), investor_user_id: inv.investor_user_id, investor_name: investorName(inv.investor_user_id), notes: inv.notes };
     },
     async createInvestment(input) {
       requireAdmin();
-      if (db.investments.some((i) => i.code === input.code.trim())) return fail(409, 'CODE_ALREADY_EXISTS', 'Ya existe una inversión con ese código.');
-      if (input.investment_type === 'CETES' && input.currency !== 'MXN') return fail(400, 'INVALID_INPUT', 'Las inversiones a CETES solo pueden ser en pesos (MXN).');
+      if (db.investments.some((i) => i.code === input.code.trim())) return fail(409, 'CODE_ALREADY_EXISTS', 'Ya existe un contrato con ese código.');
+      if (input.investment_type === 'CETES' && input.currency !== 'MXN') return fail(400, 'INVALID_INPUT', 'Los contratos a CETES solo pueden ser en pesos (MXN).');
       const isRef = input.investment_type === 'CETES';
       const id = nextId(db, 'inv');
       db.investments.push({
@@ -617,7 +617,7 @@ export const mockApi: PortalApi = {
     async previewYield(input) {
       requireAdmin();
       const inv = db.investments.find((i) => i.id === input.investment_id);
-      if (!inv) return fail(404, 'NOT_FOUND', 'Inversión no encontrada.');
+      if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
       if (input.period_end <= input.period_start) return fail(400, 'INVALID_PERIOD', 'La fecha final debe ser posterior a la inicial.');
       const days = daysBetween(input.period_start, input.period_end);
       let rate = inv.rate_bps ?? 0;
@@ -713,8 +713,8 @@ export const mockApi: PortalApi = {
     async reinvest(investmentId, input) {
       requireAdmin();
       const inv = db.investments.find((i) => i.id === investmentId);
-      if (!inv) return fail(404, 'NOT_FOUND', 'Inversión no encontrada.');
-      if (inv.capitalization_policy !== 'COMPOUND_TO_CAPITAL') return fail(400, 'REINVESTMENT_ERROR', 'El contrato de esta inversión no permite reinversión.');
+      if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
+      if (inv.capitalization_policy !== 'COMPOUND_TO_CAPITAL') return fail(400, 'REINVESTMENT_ERROR', 'Este contrato no permite reinversión.');
       const y = db.yields.find((x) => x.id === input.yield_entry_id && x.status === 'CONFIRMED');
       if (!y) return fail(400, 'REINVESTMENT_ERROR', 'Partida confirmada no encontrada.');
       const b = yieldBalances(y.id);
@@ -735,7 +735,7 @@ export const mockApi: PortalApi = {
     async uploadDocument(input) {
       requireAdmin();
       const inv = db.investments.find((i) => i.id === input.investment_id);
-      if (!inv) return fail(404, 'NOT_FOUND', 'Inversión no encontrada.');
+      if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
       if (!['application/pdf', 'image/png', 'image/jpeg'].includes(input.file.type)) return fail(400, 'UPLOAD_ERROR', 'Solo se admiten PDF, PNG o JPEG.');
       if (input.file.size > 15 * 1024 * 1024) return fail(400, 'UPLOAD_ERROR', 'El archivo excede 15 MB.');
       const id = nextId(db, 'doc');

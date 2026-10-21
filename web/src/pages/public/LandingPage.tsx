@@ -15,26 +15,56 @@ import { LEGAL_DOCS } from '../../legal/documents';
 //
 // Color: las franjas en negro ejecutivo usan los tokens band / on-band (texto siempre claro en ambos modos);
 // las secciones claras usan page / surface / ink, que se adaptan solas al modo oscuro.
-// Imágenes: provienen de la presentación comercial (baja resolución), por eso se muestran a un
-// tamaño cercano al natural y el texto nunca va encima de ellas.
+// Imágenes: portada del cliente; líneas de negocio con fotos de licencia Unsplash (Michael Förtsch,
+// Harry Gillen, Sara Kurfeß, Acton Crawford). Se muestran cerca de su tamaño natural y sin texto encima.
 
 const NAV = [
-  { href: '#ramos', label: 'Ramos' },
+  { href: '#empresa', label: 'Nuestra empresa' },
+  { href: '#lineas', label: 'Líneas de negocio' },
   { href: '#clientes', label: 'Clientes' },
   { href: '/legal', label: 'Documentos legales' }
 ];
 
 const STATS = [
-  { value: '3', label: 'ramos de negocio' },
+  { value: '4', label: 'líneas de negocio' },
   { value: 'B2B', label: 'negocios entre empresas' },
   { value: 'S.A.S.', label: 'sociedad mercantil mexicana' }
 ];
 
-// Food truck: foto con licencia Unsplash (Harry Gillen), recortada sin la marca del negocio.
-const RAMOS = [
-  { title: 'Transporte', detail: 'Movilidad personal, transporte público y transporte de carga.', img: '/landing/ramo-transporte.jpg', w: 500, h: 250 },
-  { title: 'Camiones para tu emprendimiento', detail: 'Camiones y food trucks para arrancar y hacer crecer tu negocio.', img: '/landing/ramo-food-truck.jpg', w: 560, h: 280 },
-  { title: 'Bienes raíces', detail: 'Desarrollos inmobiliarios y turísticos.', img: '/landing/ramo-bienes-raices.jpg', w: 503, h: 245 }
+const EMPRESA = {
+  quienes:
+    'En Pimex Fortex Capital somos una firma especializada en consultoría financiera y una incubadora de negocios de alta ejecución. Nos enfocamos en estructurar, acelerar y consolidar proyectos comerciales rentables y de alta demanda. A través de un sólido modelo corporativo basado en la propiedad de activos estratégicos, movilidad sustentable, vehículos extranjeros legalizados, infraestructura comercial móvil y soluciones tecnológicas avanzadas, brindamos a nuestros clientes las herramientas necesarias para escalar su operación con absoluta certeza jurídica y rentabilidad.',
+  mision:
+    'Impulsar el desarrollo, estructuración y aceleración de negocios exitosos mediante una consultoría financiera rigurosa y la provisión de activos, unidades móviles e infraestructura tecnológica de vanguardia. Proveemos soluciones comerciales e integrales bajo estrictos estándares mercantiles, generando valor y crecimiento sostenible para nuestros clientes y aliados estratégicos.',
+  vision:
+    'Consolidarnos como la incubadora de negocios y consultoría financiera líder a nivel nacional, reconocida por su capacidad de innovación, solidez patrimonial y excelencia en la estructuración de proyectos de movilidad, comercio móvil, tecnología y transporte especializado, estableciendo el estándar más alto de eficiencia operativa y cumplimiento en el mercado.'
+};
+
+const LINEAS = [
+  {
+    title: 'Movilidad y Vehículos Eléctricos',
+    kind: 'Comercialización y Arrendamiento',
+    text: 'Importación, venta (contado o esquemas a plazos con reserva de dominio) y arrendamiento mercantil de flotas de vehículos eléctricos ligeros, incluyendo motos y triciclos, optimizados para la última milla y la reducción de costos operativos urbanos.',
+    img: '/landing/linea-movilidad.jpg'
+  },
+  {
+    title: 'Food Trucks y Unidades Móviles Gastronómicas',
+    kind: 'Renta y Venta',
+    text: 'Diseño, equipamiento, comercialización y arrendamiento mercantil de vehículos utilitarios adaptados como Food Trucks y unidades móviles comerciales. Brindamos a los emprendedores gastronómicos la infraestructura física lista para operar, con esquemas flexibles de adquisición o renta para acelerar su inserción en el mercado.',
+    img: '/landing/ramo-food-truck.jpg'
+  },
+  {
+    title: 'Vehículos Extranjeros Legalizados',
+    kind: 'Comercialización',
+    text: 'Adquisición de vehículos de procedencia extranjera debidamente legalizados mediante pedimento de importación definitiva a nombre de la empresa, listos para su venta comercial y óptima integración al mercado.',
+    img: '/landing/linea-vehiculos.jpg'
+  },
+  {
+    title: 'Soluciones Tecnológicas y Creativas',
+    kind: 'Innovación y Producción Multimedios',
+    text: 'Desarrollo de software a la medida, aplicaciones móviles, provisión de servicios especializados con drones, producción profesional de video y audio, así como soluciones integrales en diseño gráfico y web para potenciar la presencia, imagen y eficiencia operativa de las empresas en el entorno digital.',
+    img: '/landing/linea-tecnologia.jpg'
+  }
 ];
 
 const delay = (i: number) => ({ '--reveal-delay': `${i * 60}ms` }) as CSSProperties;
@@ -135,11 +165,11 @@ export function LandingPage() {
                 Negocios B2B para desarrollar los negocios de emprendedores.
               </h1>
               <p data-reveal style={delay(2)} className="mt-5 max-w-[46ch] text-lg leading-relaxed text-on-band-2">
-                Desarrollando así la más rentable y sustentable incubadora de negocios: transporte, movilidad y bienes raíces.
+                Desarrollando así la más rentable y sustentable incubadora de negocios: movilidad eléctrica, food trucks, vehículos legalizados y soluciones tecnológicas.
               </p>
               <div data-reveal style={delay(3)} className="mt-8 flex flex-col gap-3 min-[460px]:flex-row min-[460px]:items-center">
-                <a href="#ramos" className={ctaOnBand}>
-                  Conoce nuestros ramos
+                <a href="#lineas" className={ctaOnBand}>
+                  Conoce nuestras líneas de negocio
                 </a>
                 <AccessLink
                   access={access}
@@ -167,38 +197,62 @@ export function LandingPage() {
             </div>
             <figure data-reveal style={delay(2)} className="mx-auto w-full max-w-[500px] lg:mr-0">
               <img
-                src="/landing/hero-socios.jpg"
-                alt="Empresarios y emprendedores conversando frente a un desarrollo en construcción"
-                width={500}
-                height={343}
-                className="aspect-[500/343] w-full rounded-2xl object-cover ring-1 ring-band-line"
+                src="/landing/hero-empresa.jpg"
+                alt="Equipo de trabajo en una reunión de consultoría"
+                width={612}
+                height={408}
+                className="aspect-[3/2] w-full rounded-2xl object-cover ring-1 ring-band-line"
               />
             </figure>
           </div>
         </section>
 
-        {/* ---------- Ramos de negocios ---------- */}
-        <section id="ramos" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 sm:py-24">
+        {/* ---------- Nuestra empresa ---------- */}
+        <section id="empresa" className="scroll-mt-20 border-b border-line bg-surface">
+          <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.25fr_1fr] lg:gap-16">
+            <div data-reveal>
+              <p className={cx(eyebrow, 'text-brand')}>Nuestra empresa</p>
+              <h2 className="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">Quiénes somos</h2>
+              <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-2">{EMPRESA.quienes}</p>
+            </div>
+            <dl className="space-y-8 border-t border-line pt-8 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-1">
+              {[
+                ['Misión', EMPRESA.mision],
+                ['Visión', EMPRESA.vision]
+              ].map(([title, text], i) => (
+                <div key={title} data-reveal style={delay(i + 1)}>
+                  <dt className="font-display text-xl font-bold text-ink">{title}</dt>
+                  <dd className="mt-2 leading-relaxed text-ink-2">{text}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        {/* ---------- Líneas de negocio y soluciones ---------- */}
+        <section id="lineas" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 sm:py-24">
           <div data-reveal className="grid gap-4 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-14">
             <div>
-              <p className={cx(eyebrow, 'text-brand')}>Nuestros ramos</p>
-              <h2 className="mt-3 text-balance text-3xl font-extrabold leading-tight sm:text-4xl">Ramos de negocios reales, que puedes ver y entender.</h2>
+              <p className={cx(eyebrow, 'text-brand')}>Líneas de negocio</p>
+              <h2 className="mt-3 text-balance text-3xl font-extrabold leading-tight sm:text-4xl">Nuestras líneas de negocio y soluciones</h2>
             </div>
             <p className="max-w-[52ch] text-lg leading-relaxed text-ink-2">
               <strong className="font-semibold text-ink">Negocios sustentables y rentables:</strong> impulsamos a emprendedores para que desarrollen su modelo de negocios mediante nuestra incubadora de negocios.
             </p>
           </div>
-          <ul className="mt-10 grid gap-5 sm:grid-cols-3">
-            {RAMOS.map((r, i) => (
-              <li key={r.title} data-reveal style={delay(i)} className="overflow-hidden rounded-card border border-line bg-surface">
-                <img src={r.img} alt="" width={r.w} height={r.h} loading="lazy" className="aspect-[2/1] w-full object-cover" />
-                <div className="p-5">
-                  <h3 className="text-lg font-bold text-ink">{r.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-ink-2">{r.detail}</p>
+          <ol className="mt-10 grid gap-5 md:grid-cols-2">
+            {LINEAS.map((l, i) => (
+              <li key={l.title} data-reveal style={delay(i)} className="flex flex-col overflow-hidden rounded-card border border-line bg-surface">
+                <img src={l.img} alt="" width={640} height={320} loading="lazy" className="aspect-[2/1] w-full object-cover" />
+                <div className="flex-1 p-6">
+                  <p className="figure text-sm font-bold text-brand">{String(i + 1).padStart(2, '0')}</p>
+                  <h3 className="mt-1 text-xl font-bold text-ink">{l.title}</h3>
+                  <p className="mt-3 text-sm font-semibold uppercase tracking-wide text-ink-2">{l.kind}</p>
+                  <p className="mt-1.5 leading-relaxed text-ink-2">{l.text}</p>
                 </div>
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
 
         {/* ---------- Llamado a la acción ---------- */}

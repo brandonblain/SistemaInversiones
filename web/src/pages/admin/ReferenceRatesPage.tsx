@@ -9,7 +9,7 @@ import { referenceRateLabel } from '../../lib/labels';
 import { parsePercentToBps } from '../../lib/parse';
 
 /**
- * Tasas CETES publicadas por Banxico. Las inversiones a CETES usan la tasa vigente al inicio de cada periodo
+ * Tasas CETES publicadas por Banxico. Los contratos a CETES usan la tasa vigente al inicio de cada periodo
  * más su diferencial (p. ej. − 1 punto). Una tasa ya usada en un rendimiento confirmado no se puede borrar.
  */
 export function ReferenceRatesPage() {
@@ -50,7 +50,7 @@ export function ReferenceRatesPage() {
     <>
       <PageHeader
         title="Tasas de referencia (CETES)"
-        subtitle="Impórtelas directamente de Banxico o captúrelas a mano. Las inversiones a CETES usan la tasa vigente al inicio de cada periodo más su diferencial."
+        subtitle="Impórtelas directamente de Banxico o captúrelas a mano. Los contratos a CETES usan la tasa vigente al inicio de cada periodo más su diferencial."
       />
       <Alert tone="warn" title="Pendiente de confirmar con el cliente">
         Plazo de CETES que aplica (28, 91, 182 o 364 días) y fecha de observación (hoy: la última tasa capturada con fecha igual o anterior al inicio del periodo).

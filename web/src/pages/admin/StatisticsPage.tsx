@@ -31,7 +31,7 @@ export function StatisticsPage() {
         tabs={[
           { id: 'general', label: 'General' },
           { id: 'clientes', label: 'Por cliente' },
-          { id: 'inversiones', label: 'Todas las inversiones' }
+          { id: 'inversiones', label: 'Todos los contratos' }
         ]}
       />
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
@@ -60,9 +60,9 @@ function ByClient({ stats }: { stats: AdminStatistics }) {
   }, [stats, q, currency]);
 
   const columns: Column<ClientRow>[] = [
-    { key: 'name', header: 'Inversionista', primary: true, render: (r) => <span className="font-semibold text-brand">{r.full_name ?? r.email}</span> },
+    { key: 'name', header: 'Cliente', primary: true, render: (r) => <span className="font-semibold text-brand">{r.full_name ?? r.email}</span> },
     { key: 'cur', header: 'Moneda', render: (r) => r.currency },
-    { key: 'count', header: 'Inversiones', align: 'right', render: (r) => `${r.active_count} / ${r.investments_count}` },
+    { key: 'count', header: 'Contratos', align: 'right', render: (r) => `${r.active_count} / ${r.investments_count}` },
     { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMoney(r.capital_cents, r.currency) },
     { key: 'conf', header: 'Confirmado', align: 'right', render: (r) => formatMoney(r.yield_confirmed_cents, r.currency) },
     { key: 'paid', header: 'Pagado', align: 'right', render: (r) => formatMoney(r.yield_paid_cents, r.currency) },
@@ -74,7 +74,7 @@ function ByClient({ stats }: { stats: AdminStatistics }) {
   return (
     <Card>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <div className="sm:col-span-2"><TextInput label="Buscar inversionista" type="search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="sm:col-span-2"><TextInput label="Buscar cliente" type="search" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <SelectInput label="Moneda" value={currency} onChange={(e) => setCurrency(e.target.value as Currency | '')}>
           <option value="">Todas</option>
           <option value="MXN">Pesos (MXN)</option>
@@ -89,12 +89,12 @@ function ByClient({ stats }: { stats: AdminStatistics }) {
         onRowClick={(r) => navigate(`/admin/clientes/${r.user_id}`)}
         empty={<EmptyState icon="users" title="Sin resultados" />}
       />
-      <p className="mt-3 text-xs text-ink-muted">Un cliente con inversiones en pesos y en dólares aparece en un renglón por moneda. "Inversiones" = vigentes / total.</p>
+      <p className="mt-3 text-xs text-ink-muted">Un cliente con contratos en pesos y en dólares aparece en un renglón por moneda. "Contratos" = vigentes / total.</p>
     </Card>
   );
 }
 
-// ---------------- Todas las inversiones (con saldos) ----------------
+// ---------------- Todos los contratos (con saldos) ----------------
 function AllInvestments() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -105,9 +105,9 @@ function AllInvestments() {
   const list = useAsync(() => api.admin.investments({ q, ...filters, page, pageSize: 20 }), [q, filters, page]);
 
   const columns: Column<AdminInvestmentRow>[] = [
-    { key: 'code', header: 'Inversión', primary: true, render: (r) => <span className="font-semibold text-brand">{r.code}</span> },
-    { key: 'who', header: 'Inversionista', render: (r) => <Link onClick={(e) => e.stopPropagation()} className="hover:underline" to={`/admin/clientes/${r.investor_user_id}`}>{r.investor_name ?? r.investor_email}</Link> },
-    { key: 'type', header: 'Ramo', render: (r) => investmentTypeLabel[r.investment_type] },
+    { key: 'code', header: 'Contrato', primary: true, render: (r) => <span className="font-semibold text-brand">{r.code}</span> },
+    { key: 'who', header: 'Cliente', render: (r) => <Link onClick={(e) => e.stopPropagation()} className="hover:underline" to={`/admin/clientes/${r.investor_user_id}`}>{r.investor_name ?? r.investor_email}</Link> },
+    { key: 'type', header: 'Giro', render: (r) => investmentTypeLabel[r.investment_type] },
     { key: 'status', header: 'Estado', render: (r) => <InvestmentStatusBadge status={r.status} /> },
     { key: 'rate', header: 'Tasa / cobro', hideOnMobile: true, render: (r) => <>{rateSummary(r)}<span className="block text-xs text-ink-muted">{payoutFrequencyLabel[r.payout_frequency]}</span></> },
     { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMoney(r.current_capital_cents, r.currency) },
@@ -120,19 +120,19 @@ function AllInvestments() {
   return (
     <Card>
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <TextInput label="Buscar por código o inversionista" type="search" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <TextInput label="Buscar por código o cliente" type="search" value={search} onChange={(e) => setSearch(e.target.value)} />
         <SelectInput label="Estado" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value as InvestmentStatus | '' })}>
           <option value="">Todos</option>
           <option value="ACTIVE">Vigentes</option>
-          <option value="MATURED">Vencidas</option>
-          <option value="CANCELLED">Canceladas</option>
+          <option value="MATURED">Vencidos</option>
+          <option value="CANCELLED">Cancelados</option>
         </SelectInput>
         <SelectInput label="Moneda" value={filters.currency} onChange={(e) => setFilters({ ...filters, currency: e.target.value as Currency | '' })}>
           <option value="">Todas</option>
           <option value="MXN">Pesos (MXN)</option>
           <option value="USD">Dólares (USD)</option>
         </SelectInput>
-        <SelectInput label="Ramo" value={filters.investment_type} onChange={(e) => setFilters({ ...filters, investment_type: e.target.value as InvestmentType | '' })}>
+        <SelectInput label="Giro" value={filters.investment_type} onChange={(e) => setFilters({ ...filters, investment_type: e.target.value as InvestmentType | '' })}>
           <option value="">Todos</option>
           {(Object.keys(investmentTypeLabel) as InvestmentType[]).map((k) => <option key={k} value={k}>{investmentTypeLabel[k]}</option>)}
         </SelectInput>
@@ -141,12 +141,12 @@ function AllInvestments() {
         {(res) => (
           <>
             <DataTable
-              caption="Todas las inversiones"
+              caption="Todos los contratos"
               columns={columns}
               rows={res.data}
               rowKey={(r) => r.id}
               onRowClick={(r) => navigate(`/admin/inversiones/${r.id}`)}
-              empty={<EmptyState title="Sin inversiones con estos filtros" />}
+              empty={<EmptyState title="Sin contratos con estos filtros" />}
             />
             <Pagination info={res.pagination} onPage={setPage} />
           </>

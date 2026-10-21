@@ -20,13 +20,13 @@ export function DashboardPage() {
     <>
       <PageHeader
         title={firstName ? `Hola, ${firstName}` : 'Resumen'}
-        subtitle={summary.data ? `Cifras al ${formatDate(summary.data.as_of_date, 'long')}` : 'Resumen de sus inversiones'}
+        subtitle={summary.data ? `Cifras al ${formatDate(summary.data.as_of_date, 'long')}` : 'Resumen de sus contratos'}
       />
 
       <Async state={summary} loading={<LoadingBlock rows={6} />}>
         {(s) =>
           s.by_currency.length === 0 ? (
-            <EmptyState title="Aún no tiene inversiones registradas" />
+            <EmptyState title="Aún no tiene contratos registrados" />
           ) : (
             <>
               {/* Un bloque por moneda: pesos y dólares nunca se suman */}
@@ -65,13 +65,13 @@ export function DashboardPage() {
 
       <Card
         className="mt-6"
-        title="Inversiones vigentes"
-        actions={<Link to="/app/inversiones" className="text-sm font-semibold text-brand hover:underline">Ver todas</Link>}
+        title="Contratos vigentes"
+        actions={<Link to="/app/inversiones" className="text-sm font-semibold text-brand hover:underline">Ver todos</Link>}
       >
         <Async state={active}>
           {(page) =>
             page.data.length === 0 ? (
-              <EmptyState title="No tiene inversiones vigentes">Sus inversiones vencidas siguen disponibles en la sección Inversiones.</EmptyState>
+              <EmptyState title="No tiene contratos vigentes">Sus contratos vencidos siguen disponibles en la sección Contratos.</EmptyState>
             ) : (
               <ul className="grid gap-3 sm:grid-cols-2">
                 {page.data.map((inv) => (

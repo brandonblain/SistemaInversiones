@@ -94,7 +94,7 @@ describe('Monedas, inversión a CETES − 1 punto y modalidad anual', () => {
 
   it('dólares: el resumen separa por moneda y nunca suma pesos con dólares', async () => {
     const mxn = await createInvestment(admin, investorId, { currency: 'MXN', capital_cents: 10_000_000 });
-    const usd = await createInvestment(admin, investorId, { currency: 'USD', capital_cents: 5_000_000, investment_type: 'TRANSPORT' });
+    const usd = await createInvestment(admin, investorId, { currency: 'USD', capital_cents: 5_000_000, investment_type: 'FOREIGN_VEHICLES' });
     await confirmPeriod(admin, mxn, '2026-01-15', '2026-02-15');
     const yUsd = await confirmPeriod(admin, usd, '2026-01-15', '2026-02-15');
     await admin.call('POST', '/api/admin/payments', {
@@ -115,7 +115,7 @@ describe('Monedas, inversión a CETES − 1 punto y modalidad anual', () => {
     expect(payments[0].currency).toBe('USD');
     // Moneda obligatoria y válida
     const bad = await admin.call('POST', '/api/admin/investments', {
-      investor_user_id: investorId, code: 'FICT-EUR', investment_type: 'MOBILITY', currency: 'EUR', fixed_annual_rate_bps: 1200,
+      investor_user_id: investorId, code: 'FICT-EUR', investment_type: 'ELECTRIC_MOBILITY', currency: 'EUR', fixed_annual_rate_bps: 1200,
       start_date: '2026-01-01', maturity_date: '2027-01-01', capital_cents: 100, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
     });
     expect(bad.status).toBe(400);
@@ -135,9 +135,9 @@ describe('Vehículos eléctricos', () => {
     await seedAdmin(env);
     const inv = await seedInvestor(env);
     const admin = await login(env, 'admin@ficticio.test', ADMIN_PASSWORD);
-    const id = await createInvestment(admin, inv, { investment_type: 'ELECTRIC_VEHICLES', fixed_annual_rate_bps: 1600 });
+    const id = await createInvestment(admin, inv, { investment_type: 'ELECTRIC_MOBILITY', fixed_annual_rate_bps: 1600 });
     const d = (await admin.call('GET', `/api/admin/investments/${id}`)).json.data;
-    expect(d.investment.investment_type).toBe('ELECTRIC_VEHICLES');
+    expect(d.investment.investment_type).toBe('ELECTRIC_MOBILITY');
     expect(d.investment.terms).toMatchObject({ rate_type: 'FIXED', fixed_annual_rate_bps: 1600 });
   });
 });

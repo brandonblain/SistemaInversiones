@@ -237,8 +237,8 @@ export async function recordExternalPayment(env: Env, input: PaymentInput): Prom
     .prepare('SELECT id, code, status, start_date, investor_user_id FROM investments WHERE id = ?')
     .bind(input.investmentId)
     .first<{ id: string; code: string; status: string; start_date: string; investor_user_id: string }>();
-  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
-  if (inv.status !== 'ACTIVE' && inv.status !== 'MATURED') throw conflict('INVESTMENT_NOT_ACTIVE', `No se registran pagos en una inversión en estado ${inv.status}.`);
+  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
+  if (inv.status !== 'ACTIVE' && inv.status !== 'MATURED') throw conflict('INVESTMENT_NOT_ACTIVE', `No se registran pagos en un contrato en estado ${inv.status}.`);
 
   const paidDate = contractDateOf(input.paidAt);
   if (paidDate > todayInContractZone()) throw new AppError(400, 'PAYMENT_IN_FUTURE', 'La fecha de pago no puede ser futura: solo se registran pagos ya realizados.');
@@ -286,7 +286,7 @@ export async function recordExternalPayment(env: Env, input: PaymentInput): Prom
         email: investor.email,
         type: 'PAYMENT_RECORDED',
         subject: 'Confirmación de pago registrado',
-        body: `La administración registró un pago correspondiente a su inversión ${inv.code}. Puede consultar el detalle en su portal privado.`,
+        body: `La administración registró un pago correspondiente a su contrato ${inv.code}. Puede consultar el detalle en su portal privado.`,
         investmentId: inv.id
       })
     );
@@ -305,15 +305,15 @@ export async function executeReinvestment(
     .prepare('SELECT id, status, maturity_date, current_capital_cents FROM investments WHERE id = ?')
     .bind(input.investmentId)
     .first<{ id: string; status: string; maturity_date: string; current_capital_cents: number }>();
-  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
-  if (inv.status !== 'ACTIVE') throw conflict('INVESTMENT_NOT_ACTIVE', 'Solo se reinvierte en inversiones vigentes.');
+  if (!inv) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
+  if (inv.status !== 'ACTIVE') throw conflict('INVESTMENT_NOT_ACTIVE', 'Solo se reinvierte en contratos vigentes.');
 
   const terms = await db
     .prepare('SELECT capitalization_policy FROM investment_terms WHERE investment_id = ? AND effective_from <= ? AND (effective_to IS NULL OR effective_to > ?) ORDER BY effective_from DESC LIMIT 1')
     .bind(input.investmentId, input.effectiveDate, input.effectiveDate)
     .first<{ capitalization_policy: string }>();
   if (terms?.capitalization_policy !== 'COMPOUND_TO_CAPITAL') {
-    throw conflict('REINVEST_NOT_ALLOWED', 'El contrato de esta inversión no permite reinvertir rendimientos.');
+    throw conflict('REINVEST_NOT_ALLOWED', 'Este contrato no permite reinvertir rendimientos.');
   }
 
   const y = await db

@@ -31,7 +31,7 @@ async function ownInvestment(db: D1Database, userId: string, id: string): Promis
     .prepare(`SELECT ${INVESTMENT_COLUMNS} FROM investments i ${TERMS_JOIN} WHERE i.id = ? AND i.investor_user_id = ?`)
     .bind(id, userId)
     .first<InvestmentRow>();
-  if (!row) throw new AppError(404, 'NOT_FOUND', 'Inversión no encontrada.');
+  if (!row) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
   return row;
 }
 

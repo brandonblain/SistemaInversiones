@@ -5,13 +5,13 @@ import { api } from '../api';
 import { ADMIN_ID, renderApp } from './render';
 
 describe('Administración', () => {
-  it('formulario de inversión valida fechas y pide revisión antes de guardar', async () => {
+  it('formulario de contrato valida fechas y pide revisión antes de guardar', async () => {
     const user = userEvent.setup();
     renderApp('/admin/inversiones/nueva', { loginAs: ADMIN_ID });
-    await user.selectOptions(await screen.findByLabelText('Inversionista'), 'usr_fict_02');
+    await user.selectOptions(await screen.findByLabelText('Cliente'), 'usr_fict_02');
     await user.click(screen.getByRole('button', { name: 'Revisar' }));
-    expect(screen.getByText('Seleccione el tipo de inversión.')).toBeInTheDocument();
-    await user.click(screen.getByRole('radio', { name: /Transporte/ }));
+    expect(screen.getByText('Seleccione el giro del contrato.')).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /Vehículos extranjeros/ }));
     await user.type(screen.getByLabelText('Código de contrato'), 'FICT-TEST-01');
     await user.type(screen.getByLabelText('Capital (MXN)'), '250,000.00');
     await user.type(screen.getByLabelText('Tasa anual fija (%)'), '12.5');
@@ -29,18 +29,7 @@ describe('Administración', () => {
     expect(screen.getByText('Revise antes de guardar')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Confirmar y guardar' }));
     expect(await screen.findByText('FICT-TEST-01')).toBeInTheDocument();
-    expect(screen.getAllByText('Transporte').length).toBeGreaterThan(0);
-  });
-
-  it('las condiciones de referencia del ramo prellenan capital, tasa y vencimiento', async () => {
-    const user = userEvent.setup();
-    renderApp('/admin/inversiones/nueva', { loginAs: ADMIN_ID });
-    await user.click(await screen.findByRole('radio', { name: /Movilidad/ }));
-    await user.type(screen.getByLabelText('Fecha de inicio'), '2026-01-31');
-    await user.click(screen.getByRole('button', { name: /Usar condiciones de referencia/ }));
-    expect(screen.getByLabelText('Capital (MXN)')).toHaveValue('250000.00');
-    expect(screen.getByLabelText('Tasa anual fija (%)')).toHaveValue('16.00');
-    expect(screen.getByLabelText('Fecha de vencimiento')).toHaveValue('2027-01-31');
+    expect(screen.getAllByText('Vehículos extranjeros legalizados').length).toBeGreaterThan(0);
   });
 
   it('nuevo cliente con beneficiarios: los porcentajes deben sumar 100 %', async () => {
@@ -76,7 +65,7 @@ describe('Administración', () => {
     const user = userEvent.setup();
     renderApp('/admin/documentos', { loginAs: ADMIN_ID });
     await user.click(await screen.findByRole('button', { name: 'Subir documento' }));
-    await user.selectOptions(await screen.findByLabelText('Inversión'), 'inv_fict_005');
+    await user.selectOptions(await screen.findByLabelText('Contrato'), 'inv_fict_005');
     await user.upload(screen.getByLabelText(/Archivo \(PDF/), new File(['%PDF-1.4'], 'Pagare_FICTICIO.pdf', { type: 'application/pdf' }));
     expect(screen.getByLabelText('Título del documento')).toHaveValue('Pagare FICTICIO');
     await user.click(screen.getByRole('button', { name: 'Guardar documento' }));

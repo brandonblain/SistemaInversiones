@@ -80,7 +80,7 @@ export async function createInvestment(admin: Client, investorId: string, overri
   const r = await admin.call('POST', '/api/admin/investments', {
     investor_user_id: investorId,
     code: `FICT-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-    investment_type: 'MOBILITY',
+    investment_type: 'ELECTRIC_MOBILITY',
     currency: 'MXN',
     start_date: '2026-01-15',
     maturity_date: '2027-01-15',

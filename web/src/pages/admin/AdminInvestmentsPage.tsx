@@ -13,8 +13,8 @@ import { capitalizationLabel, investmentTypeLabel, payoutFrequencyLabel, rateSum
 
 const columns: Column<AdminInvestmentRow>[] = [
   { key: 'code', header: 'Código', primary: true, render: (r) => <span className="font-semibold text-brand">{r.code}</span> },
-  { key: 'investor', header: 'Inversionista', render: (r) => r.investor_name ?? r.investor_email },
-  { key: 'type', header: 'Ramo', render: (r) => investmentTypeLabel[r.investment_type] },
+  { key: 'investor', header: 'Cliente', render: (r) => r.investor_name ?? r.investor_email },
+  { key: 'type', header: 'Giro', render: (r) => investmentTypeLabel[r.investment_type] },
   { key: 'status', header: 'Estado', render: (r) => <InvestmentStatusBadge status={r.status} /> },
   { key: 'capital', header: 'Capital vigente', align: 'right', render: (r) => formatMoney(r.current_capital_cents, r.currency) },
   { key: 'rate', header: 'Tasa', render: (r) => rateSummary(r) },
@@ -48,17 +48,17 @@ export function AdminInvestmentsPage() {
 
   return (
     <>
-      <PageHeader title="Inversiones" actions={<LinkButton to="/admin/inversiones/nueva" icon="plus">Nueva inversión</LinkButton>} />
+      <PageHeader title="Contratos" actions={<LinkButton to="/admin/inversiones/nueva" icon="plus">Nuevo contrato</LinkButton>} />
       <Card>
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
           <div className="sm:col-span-2">
-            <TextInput label="Buscar por código o inversionista" type="search" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <TextInput label="Buscar por código o cliente" type="search" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <SelectInput label="Estado" value={values.estado} onChange={(e) => set({ estado: e.target.value })}>
             <option value="">Todos</option>
             <option value="ACTIVE">Vigentes</option>
-            <option value="MATURED">Vencidas</option>
-            <option value="CANCELLED">Canceladas</option>
+            <option value="MATURED">Vencidos</option>
+            <option value="CANCELLED">Cancelados</option>
             <option value="DRAFT">Borrador</option>
           </SelectInput>
         </div>
@@ -66,12 +66,12 @@ export function AdminInvestmentsPage() {
           {(res) => (
             <>
               <DataTable
-                caption="Inversiones"
+                caption="Contratos"
                 columns={columns}
                 rows={res.data}
                 rowKey={(r) => r.id}
                 onRowClick={(r) => navigate(`/admin/inversiones/${r.id}`)}
-                empty={<EmptyState title="Sin inversiones con estos filtros" />}
+                empty={<EmptyState title="Sin contratos con estos filtros" />}
               />
               <Pagination info={res.pagination} onPage={setPage} />
             </>

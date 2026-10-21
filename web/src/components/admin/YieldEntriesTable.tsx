@@ -101,7 +101,7 @@ export function YieldEntriesTable({ entries, policy, investmentId, onChanged, cu
               </>
             ) : (
               <>
-                <Alert tone="info">El importe se sumará al capital de la inversión a partir de la fecha efectiva. Solo aplica si el contrato lo permite.</Alert>
+                <Alert tone="info">El importe se sumará al capital del contrato a partir de la fecha efectiva. Solo aplica si el contrato lo permite.</Alert>
                 <TextInput label="Fecha efectiva" type="date" value={date} onChange={(e) => setDate(e.target.value)} hint={`Hoy: ${formatDate(todayInContractZone())}`} />
                 <TextArea label="Nota (opcional)" value={reason} onChange={(e) => setReason(e.target.value)} />
               </>

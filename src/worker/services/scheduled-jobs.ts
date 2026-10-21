@@ -46,8 +46,8 @@ export async function runScheduledMaintenance(env: Env, sender?: EmailSender): P
             userId: inv.investor_user_id,
             email: inv.email,
             type: 'CONTRACT_EXPIRING_SOON',
-            subject: 'Aviso de próximo vencimiento de su inversión',
-            body: `Le informamos que su inversión ${inv.code} concluye su plazo contractual el ${inv.maturity_date}. La administración se pondrá en contacto con usted.`,
+            subject: 'Aviso de próximo vencimiento de su contrato',
+            body: `Le informamos que su contrato ${inv.code} concluye su plazo contractual el ${inv.maturity_date}. La administración se pondrá en contacto con usted.`,
             investmentId: inv.id
           })
         )

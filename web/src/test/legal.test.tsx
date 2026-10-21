@@ -9,7 +9,7 @@ describe('Documentos legales', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Documentos legales' })).toBeInTheDocument();
     expect(LEGAL_DOCS).toHaveLength(8);
     for (const d of LEGAL_DOCS) expect(screen.getByRole('link', { name: new RegExp(d.title.replace(/[()]/g, '.')) })).toHaveAttribute('href', `/legal/${d.slug}`);
-    expect(screen.getByRole('heading', { name: /Para inversionistas/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Para clientes/ })).toBeInTheDocument();
   });
 
   it.each(LEGAL_DOCS.map((d) => [d.slug, d.title]))('%s: título, aviso de borrador y datos por completar resaltados', async (slug, title) => {
@@ -41,7 +41,7 @@ describe('Documentos legales', () => {
     expect(await screen.findByText('Documento no encontrado')).toBeInTheDocument();
   });
 
-  it('enlaces desde la página web, el login y el perfil del inversionista', async () => {
+  it('enlaces desde la página web, el login y el perfil del cliente', async () => {
     let view = renderApp('/');
     const footerNav = await screen.findByRole('navigation', { name: 'Documentos legales' });
     expect(within(footerNav).getByRole('link', { name: 'Aviso de privacidad' })).toHaveAttribute('href', '/legal/aviso-de-privacidad');

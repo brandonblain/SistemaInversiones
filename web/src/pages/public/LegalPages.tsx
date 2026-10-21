@@ -81,7 +81,7 @@ function LegalLayout({ children }: { children: ReactNode }) {
 
 const GROUPS: Array<{ key: LegalDoc['group']; title: string }> = [
   { key: 'sitio', title: 'Sitio, privacidad y atención' },
-  { key: 'inversionistas', title: 'Para inversionistas (modelos de contrato)' }
+  { key: 'inversionistas', title: 'Para clientes (modelos de contrato)' }
 ];
 
 function DraftNotice() {
@@ -101,7 +101,7 @@ export function LegalIndexPage() {
   return (
     <LegalLayout>
       <h1 className="text-3xl font-extrabold sm:text-4xl">Documentos legales</h1>
-      <p className="mt-3 max-w-[60ch] text-ink-2">Políticas, avisos y modelos de contrato que rigen el uso del sitio y la relación con nuestros inversionistas.</p>
+      <p className="mt-3 max-w-[60ch] text-ink-2">Políticas, avisos y modelos de contrato que rigen el uso del sitio y la relación con nuestros clientes.</p>
       <div className="mt-6">
         <DraftNotice />
       </div>

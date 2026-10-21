@@ -30,7 +30,7 @@ export function AdminInvestmentDetailPage() {
 
   const back = (
     <Link to="/admin/inversiones" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
-      <Icon name="chevronLeft" className="h-4 w-4" /> Inversiones
+      <Icon name="chevronLeft" className="h-4 w-4" /> Contratos
     </Link>
   );
 
@@ -43,7 +43,7 @@ export function AdminInvestmentDetailPage() {
             title={<span className="flex flex-wrap items-center gap-3">{d.code} <InvestmentStatusBadge status={d.status} /></span>}
             subtitle={
               <>
-                <Link className="font-medium text-brand hover:underline" to={`/admin/clientes/${d.investor_user_id}`}>{d.investor_name ?? 'Inversionista'}</Link>
+                <Link className="font-medium text-brand hover:underline" to={`/admin/clientes/${d.investor_user_id}`}>{d.investor_name ?? 'Cliente'}</Link>
                 {' · '}{investmentTypeLabel[d.investment_type]}{' · '}{formatDate(d.start_date)} – {formatDate(d.maturity_date)}
               </>
             }
@@ -82,7 +82,7 @@ export function AdminInvestmentDetailPage() {
                 <Card title="Términos contractuales vigentes">
                   <DefinitionList
                     items={[
-                      { label: 'Ramo', value: investmentTypeLabel[d.investment_type] },
+                      { label: 'Giro', value: investmentTypeLabel[d.investment_type] },
                       { label: 'Moneda', value: currencyLabel[d.currency] ?? d.currency },
                       { label: 'Capital inicial', value: formatMoney(d.initial_capital_cents, d.currency) },
                       { label: 'Tasa', value: d.terms.rate_type === 'FIXED' ? `${rateSummary(d.terms)} (${d.terms.fixed_annual_rate_bps} pb)` : `${rateSummary(d.terms)} (${d.terms.spread_bps} pb)` },
