@@ -15,8 +15,8 @@ import { LEGAL_DOCS } from '../../legal/documents';
 //
 // Color: las franjas en negro ejecutivo usan los tokens band / on-band (texto siempre claro en ambos modos);
 // las secciones claras usan page / surface / ink, que se adaptan solas al modo oscuro.
-// Imágenes: portada del cliente; líneas de negocio con fotos de licencia Unsplash (Michael Förtsch,
-// Harry Gillen, Sara Kurfeß, Acton Crawford). Se muestran cerca de su tamaño natural y sin texto encima.
+// Imágenes: todas entregadas por el cliente (portada, líneas de negocio y misión/visión). Se muestran
+// cerca de su tamaño natural y sin texto encima.
 
 const NAV = [
   { href: '#empresa', label: 'Nuestra empresa' },
@@ -32,8 +32,11 @@ const STATS = [
 ];
 
 const EMPRESA = {
+  // "Quiénes somos" del cliente, sin cambios, en tres partes para darle jerarquía visual
+  lead: 'En Pimex Fortex Capital somos una firma especializada en consultoría financiera y una incubadora de negocios de alta ejecución.',
   quienes:
-    'En Pimex Fortex Capital somos una firma especializada en consultoría financiera y una incubadora de negocios de alta ejecución. Nos enfocamos en estructurar, acelerar y consolidar proyectos comerciales rentables y de alta demanda. A través de un sólido modelo corporativo basado en la propiedad de activos estratégicos, movilidad sustentable, vehículos extranjeros legalizados, infraestructura comercial móvil y soluciones tecnológicas avanzadas, brindamos a nuestros clientes las herramientas necesarias para escalar su operación con absoluta certeza jurídica y rentabilidad.',
+    'Nos enfocamos en estructurar, acelerar y consolidar proyectos comerciales rentables y de alta demanda. A través de un sólido modelo corporativo basado en la propiedad de activos estratégicos, movilidad sustentable, vehículos extranjeros legalizados, infraestructura comercial móvil y soluciones tecnológicas avanzadas, brindamos a nuestros clientes las herramientas necesarias para escalar su operación con absoluta certeza jurídica y rentabilidad.',
+  pilares: ['Propiedad de activos estratégicos', 'Movilidad sustentable', 'Vehículos extranjeros legalizados', 'Infraestructura comercial móvil', 'Soluciones tecnológicas avanzadas'],
   mision:
     'Impulsar el desarrollo, estructuración y aceleración de negocios exitosos mediante una consultoría financiera rigurosa y la provisión de activos, unidades móviles e infraestructura tecnológica de vanguardia. Proveemos soluciones comerciales e integrales bajo estrictos estándares mercantiles, generando valor y crecimiento sostenible para nuestros clientes y aliados estratégicos.',
   vision:
@@ -51,7 +54,7 @@ const LINEAS = [
     title: 'Food Trucks y Unidades Móviles Gastronómicas',
     kind: 'Renta y Venta',
     text: 'Diseño, equipamiento, comercialización y arrendamiento mercantil de vehículos utilitarios adaptados como Food Trucks y unidades móviles comerciales. Brindamos a los emprendedores gastronómicos la infraestructura física lista para operar, con esquemas flexibles de adquisición o renta para acelerar su inserción en el mercado.',
-    img: '/landing/ramo-food-truck.jpg'
+    img: '/landing/linea-food-trucks.jpg'
   },
   {
     title: 'Vehículos Extranjeros Legalizados',
@@ -207,25 +210,61 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ---------- Nuestra empresa ---------- */}
+        {/* ---------- Nuestra empresa: Quiénes somos ---------- */}
         <section id="empresa" className="scroll-mt-20 border-b border-line bg-surface">
-          <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.25fr_1fr] lg:gap-16">
+          <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.35fr_1fr] lg:gap-16">
             <div data-reveal>
               <p className={cx(eyebrow, 'text-brand')}>Nuestra empresa</p>
               <h2 className="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">Quiénes somos</h2>
+              <p className="font-display mt-6 text-balance text-2xl font-semibold leading-snug text-ink sm:text-[1.75rem]">{EMPRESA.lead}</p>
               <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-2">{EMPRESA.quienes}</p>
             </div>
-            <dl className="space-y-8 border-t border-line pt-8 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-1">
-              {[
-                ['Misión', EMPRESA.mision],
-                ['Visión', EMPRESA.vision]
-              ].map(([title, text], i) => (
-                <div key={title} data-reveal style={delay(i + 1)}>
-                  <dt className="font-display text-xl font-bold text-ink">{title}</dt>
-                  <dd className="mt-2 leading-relaxed text-ink-2">{text}</dd>
-                </div>
-              ))}
-            </dl>
+            <aside data-reveal style={delay(1)} aria-labelledby="modelo-corporativo" className="self-start rounded-card border border-line bg-page p-6 sm:p-8">
+              <h3 id="modelo-corporativo" className="text-xs font-bold uppercase tracking-[0.2em] text-ink-2">
+                Nuestro modelo corporativo
+              </h3>
+              <ul className="mt-5 divide-y divide-line">
+                {EMPRESA.pilares.map((p) => (
+                  <li key={p} className="flex items-center gap-4 py-3.5 font-semibold text-ink">
+                    <span aria-hidden className="h-0.5 w-6 shrink-0 bg-signal" />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-sm font-semibold text-brand">Certeza jurídica y rentabilidad para escalar su operación.</p>
+            </aside>
+          </div>
+        </section>
+
+        {/* ---------- Nuestra empresa: Misión y Visión ---------- */}
+        <section aria-labelledby="mision-vision" className="band bg-band text-on-band">
+          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+            <figure data-reveal className="mx-auto w-full max-w-md lg:max-w-none">
+              <img
+                src="/landing/mision-vision.jpg"
+                alt="Apretón de manos entre socios comerciales sobre una ciudad"
+                width={640}
+                height={640}
+                loading="lazy"
+                className="aspect-square w-full rounded-2xl object-cover ring-1 ring-band-line"
+              />
+            </figure>
+            <div>
+              <h2 id="mision-vision" className="sr-only">
+                Misión y Visión
+              </h2>
+              <dl className="space-y-10">
+                {[
+                  ['Misión', EMPRESA.mision],
+                  ['Visión', EMPRESA.vision]
+                ].map(([title, text], i) => (
+                  <div key={title} data-reveal style={delay(i + 1)}>
+                    <dt className={cx(eyebrow, 'text-on-band-accent')}>{title}</dt>
+                    <dd className="mt-3 text-lg leading-relaxed text-on-band-2 sm:text-xl sm:leading-relaxed">{text}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           </div>
         </section>
 
