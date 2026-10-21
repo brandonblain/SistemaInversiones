@@ -9,21 +9,10 @@ const unavailable = () =>
   vi.spyOn(api.public, 'market').mockResolvedValue({ available: false, fx: null, cetes: {}, indicators: [], source: 'Banco de México (SIE)', fetched_at: null, stale: false });
 
 describe('Indicadores de Banxico', () => {
-  it('página web: tipo de cambio FIX y, en CETES, solo el porcentaje del día (CETES 28 − 1)', async () => {
-    renderApp('/');
-    expect(await screen.findByTestId('fx-publico')).toHaveTextContent('Tipo de cambio FIX: $18.4253 por dólar');
-    expect(screen.getByTestId('cetes-publico')).toHaveTextContent('CETES 28 días: 6.25 %');
-    expect(screen.getByTestId('cetes-tasa')).toHaveTextContent('5.25 %');
-    expect(screen.getByText('anual hoy · CETES − 1 punto')).toBeInTheDocument();
-    expect(screen.queryByText('CETES − 1')).not.toBeInTheDocument(); // ya no va el nombre en grande
-  });
-
-  it('página web sin datos de Banxico: se mantiene el contenido fijo', async () => {
+  it('página web sin datos de Banxico: no aparece la cinta y el resto de la página sigue igual', async () => {
     unavailable();
     renderApp('/');
-    expect(await screen.findByText('CETES − 1 punto')).toBeInTheDocument();
-    expect(screen.getByText('variable, solo en pesos')).toBeInTheDocument();
-    expect(screen.queryByTestId('fx-publico')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Negocios B2B/ })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Indicadores de Banco de México' })).not.toBeInTheDocument();
   });
 

@@ -42,7 +42,7 @@ describe('Sitio público (pimexfortexcapital.com.mx)', () => {
   it('muestra la página corporativa y "Acceso clientes" lleva al subdominio privado', async () => {
     asSite('public');
     renderApp('/');
-    expect(await screen.findByRole('heading', { level: 1, name: /Unimos a los dueños del capital/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Negocios B2B para desarrollar/ })).toBeInTheDocument();
     const header = screen.getByRole('banner');
     expect(within(header).getByRole('link', { name: /Acceso clientes/ })).toHaveAttribute('href', `${PORTAL}/`);
     for (const link of screen.getAllByRole('link', { name: /Acceso clientes/ })) expect(link).toHaveAttribute('href', `${PORTAL}/`);
@@ -51,7 +51,7 @@ describe('Sitio público (pimexfortexcapital.com.mx)', () => {
   it('aunque exista sesión en el mock, el sitio público no la consulta ni ofrece "Ir a mi portal"', async () => {
     asSite('public');
     renderApp('/', { loginAs: INVESTOR_ID });
-    expect(await screen.findByRole('heading', { level: 1, name: /Unimos/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Negocios B2B/ })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Ir a mi portal/ })).not.toBeInTheDocument();
   });
 });
@@ -61,7 +61,7 @@ describe('Portal de clientes (clientes.pimexfortexcapital.com.mx)', () => {
     asSite('portal');
     renderApp('/');
     expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { level: 1, name: /Unimos/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: /Negocios B2B/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Volver al sitio/ })).toHaveAttribute('href', `${PUBLIC}/`);
   });
 

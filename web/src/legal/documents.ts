@@ -312,7 +312,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
         title: 'Partes',
         blocks: [
           `CONTRATO MARCO DE INVERSIÓN Y PARTICIPACIÓN que celebran, por una parte, ${EMPRESA} (la "Empresa"), representada por [NOMBRE DEL REPRESENTANTE LEGAL], y, por la otra, [NOMBRE O DENOMINACIÓN DEL INVERSIONISTA] (el "Inversionista"), persona [física / moral], conforme a las siguientes declaraciones y cláusulas.`,
-          '[Modelo de referencia. Las condiciones particulares de cada inversión (ramo, monto, tasa, plazo y modalidad de cobro) se pactan en el Anexo de Condiciones Particulares que firma cada Inversionista.]'
+          '[Modelo de referencia. Las condiciones particulares de cada proyecto se pactan en el Anexo de Condiciones Particulares que firma cada Inversionista.]'
         ]
       },
       {
@@ -331,7 +331,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
             list: [
               'Tener capacidad legal para obligarse en los términos de este Contrato y, en su caso, que su representante cuenta con facultades suficientes.',
               'Que los recursos que aporta son de su propiedad y provienen de fuentes lícitas, y que no actúa por cuenta de terceros.',
-              'Que ha leído y comprendido la Declaración de Riesgos y que la inversión puede implicar la pérdida parcial o total del capital.'
+              'Que ha leído y comprendido la Declaración de Riesgos y que su participación puede implicar la pérdida parcial o total de los recursos aportados.'
             ]
           }
         ]
@@ -339,79 +339,24 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: 'Cláusula primera. Objeto',
         blocks: [
-          'El Inversionista aporta recursos a la Empresa para participar en los ramos de negocio que se indiquen en el Anexo de Condiciones Particulares (transporte, movilidad, vehículos eléctricos, alimentos, CETES u otros), a cambio de los rendimientos que ahí se pacten.'
+          'El Inversionista aporta recursos a la Empresa para participar en los ramos de negocio que se indiquen en el Anexo de Condiciones Particulares (transporte, movilidad, vehículos eléctricos, alimentos, CETES u otros), en los términos que ahí se pacten.'
         ]
       },
       {
-        title: 'Cláusula segunda. Aportación de capital',
-        blocks: [
-          {
-            list: [
-              'Monto mínimo de aportación: [MONTO MÍNIMO] en [pesos mexicanos / dólares de los Estados Unidos de América].',
-              'Fondeo exclusivamente por transferencia electrónica (SPEI o transferencia internacional) desde una cuenta bancaria a nombre del propio Inversionista, a la cuenta concentradora: [BANCO], CLABE [CLABE], a nombre de la Empresa.',
-              'No se aceptan depósitos en efectivo ni transferencias de cuentas de terceros.',
-              'La aportación se tendrá por recibida cuando los fondos se acrediten en la cuenta concentradora; la Empresa entregará el comprobante correspondiente.'
-            ]
-          }
-        ]
-      },
-      {
-        title: 'Cláusula tercera. Rendimientos y pagos',
-        blocks: [
-          {
-            list: [
-              'Tasa: [PORCENTAJE] % anual fija, o variable referida a CETES a [PLAZO] días menos [NÚMERO] punto(s) porcentual(es), según el Anexo.',
-              'Base de cálculo: [días naturales transcurridos / 365, u otra que se pacte].',
-              'Modalidad de cobro: [mensual / semestral / anual / a la liquidación]. Fechas de corte: [DÍA DE CORTE].',
-              'Los rendimientos se pagan por transferencia a la cuenta del Inversionista dentro de los [NÚMERO] días hábiles siguientes a cada fecha de corte, o se reinvierten si así se pacta.',
-              'La Empresa realizará las retenciones de impuestos (incluido el ISR) que, en su caso, procedan conforme a la legislación fiscal, y emitirá los comprobantes fiscales digitales (CFDI) y constancias correspondientes. [Confirmar tratamiento fiscal con el contador.]'
-            ]
-          },
-          'Los saldos y rendimientos se pueden consultar en el portal de inversionistas con fines informativos; en caso de discrepancia prevalecen los registros contables de la Empresa y este Contrato.'
-        ]
-      },
-      {
-        title: 'Cláusula cuarta. Plazo, permanencia y retiros anticipados',
-        blocks: [
-          {
-            list: [
-              'Plazo de la inversión: [NÚMERO] meses a partir de la fecha de aportación.',
-              'Periodo de permanencia obligatoria (lock-up): [NÚMERO] meses, durante los cuales no procede el retiro del capital.',
-              'Retiro anticipado posterior al lock-up: mediante solicitud por escrito con [NÚMERO] días de anticipación, con una penalización de [PORCENTAJE] % sobre [el capital / los rendimientos], o las restricciones que se indiquen en el Anexo.',
-              'Al vencimiento, el capital se devolverá dentro de los [NÚMERO] días hábiles siguientes, salvo que las partes acuerden su renovación por escrito.'
-            ]
-          }
-        ]
-      },
-      {
-        title: 'Cláusula quinta. Rescisión y liquidación anticipada',
-        blocks: [
-          'Serán causas de rescisión, sin necesidad de declaración judicial:',
-          {
-            list: [
-              'La falsedad de las declaraciones del Inversionista, incluida la relativa al origen lícito de los recursos.',
-              'El incumplimiento de las obligaciones de conocimiento del cliente o la existencia de alertas de autoridad competente.',
-              'El incumplimiento grave de cualquiera de las obligaciones de las partes.'
-            ]
-          },
-          'En caso de rescisión o liquidación forzosa, la Empresa devolverá el capital y los rendimientos devengados hasta la fecha de terminación, en los plazos y con las deducciones previstas en [CONDICIONES], salvo que una autoridad ordene lo contrario.'
-        ]
-      },
-      {
-        title: 'Cláusula sexta. Aceptación por medios electrónicos',
+        title: 'Cláusula segunda. Aceptación por medios electrónicos',
         blocks: [
           'Las partes reconocen la validez de la aceptación de este Contrato y de sus anexos por medios electrónicos, ópticos o de cualquier otra tecnología, incluida la firma electrónica o la aceptación mediante casilla de verificación con registro de dirección IP, fecha y hora, conforme al Título Segundo (Del Comercio Electrónico) del Libro Segundo del Código de Comercio, en particular sus artículos 89 a 95.',
           '[Nota operativa: el portal actual no registra la aceptación digital del contrato; si se va a usar este mecanismo, debe implementarse antes.]'
         ]
       },
       {
-        title: 'Cláusula séptima. Confidencialidad y datos personales',
+        title: 'Cláusula tercera. Confidencialidad y datos personales',
         blocks: [
           'La información del Inversionista se tratará conforme al Aviso de Privacidad y al Convenio de Confidencialidad, que forman parte de este Contrato.'
         ]
       },
       {
-        title: 'Cláusula octava. Legislación y jurisdicción',
+        title: 'Cláusula cuarta. Legislación y jurisdicción',
         blocks: [
           `Este Contrato se rige por las leyes federales de los Estados Unidos Mexicanos. Para su interpretación y cumplimiento, las partes se someten a los tribunales competentes de ${CIUDAD}, renunciando a cualquier otro fuero.`,
           'Firmado en [LUGAR], el [FECHA]. — La Empresa: [FIRMA]. — El Inversionista: [FIRMA].'

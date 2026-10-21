@@ -33,9 +33,6 @@ export function useMarket() {
 /** "18.4253" → "$18.4253" (el FIX se publica con 4 decimales). */
 export const formatFx = (rate: string) => `$${rate}`;
 
-/** Tasa de una inversión "CETES − 1 punto" con la CETES dada. */
-export const cetesMinusOnePoint = (cetesBps: number) => formatRateBps(cetesBps - 100);
-
 const CODES: ReferenceRateCode[] = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'];
 
 function Cell({ label, value, detail, extra, className }: { label: string; value: string; detail: string; extra?: ReactNode; className?: string }) {

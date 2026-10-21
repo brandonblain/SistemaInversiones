@@ -4,20 +4,24 @@ import { describe, expect, it } from 'vitest';
 import { ADMIN_ID, INVESTOR_ID, renderApp } from './render';
 
 describe('Página web pública', () => {
-  it('muestra los tipos de inversión y el acceso para clientes arriba a la derecha', async () => {
+  it('enfoque B2B: portada, ramos, acceso de clientes y sin tasas, cobros ni testimonios', async () => {
     renderApp('/');
-    expect(await screen.findByRole('heading', { level: 1, name: /Unimos a los dueños del capital/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Negocios B2B para desarrollar los negocios de emprendedores.' })).toBeInTheDocument();
     const header = screen.getByRole('banner');
     expect(within(header).getByRole('link', { name: /Acceso clientes/ })).toHaveAttribute('href', '/login');
-    for (const name of ['Movilidad', 'Transporte', 'Fast Food', 'CETES']) {
-      expect(screen.getAllByRole('heading', { name }).length).toBeGreaterThan(0);
+    for (const name of ['Transporte', 'Camiones para tu emprendimiento', 'Bienes raíces']) {
+      expect(screen.getByRole('heading', { name })).toBeInTheDocument();
     }
-    expect(screen.getAllByText('16 %')).toHaveLength(2); // Movilidad y Vehículos eléctricos
-    expect(screen.getByRole('heading', { name: 'Vehículos eléctricos' })).toBeInTheDocument();
-    expect(await screen.findByTestId('cetes-tasa')).toHaveTextContent('5.25 %'); // CETES 28 (6.25 %) − 1 punto
-    for (const m of ['Mensual', 'Semestral', 'Anual', 'A liquidación']) expect(screen.getByRole('heading', { name: m })).toBeInTheDocument();
-    expect(screen.getByText('Héctor Galeana')).toBeInTheDocument();
-    expect(screen.getByText(/rendimientos pasados no garantizan/)).toBeInTheDocument();
+    expect(screen.getByText(/impulsamos a emprendedores para que desarrollen su modelo de negocios/)).toBeInTheDocument();
+    // Retirados a pedido del cliente
+    for (const gone of ['Alimentos', 'Giros en los que apalancamos tu inversión', 'Al cobrar tus rendimientos, puedes hacerlo así:', 'Mensual', '¿Ya eres inversionista?']) {
+      expect(screen.queryByRole('heading', { name: gone })).not.toBeInTheDocument();
+    }
+    expect(screen.queryByText('Héctor Galeana')).not.toBeInTheDocument();
+    expect(screen.queryByText(/anual fija/)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '¿Ya eres cliente?' })).toBeInTheDocument();
+    expect(screen.getByText('Consulta tu contrato en tu portal privado.')).toBeInTheDocument();
+    expect(screen.getByText(/no es una institución bancaria ni realiza actividades reguladas de intermediación financiera/)).toBeInTheDocument();
   });
 
   it('el botón lleva al login y con sesión iniciada dice "Ir a mi portal"', async () => {
@@ -35,7 +39,9 @@ describe('Página web pública', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await user.click(toggle);
     const menu = document.getElementById('menu-sitio')!;
-    expect(within(menu).getByRole('link', { name: /Inversiones/ })).toHaveAttribute('href', '#inversiones');
+    expect(within(menu).getByRole('link', { name: /Clientes/ })).toHaveAttribute('href', '#clientes');
+    expect(within(menu).getByRole('link', { name: /Documentos legales/ })).toHaveAttribute('href', '/legal');
+    expect(within(menu).queryByRole('link', { name: /Inversiones|Rendimientos|Socios/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveAttribute('aria-expanded', 'true');
     await user.keyboard('{Escape}');
     expect(document.getElementById('menu-sitio')).toBeNull();
