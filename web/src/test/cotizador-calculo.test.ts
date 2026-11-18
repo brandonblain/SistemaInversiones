@@ -8,11 +8,11 @@ describe('Cotizador: configuración y fórmulas', () => {
   it('los seis productos con sus plazos y rendimientos totales', () => {
     expect(PRODUCTOS.map((p) => [p.nombre, p.meses, p.rendimientoPct])).toEqual([
       ['Arrendamiento de cómputo', 12, 12],
-      ['Rampas de vehículos', 24, 30],
-      ['Autos utilitarios', 24, 35],
-      ['Transporte eléctrico', 12, 16],
+      ['Rampas de vehículos', 24, 27],
+      ['Autos utilitarios', 24, 26],
+      ['Transporte eléctrico', 12, 15],
       ['Tecnología y Desarrollo', 12, 10],
-      ['Desarrollo Franquicias', 18, 22]
+      ['Desarrollo Franquicias', 18, 17]
     ]);
     expect(PRODUCTOS_COTIZADOR.every(productoValido)).toBe(true);
   });
@@ -20,11 +20,11 @@ describe('Cotizador: configuración y fórmulas', () => {
   it('$100,000: ganancia y capital final esperados para cada producto', () => {
     const esperado: Record<string, [number, number]> = {
       'Arrendamiento de cómputo': [12_000, 112_000],
-      'Rampas de vehículos': [30_000, 130_000],
-      'Autos utilitarios': [35_000, 135_000],
-      'Transporte eléctrico': [16_000, 116_000],
+      'Rampas de vehículos': [27_000, 127_000],
+      'Autos utilitarios': [26_000, 126_000],
+      'Transporte eléctrico': [15_000, 115_000],
       'Tecnología y Desarrollo': [10_000, 110_000],
-      'Desarrollo Franquicias': [22_000, 122_000]
+      'Desarrollo Franquicias': [17_000, 117_000]
     };
     for (const p of PRODUCTOS) {
       const c = cotizar(10_000_000, p)!;
@@ -35,10 +35,10 @@ describe('Cotizador: configuración y fórmulas', () => {
     }
   });
 
-  it('serie lineal mes a mes: $100,000 a 24 meses con 35 %', () => {
+  it('serie lineal mes a mes: $100,000 a 24 meses con 26 %', () => {
     const c = cotizar(10_000_000, producto('Autos utilitarios'))!;
     const en = (mes: number) => c.serie[mes]!.capitalCents / 100;
-    expect([en(0), en(6), en(12), en(18), en(24)]).toEqual([100_000, 108_750, 117_500, 126_250, 135_000]);
+    expect([en(0), en(6), en(12), en(18), en(24)]).toEqual([100_000, 106_500, 113_000, 119_500, 126_000]);
     for (let m = 1; m < c.serie.length; m++) expect(c.serie[m]!.capitalCents).toBeGreaterThanOrEqual(c.serie[m - 1]!.capitalCents);
   });
 
@@ -46,7 +46,7 @@ describe('Cotizador: configuración y fórmulas', () => {
     expect(parsePesosToCents('1,000,000.50')).toBe(100_000_050);
     expect(cotizar(parsePesosToCents('1,000,000.50')!, producto('Arrendamiento de cómputo'))!.gananciaCents).toBe(12_000_006);
     expect(cotizar(parsePesosToCents('0.01')!, producto('Tecnología y Desarrollo'))!.capitalFinalCents).toBe(1);
-    expect(cotizar(CAPITAL_MAXIMO_CENTS, producto('Autos utilitarios'))!.capitalFinalCents).toBe(135_000_000_000);
+    expect(cotizar(CAPITAL_MAXIMO_CENTS, producto('Autos utilitarios'))!.capitalFinalCents).toBe(126_000_000_000);
   });
 
   it('entradas inválidas no producen resultados', () => {

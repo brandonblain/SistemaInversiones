@@ -12,11 +12,11 @@ export interface ProductoCotizador {
 
 export const PRODUCTOS_COTIZADOR: readonly ProductoCotizador[] = [
   { id: 'computo', nombre: 'Arrendamiento de cómputo', meses: 12, rendimientoPct: 12 },
-  { id: 'rampas', nombre: 'Rampas de vehículos', meses: 24, rendimientoPct: 30 },
-  { id: 'utilitarios', nombre: 'Autos utilitarios', meses: 24, rendimientoPct: 35 },
-  { id: 'electrico', nombre: 'Transporte eléctrico', meses: 12, rendimientoPct: 16 },
+  { id: 'rampas', nombre: 'Rampas de vehículos', meses: 24, rendimientoPct: 27 },
+  { id: 'utilitarios', nombre: 'Autos utilitarios', meses: 24, rendimientoPct: 26 },
+  { id: 'electrico', nombre: 'Transporte eléctrico', meses: 12, rendimientoPct: 15 },
   { id: 'tecnologia', nombre: 'Tecnología y Desarrollo', meses: 12, rendimientoPct: 10 },
-  { id: 'franquicias', nombre: 'Desarrollo Franquicias', meses: 18, rendimientoPct: 22 }
+  { id: 'franquicias', nombre: 'Desarrollo Franquicias', meses: 18, rendimientoPct: 17 }
 ];
 
 /** Capital máximo cotizable: $1,000,000,000.00 (mantiene los cálculos en centavos enteros exactos). */
