@@ -1,5 +1,5 @@
 // Rutas Administrativas (rol ADMIN + MFA obligatorio). Toda escritura financiera es atómica y auditada.
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { authMiddleware, clientIp, requireAdmin } from '../middleware/auth';
 import { AppError, badRequest, withDb } from '../lib/errors';
 import { addDays, todayInContractZone } from '../lib/dates';
@@ -23,7 +23,8 @@ adminRoutes.use('*', authMiddleware, requireAdmin);
 // contratos históricos se siguen leyendo; la base de datos lo conserva como valor válido.
 const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'CARGO_TRANSPORT', 'MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING', 'TECH_SOLUTIONS', 'CETES'] as const;
 /** Valor para la columna heredada (su CHECK solo admite los códigos anteriores): CETES o un código no-CETES. */
-const legacyInvestmentType = (line: (typeof INVESTMENT_TYPES)[number]) =>
+type InvestmentLine = (typeof INVESTMENT_TYPES)[number] | 'FOREIGN_VEHICLES';
+const legacyInvestmentType = (line: InvestmentLine) =>
   line === 'CETES' ? 'CETES' : line === 'ELECTRIC_MOBILITY' ? 'ELECTRIC_VEHICLES' : line === 'FOOD_TRUCKS' ? 'FAST_FOOD' : 'TRANSPORT';
 const CURRENCIES = ['MXN', 'USD'] as const;
 const REFERENCE_RATES = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'] as const;
@@ -44,13 +45,13 @@ adminRoutes.get('/summary', async (c) => {
     .prepare(
       `SELECT
          (SELECT COUNT(*) FROM users WHERE role = 'INVESTOR') AS investors_count,
-         (SELECT COUNT(*) FROM investments WHERE status = 'ACTIVE') AS active_investments_count,
-         (SELECT COUNT(*) FROM investments WHERE status = 'ACTIVE' AND maturity_date >= ? AND maturity_date <= ?) AS maturing_soon_count,
+         (SELECT COUNT(*) FROM investments WHERE status = 'ACTIVE' AND archived_at IS NULL) AS active_investments_count,
+         (SELECT COUNT(*) FROM investments WHERE status = 'ACTIVE' AND archived_at IS NULL AND maturity_date >= ? AND maturity_date <= ?) AS maturing_soon_count,
          (SELECT COUNT(*) FROM notification_events WHERE status = 'FAILED') AS notifications_failed_count`
     )
     .bind(today, addDays(today, 30))
     .first<Record<string, number>>();
-  const rows = await db.prepare('SELECT id, status, currency FROM investments').all<{ id: string; status: string; currency: string }>();
+  const rows = await db.prepare('SELECT id, status, currency FROM investments WHERE archived_at IS NULL').all<{ id: string; status: string; currency: string }>();
   const balances = await balancesFor(db, rows.results.map((r) => r.id));
   const byCurrency = totalsByCurrency(rows.results, balances).map((t) => ({
     currency: t.currency,
@@ -83,7 +84,7 @@ adminRoutes.get('/investors', async (c) => {
   const rows = await c.env.DB
     .prepare(
       `SELECT u.id, u.email, u.is_active, u.created_at, p.id AS profile_id, p.full_name, p.rfc, p.phone, p.address,
-              (SELECT COUNT(*) FROM investments i WHERE i.investor_user_id = u.id) AS investments_count
+              (SELECT COUNT(*) FROM investments i WHERE i.investor_user_id = u.id AND i.archived_at IS NULL) AS investments_count
        FROM users u LEFT JOIN investor_profiles p ON p.user_id = u.id
        WHERE ${where} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`
     )
@@ -161,7 +162,7 @@ adminRoutes.get('/investors/:id', async (c) => {
     .prepare('SELECT id, full_name, relationship, percentage_bps FROM investor_beneficiaries WHERE investor_user_id = ? ORDER BY percentage_bps DESC, created_at')
     .bind(id)
     .all();
-  const rows = await db.prepare(`SELECT ${INVESTMENT_COLUMNS} FROM investments i ${TERMS_JOIN} WHERE i.investor_user_id = ? ORDER BY i.start_date DESC`).bind(id).all<InvestmentRow>();
+  const rows = await db.prepare(`SELECT ${INVESTMENT_COLUMNS} FROM investments i ${TERMS_JOIN} WHERE i.investor_user_id = ? AND i.archived_at IS NULL ORDER BY i.start_date DESC`).bind(id).all<InvestmentRow>();
   const balances = await balancesFor(db, rows.results.map((r) => r.id));
   return c.json({
     success: true,
@@ -181,7 +182,8 @@ adminRoutes.get('/investments', async (c) => {
   const { page, pageSize, offset } = pageParams(c, 20);
   const q = (c.req.query('q') ?? '').trim();
   const status = c.req.query('status') ?? '';
-  const conds: string[] = ['1 = 1'];
+  // ?archived=1 lista solo los archivados (para restaurarlos); por omisión no aparecen
+  const conds: string[] = [c.req.query('archived') === '1' ? 'i.archived_at IS NOT NULL' : 'i.archived_at IS NULL'];
   const binds: unknown[] = [];
   if (q) {
     conds.push("(lower(i.code) LIKE ? ESCAPE '\\' OR lower(COALESCE(p.full_name, '')) LIKE ? ESCAPE '\\' OR lower(u.email) LIKE ? ESCAPE '\\')");
@@ -217,7 +219,7 @@ adminRoutes.get('/investments', async (c) => {
       `SELECT i.id, i.investor_user_id, i.code, i.business_line AS investment_type, i.status, i.currency, i.start_date, i.maturity_date,
               i.initial_capital_cents, i.current_capital_cents, p.full_name AS investor_name, u.email AS investor_email,
               t.rate_type, t.fixed_annual_rate_bps, t.reference_rate_code, t.spread_bps,
-              t.payout_frequency, t.day_count_convention, t.capitalization_policy
+              t.payout_frequency, t.day_count_convention, t.capitalization_policy, i.archived_at
        ${from} WHERE ${where} ORDER BY i.created_at DESC LIMIT ? OFFSET ?`
     )
     .bind(...binds, pageSize, offset)
@@ -247,13 +249,12 @@ adminRoutes.get('/statistics', async (c) => {
   return c.json({ success: true, data: await adminStatistics(c.env.DB, investorId || null) });
 });
 
-adminRoutes.post('/investments', async (c) => {
-  const admin = c.get('user');
-  const body = await readJson(c);
+/** Campos de un contrato (alta y edición). `allowedTypes` admite además el giro retirado que ya tenga el contrato. */
+function parseContract(body: Body, allowedTypes: readonly string[]) {
   const investorId = str(body, 'investor_user_id', 'Cliente', { max: 100 });
   const code = str(body, 'code', 'Código de contrato', { min: 3, max: 30 }).toUpperCase();
   if (!/^[A-Z0-9-]{3,30}$/.test(code)) throw badRequest('INVALID_INPUT', 'El código solo admite letras, números y guiones.', { field: 'code' });
-  const investmentType = oneOf(body, 'investment_type', 'Giro del contrato', INVESTMENT_TYPES);
+  const investmentType = oneOf(body, 'investment_type', 'Giro del contrato', allowedTypes) as InvestmentLine;
   const currency = oneOf(body, 'currency', 'Moneda', CURRENCIES);
   if (investmentType === 'CETES' && currency !== 'MXN') {
     throw badRequest('INVALID_INPUT', 'Los contratos a CETES solo pueden ser en pesos (MXN).', { field: 'currency' });
@@ -271,11 +272,23 @@ adminRoutes.post('/investments', async (c) => {
   const convention = oneOf(body, 'day_count_convention', 'Convención de días', CONVENTIONS);
   const capPolicy = oneOf(body, 'capitalization_policy', 'Destino del rendimiento', CAP_POLICIES);
   const notes = optStr(body, 'notes', 'Notas', 1000);
+  return { investorId, code, investmentType, currency, start, maturity, capital, isReference, rate, referenceCode, spread, payout, convention, capPolicy, notes };
+}
 
-  const db = c.env.DB;
+/** El cliente debe existir; si `requireActive`, su cuenta debe estar habilitada. */
+async function assertInvestor(db: D1Database, investorId: string, requireActive: boolean) {
   const investor = await db.prepare("SELECT id, is_active FROM users WHERE id = ? AND role = 'INVESTOR'").bind(investorId).first<{ id: string; is_active: number }>();
   if (!investor) throw badRequest('INVALID_INPUT', 'El cliente no existe.', { field: 'investor_user_id' });
-  if (investor.is_active !== 1) throw badRequest('INVESTOR_INACTIVE', 'La cuenta del cliente está deshabilitada.');
+  if (requireActive && investor.is_active !== 1) throw badRequest('INVESTOR_INACTIVE', 'La cuenta del cliente está deshabilitada.');
+}
+
+adminRoutes.post('/investments', async (c) => {
+  const admin = c.get('user');
+  const { investorId, code, investmentType, currency, start, maturity, capital, isReference, rate, referenceCode, spread, payout, convention, capPolicy, notes } =
+    parseContract(await readJson(c), INVESTMENT_TYPES);
+
+  const db = c.env.DB;
+  await assertInvestor(db, investorId, true);
 
   const invId = generateSecureToken('inv');
   await withDb(() =>
@@ -315,6 +328,109 @@ adminRoutes.get('/investments/:id', async (c) => {
   const detail = toDetail(row, b, { investor_name: (row.investor_name as string | null) ?? null });
   return c.json({ success: true, data: { ...detail, current_reference_rate: await currentReferenceRate(c.env.DB, row) } });
 });
+
+/**
+ * Edición de un contrato: cualquier campo, en cualquier momento (decisión del cliente). Los rendimientos ya
+ * confirmados no se recalculan. El libro de capital no admite cambios, así que una corrección del capital o de la
+ * fecha de inicio se registra con movimientos de ajuste fechados para que los rendimientos futuros cuadren.
+ */
+adminRoutes.patch('/investments/:id', async (c) => {
+  const admin = c.get('user');
+  const id = c.req.param('id');
+  const db = c.env.DB;
+  const old = await db.prepare(`SELECT ${INVESTMENT_COLUMNS} FROM investments i ${TERMS_JOIN} WHERE i.id = ?`).bind(id).first<InvestmentRow>();
+  if (!old) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
+  const body = await readJson(c);
+  // Un contrato con un giro retirado (p. ej. vehículos extranjeros) puede conservarlo al editarse
+  const f = parseContract(body, [...INVESTMENT_TYPES, old.investment_type as string]);
+  const status = oneOf(body, 'status', 'Estado', STATUSES);
+  await assertInvestor(db, f.investorId, f.investorId !== old.investor_user_id);
+
+  const oldCapital = old.initial_capital_cents as number;
+  const oldStart = old.start_date as string;
+  const newCurrent = (old.current_capital_cents as number) + (f.capital - oldCapital);
+  if (newCurrent < 0) {
+    throw badRequest('INVALID_INPUT', 'Con ese capital, el capital vigente quedaría negativo por los retiros ya registrados.', { field: 'capital_cents' });
+  }
+  const adjustment = (type: 'CAPITAL_CONTRIBUTION' | 'CAPITAL_WITHDRAWAL', amount: number, on: string) =>
+    db
+      .prepare(
+        `INSERT INTO capital_movements (id, investment_id, movement_type, amount_cents, effective_date, notes, recorded_by_user_id)
+         VALUES (?, ?, ?, ?, ?, 'Ajuste por edición del contrato', ?)`
+      )
+      .bind(generateSecureToken('mov'), id, type, amount, on, admin.id);
+  const adjustments: D1PreparedStatement[] = [];
+  if (f.start !== oldStart) {
+    // El capital inicial cambia de fecha: sale en la fecha anterior y entra (con el monto nuevo) en la nueva
+    adjustments.push(adjustment('CAPITAL_WITHDRAWAL', oldCapital, oldStart), adjustment('CAPITAL_CONTRIBUTION', f.capital, f.start));
+  } else if (f.capital !== oldCapital) {
+    const delta = f.capital - oldCapital;
+    adjustments.push(adjustment(delta > 0 ? 'CAPITAL_CONTRIBUTION' : 'CAPITAL_WITHDRAWAL', Math.abs(delta), f.start));
+  }
+
+  await withDb(() =>
+    db.batch([
+      db.prepare(
+        `UPDATE investments SET investor_user_id = ?, code = ?, investment_type = ?, business_line = ?, status = ?, currency = ?,
+           start_date = ?, maturity_date = ?, initial_capital_cents = ?, current_capital_cents = ?, notes = ?, updated_at = datetime('now')
+         WHERE id = ?`
+      ).bind(f.investorId, f.code, legacyInvestmentType(f.investmentType), f.investmentType, status, f.currency, f.start, f.maturity, f.capital, newCurrent, f.notes, id),
+      // Términos vigentes; la primera versión arranca con el contrato
+      db.prepare(
+        `UPDATE investment_terms SET rate_type = ?, fixed_annual_rate_bps = ?, reference_rate_code = ?, spread_bps = ?, payout_frequency = ?,
+           day_count_convention = ?, capitalization_policy = ?, effective_from = CASE WHEN version = 1 THEN ? ELSE effective_from END
+         WHERE investment_id = ? AND effective_to IS NULL`
+      ).bind(f.isReference ? 'REFERENCE' : 'FIXED', f.rate, f.referenceCode, f.spread, f.payout, f.convention, f.capPolicy, f.start, id),
+      ...adjustments,
+      auditStatement(db, {
+        userId: admin.id,
+        action: 'INVESTMENT_UPDATED',
+        entityType: 'INVESTMENT',
+        entityId: id,
+        ipAddress: clientIp(c),
+        oldValues: {
+          code: old.code, investment_type: old.investment_type, status: old.status, currency: old.currency, investor_user_id: old.investor_user_id,
+          capital_cents: oldCapital, rate_bps: old.fixed_annual_rate_bps, reference_rate_code: old.reference_rate_code, spread_bps: old.spread_bps,
+          payout_frequency: old.payout_frequency, day_count_convention: old.day_count_convention, capitalization_policy: old.capitalization_policy,
+          start_date: oldStart, maturity_date: old.maturity_date
+        },
+        newValues: {
+          code: f.code, investment_type: f.investmentType, status, currency: f.currency, investor_user_id: f.investorId,
+          capital_cents: f.capital, rate_bps: f.rate, reference_rate_code: f.referenceCode, spread_bps: f.spread,
+          payout_frequency: f.payout, day_count_convention: f.convention, capitalization_policy: f.capPolicy,
+          start_date: f.start, maturity_date: f.maturity, capital_adjustments: adjustments.length
+        }
+      })
+    ])
+  );
+  return c.json({ success: true, data: { investment_id: id, current_capital_cents: newCurrent } });
+});
+
+/** "Eliminar" = archivar: el contrato y su historial se conservan, pero deja de mostrarse en todo el portal. */
+adminRoutes.delete('/investments/:id', (c) => setArchived(c, true));
+adminRoutes.post('/investments/:id/restore', (c) => setArchived(c, false));
+
+async function setArchived(c: Context<{ Bindings: Env; Variables: AppVariables }>, archive: boolean) {
+  const id = c.req.param('id')!;
+  const db = c.env.DB;
+  const row = await db.prepare('SELECT code, archived_at FROM investments WHERE id = ?').bind(id).first<{ code: string; archived_at: string | null }>();
+  if (!row) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
+  if (!!row.archived_at === archive) {
+    throw new AppError(409, archive ? 'ALREADY_ARCHIVED' : 'NOT_ARCHIVED', archive ? 'El contrato ya está archivado.' : 'El contrato no está archivado.');
+  }
+  await db.batch([
+    db.prepare(`UPDATE investments SET archived_at = ${archive ? "datetime('now')" : 'NULL'}, updated_at = datetime('now') WHERE id = ?`).bind(id),
+    auditStatement(db, {
+      userId: c.get('user').id,
+      action: archive ? 'INVESTMENT_ARCHIVED' : 'INVESTMENT_RESTORED',
+      entityType: 'INVESTMENT',
+      entityId: id,
+      ipAddress: clientIp(c),
+      newValues: { code: row.code }
+    })
+  ]);
+  return c.json({ success: true, data: { message: archive ? 'Contrato archivado.' : 'Contrato restaurado.' } });
+}
 
 adminRoutes.get('/investments/:id/yields', async (c) => {
   const id = c.req.param('id');

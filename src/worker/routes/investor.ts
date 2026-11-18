@@ -28,7 +28,7 @@ const STATUSES = ['DRAFT', 'ACTIVE', 'MATURED', 'CANCELLED'];
 /** Carga una inversión del titular. Responde 404 tanto si no existe como si es de otra persona (no revela existencia). */
 async function ownInvestment(db: D1Database, userId: string, id: string): Promise<InvestmentRow> {
   const row = await db
-    .prepare(`SELECT ${INVESTMENT_COLUMNS} FROM investments i ${TERMS_JOIN} WHERE i.id = ? AND i.investor_user_id = ?`)
+    .prepare(`SELECT ${INVESTMENT_COLUMNS} FROM investments i ${TERMS_JOIN} WHERE i.id = ? AND i.investor_user_id = ? AND i.archived_at IS NULL`)
     .bind(id, userId)
     .first<InvestmentRow>();
   if (!row) throw new AppError(404, 'NOT_FOUND', 'Contrato no encontrado.');
@@ -38,7 +38,7 @@ async function ownInvestment(db: D1Database, userId: string, id: string): Promis
 // 1. Resumen consolidado (todas sus inversiones; el capital vigente solo cuenta inversiones vigentes)
 investorRoutes.get('/summary', async (c) => {
   const user = c.get('user');
-  const invs = await c.env.DB.prepare('SELECT id, status, currency FROM investments WHERE investor_user_id = ?').bind(user.id).all<{ id: string; status: string; currency: string }>();
+  const invs = await c.env.DB.prepare('SELECT id, status, currency FROM investments WHERE investor_user_id = ? AND archived_at IS NULL').bind(user.id).all<{ id: string; status: string; currency: string }>();
   const balances = await balancesFor(c.env.DB, invs.results.map((i) => i.id));
   return c.json({
     success: true,
@@ -58,7 +58,7 @@ investorRoutes.get('/investments', async (c) => {
   const status = c.req.query('status') ?? '';
   if (status && !STATUSES.includes(status)) throw new AppError(400, 'INVALID_INPUT', 'Estado no válido.');
 
-  const where = `i.investor_user_id = ?${status ? ' AND i.status = ?' : ''}`;
+  const where = `i.investor_user_id = ? AND i.archived_at IS NULL${status ? ' AND i.status = ?' : ''}`;
   const binds: unknown[] = status ? [user.id, status] : [user.id];
   const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM investments i WHERE ${where}`).bind(...binds).first<{ n: number }>();
   const rows = await c.env.DB

@@ -22,7 +22,9 @@ const paths = {
   chevronLeft: 'M15 6l-6 6 6 6',
   chevronRight: 'M9 6l6 6-6 6',
   search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',
-  table: 'M3 5h18v14H3zM3 10h18M3 15h18M9 5v14'
+  table: 'M3 5h18v14H3zM3 10h18M3 15h18M9 5v14',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4',
+  trash: 'M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3'
 } as const;
 
 export type IconName = keyof typeof paths;

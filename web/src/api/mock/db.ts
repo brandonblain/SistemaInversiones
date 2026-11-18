@@ -54,6 +54,7 @@ export interface MockInvestment {
   capitalization_policy: CapitalizationPolicy;
   notes: string | null;
   created_at: string;
+  archived_at?: string | null;
 }
 
 export interface MockYield {

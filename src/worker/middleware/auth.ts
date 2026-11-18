@@ -155,6 +155,6 @@ export async function requireAdmin(c: AuthContext, next: Next) {
 
 /** Verifica titularidad: la inversión debe pertenecer al usuario autenticado. */
 export async function assertInvestorOwnsInvestment(db: D1Database, userId: string, investmentId: string): Promise<boolean> {
-  const row = await db.prepare('SELECT id FROM investments WHERE id = ? AND investor_user_id = ?').bind(investmentId, userId).first();
+  const row = await db.prepare('SELECT id FROM investments WHERE id = ? AND investor_user_id = ? AND archived_at IS NULL').bind(investmentId, userId).first();
   return !!row;
 }

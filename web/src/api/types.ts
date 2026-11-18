@@ -353,6 +353,8 @@ export interface AdminInvestmentRow {
   yield_paid_cents: number;
   yield_reinvested_cents: number;
   yield_pending_cents: number;
+  /** Fecha en que se archivó ("Eliminar"); null si está visible. */
+  archived_at?: string | null;
 }
 
 /** Estadísticas de administración (generales o de un cliente), siempre separadas por moneda. */
@@ -410,6 +412,9 @@ export interface CreateInvestmentInput {
   capitalization_policy: CapitalizationPolicy;
   notes?: string;
 }
+
+/** Edición de un contrato: los mismos campos del alta más el estado. */
+export type UpdateInvestmentInput = CreateInvestmentInput & { status: InvestmentStatus };
 
 export interface YieldPreview {
   investment_id?: string;

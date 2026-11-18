@@ -82,6 +82,13 @@ export const httpApi: PortalApi = {
     investment: async (id) =>
       normalizeInvestmentDetail(await request('GET', `/api/admin/investments/${encodeURIComponent(id)}`)) as any,
     createInvestment: (input) => request('POST', '/api/admin/investments', input),
+    updateInvestment: (id, input) => request('PATCH', `/api/admin/investments/${encodeURIComponent(id)}`, input),
+    archiveInvestment: async (id) => {
+      await request('DELETE', `/api/admin/investments/${encodeURIComponent(id)}`);
+    },
+    restoreInvestment: async (id) => {
+      await request('POST', `/api/admin/investments/${encodeURIComponent(id)}/restore`);
+    },
     // PROPUESTO
     yields: (investmentId, q) =>
       request('GET', `/api/admin/investments/${encodeURIComponent(investmentId)}/yields${qs({ pending: q?.pendingOnly ? 1 : undefined })}`),

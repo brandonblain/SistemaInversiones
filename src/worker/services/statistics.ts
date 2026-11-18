@@ -38,7 +38,7 @@ const emptyTotals = (currency: string) => ({
 
 export async function adminStatistics(db: D1Database, investorId: string | null) {
   const today = todayInContractZone();
-  const where = investorId ? 'WHERE i.investor_user_id = ?' : '';
+  const where = investorId ? 'WHERE i.archived_at IS NULL AND i.investor_user_id = ?' : 'WHERE i.archived_at IS NULL';
   const binds = investorId ? [investorId] : [];
   const rows = (
     await db
@@ -135,7 +135,7 @@ export async function adminStatistics(db: D1Database, investorId: string | null)
 
   // ---- Serie mensual (últimos 12 meses): rendimiento confirmado por mes de cierre y pagos por mes (hora de CDMX) ----
   const fromMonth = addMonthsClamped(`${today.slice(0, 7)}-01`, -11);
-  const scope = investorId ? 'AND i.investor_user_id = ?' : '';
+  const scope = investorId ? 'AND i.archived_at IS NULL AND i.investor_user_id = ?' : 'AND i.archived_at IS NULL';
   const monthlyYields = await db
     .prepare(
       `SELECT i.currency, substr(y.period_end, 1, 7) AS month, SUM(y.amount_cents) AS cents

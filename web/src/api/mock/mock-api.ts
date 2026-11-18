@@ -72,7 +72,7 @@ function requireAdmin(): MockUser {
 function ownedInvestment(id: string): MockInvestment {
   const u = currentUser();
   const inv = db.investments.find((i) => i.id === id);
-  if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
+  if (!inv || (u.role === 'INVESTOR' && inv.archived_at)) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
   if (u.role === 'INVESTOR' && inv.investor_user_id !== u.id) fail(403, 'FORBIDDEN', 'Acceso no autorizado a este contrato.');
   return inv;
 }
@@ -415,7 +415,7 @@ export const mockApi: PortalApi = {
     async investments(q) {
       const u = requireInvestorAccess();
       const rows = db.investments
-        .filter((i) => i.investor_user_id === u.id && (!q.status || i.status === q.status))
+        .filter((i) => i.investor_user_id === u.id && !i.archived_at && (!q.status || i.status === q.status))
         .sort(byDesc((i) => i.start_date))
         .map(listItem);
       return paginate(rows, q);
@@ -535,7 +535,7 @@ export const mockApi: PortalApi = {
         user: { id: u.id, email: u.email, is_active: u.is_active, created_at: u.created_at },
         profile: u.profile ? { ...u.profile } : null,
         beneficiaries: u.beneficiaries.map((b) => ({ ...b })),
-        investments: db.investments.filter((i) => i.investor_user_id === u.id).map(listItem)
+        investments: db.investments.filter((i) => i.investor_user_id === u.id && !i.archived_at).map(listItem)
       };
     },
     async createInvestor(input) {
@@ -559,6 +559,7 @@ export const mockApi: PortalApi = {
       requireAdmin();
       const term = (q.q ?? '').trim().toLowerCase();
       const rows: AdminInvestmentRow[] = db.investments
+        .filter((i) => (q.archived === '1') === !!i.archived_at)
         .filter((i) => !q.status || i.status === q.status)
         .filter((i) => !q.currency || i.currency === q.currency)
         .filter((i) => !q.investment_type || i.investment_type === q.investment_type)
@@ -574,7 +575,8 @@ export const mockApi: PortalApi = {
           payout_frequency: i.payout_frequency,
           day_count_convention: i.day_count_convention, capitalization_policy: i.capitalization_policy,
           yield_confirmed_cents: balance(i).yield_confirmed_cents, yield_paid_cents: balance(i).yield_paid_cents,
-          yield_reinvested_cents: balance(i).yield_reinvested_cents, yield_pending_cents: balance(i).yield_pending_cents
+          yield_reinvested_cents: balance(i).yield_reinvested_cents, yield_pending_cents: balance(i).yield_pending_cents,
+          archived_at: i.archived_at ?? null
         }));
       return paginate(rows, q);
     },
@@ -586,7 +588,7 @@ export const mockApi: PortalApi = {
       requireAdmin();
       const inv = db.investments.find((i) => i.id === id);
       if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
-      return { ...detail(inv), investor_user_id: inv.investor_user_id, investor_name: investorName(inv.investor_user_id), notes: inv.notes };
+      return { ...detail(inv), investor_user_id: inv.investor_user_id, investor_name: investorName(inv.investor_user_id), notes: inv.notes, archived_at: inv.archived_at ?? null };
     },
     async createInvestment(input) {
       requireAdmin();
@@ -605,6 +607,40 @@ export const mockApi: PortalApi = {
       db.movements.push({ id: nextId(db, 'mov'), investment_id: id, movement_type: 'INITIAL_DEPOSIT', amount_cents: input.capital_cents, effective_date: input.start_date });
       audit('INVESTMENT_CREATED', 'INVESTMENT', id, { code: input.code, investment_type: input.investment_type });
       return { investment_id: id };
+    },
+    async updateInvestment(id, input) {
+      requireAdmin();
+      const inv = db.investments.find((i) => i.id === id);
+      if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
+      const code = input.code.trim().toUpperCase();
+      if (db.investments.some((i) => i.id !== id && i.code === code)) return fail(409, 'CODE_ALREADY_EXISTS', 'Ya existe un contrato con ese código.');
+      if (input.investment_type === 'CETES' && input.currency !== 'MXN') return fail(400, 'INVALID_INPUT', 'Los contratos a CETES solo pueden ser en pesos (MXN).');
+      const isRef = input.investment_type === 'CETES';
+      Object.assign(inv, {
+        investor_user_id: input.investor_user_id, code, investment_type: input.investment_type, currency: input.currency, status: input.status,
+        start_date: input.start_date, maturity_date: input.maturity_date,
+        current_capital_cents: inv.current_capital_cents + (input.capital_cents - inv.initial_capital_cents), initial_capital_cents: input.capital_cents,
+        rate_bps: isRef ? null : input.fixed_annual_rate_bps ?? null, rate_type: isRef ? 'REFERENCE' : 'FIXED',
+        reference_rate_code: isRef ? input.reference_rate_code ?? 'CETES_28' : null, spread_bps: isRef ? input.spread_bps ?? 0 : null,
+        payout_frequency: input.payout_frequency, day_count_convention: input.day_count_convention,
+        capitalization_policy: input.capitalization_policy, notes: input.notes || null
+      });
+      audit('INVESTMENT_UPDATED', 'INVESTMENT', id, { code, investment_type: input.investment_type });
+      return { investment_id: id };
+    },
+    async archiveInvestment(id) {
+      requireAdmin();
+      const inv = db.investments.find((i) => i.id === id);
+      if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
+      inv.archived_at = nowIso();
+      audit('INVESTMENT_ARCHIVED', 'INVESTMENT', id, { code: inv.code });
+    },
+    async restoreInvestment(id) {
+      requireAdmin();
+      const inv = db.investments.find((i) => i.id === id);
+      if (!inv) return fail(404, 'NOT_FOUND', 'Contrato no encontrado.');
+      inv.archived_at = null;
+      audit('INVESTMENT_RESTORED', 'INVESTMENT', id, { code: inv.code });
     },
     async yields(investmentId, q) {
       requireAdmin();

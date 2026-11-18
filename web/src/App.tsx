@@ -100,6 +100,7 @@ export function App() {
         <Route path="clientes/:id" element={<InvestorDetailPage />} />
         <Route path="inversiones" element={<AdminInvestmentsPage />} />
         <Route path="inversiones/nueva" element={<InvestmentFormPage />} />
+        <Route path="inversiones/:id/editar" element={<InvestmentFormPage />} />
         <Route path="inversiones/:id" element={<AdminInvestmentDetailPage />} />
         <Route path="rendimientos" element={<YieldsPage />} />
         <Route path="pagos" element={<PaymentsPage />} />

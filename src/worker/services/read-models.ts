@@ -61,7 +61,7 @@ const emptyBalance = (): Balance => ({
 });
 
 export const INVESTMENT_COLUMNS = `i.id, i.investor_user_id, i.code, i.business_line AS investment_type, i.status, i.currency, i.start_date, i.maturity_date,
-  i.initial_capital_cents, i.current_capital_cents, i.notes, i.created_at,
+  i.initial_capital_cents, i.current_capital_cents, i.notes, i.created_at, i.archived_at,
   t.rate_type, t.fixed_annual_rate_bps, t.reference_rate_code, t.spread_bps,
   t.payout_frequency, t.day_count_convention, t.capitalization_policy`;
 export const TERMS_JOIN = 'LEFT JOIN investment_terms t ON t.investment_id = i.id AND t.effective_to IS NULL';
@@ -161,7 +161,7 @@ export function toDetail(row: InvestmentRow, b: Balance, includeInternal: { inve
       current_capital_cents: row.current_capital_cents,
       terms: termsOf(row),
       ...(includeInternal
-        ? { investor_user_id: row.investor_user_id, investor_name: includeInternal.investor_name, notes: row.notes ?? null }
+        ? { investor_user_id: row.investor_user_id, investor_name: includeInternal.investor_name, notes: row.notes ?? null, archived_at: row.archived_at ?? null }
         : {})
     },
     balance: b

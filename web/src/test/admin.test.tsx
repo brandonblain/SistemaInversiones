@@ -132,5 +132,38 @@ describe('Administración', () => {
     await waitFor(() => expect(screen.queryByText('INVESTMENT_CREATED')).not.toBeInTheDocument());
     expect(screen.getAllByText('EXTERNAL_PAYMENT_RECORDED').length).toBeGreaterThan(0);
   });
+
+  it('tabla de contratos: eliminar (archivar) y restaurar', async () => {
+    const user = userEvent.setup();
+    renderApp('/admin/inversiones', { loginAs: ADMIN_ID });
+    await user.click((await screen.findAllByRole('button', { name: 'Eliminar FICT-2025-002' }))[0]!);
+    expect(screen.getByText(/dejará de aparecer en las tablas/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Eliminar FICT-2025-002' })).not.toBeInTheDocument());
+
+    await user.selectOptions(screen.getByLabelText('Mostrar'), 'eliminados');
+    await user.click((await screen.findAllByRole('button', { name: 'Restaurar FICT-2025-002' }))[0]!);
+    await user.selectOptions(screen.getByLabelText('Mostrar'), '');
+    expect((await screen.findAllByRole('button', { name: 'Eliminar FICT-2025-002' })).length).toBeGreaterThan(0);
+  });
+
+  it('editar contrato: prellena, permite cambiar estado y código, y guarda', async () => {
+    const user = userEvent.setup();
+    renderApp('/admin/inversiones', { loginAs: ADMIN_ID });
+    await user.click((await screen.findAllByRole('button', { name: 'Editar FICT-2025-002' }))[0]!);
+    const code = await screen.findByLabelText('Código de contrato');
+    expect(code).toHaveValue('FICT-2025-002');
+    expect(screen.getByLabelText('Capital (MXN)')).toHaveValue('400000.00');
+    expect(screen.getByRole('radio', { name: /Rampas para taller mecánico/ })).toBeChecked();
+    await user.clear(code);
+    await user.type(code, 'FICT-2025-002B');
+    await user.selectOptions(screen.getByLabelText('Estado'), 'MATURED');
+    await user.click(screen.getByRole('button', { name: 'Revisar' }));
+    expect(screen.getByText(/Los rendimientos ya confirmados no se recalculan/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirmar y guardar' }));
+    expect((await screen.findAllByText(/FICT-2025-002B/)).length).toBeGreaterThan(0);
+    const saved = await api.admin.investment('inv_fict_002');
+    expect(saved).toMatchObject({ code: 'FICT-2025-002B', status: 'MATURED', initial_capital_cents: 40_000_000 });
+  });
 });
 

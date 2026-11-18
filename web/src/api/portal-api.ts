@@ -12,6 +12,7 @@ import type {
   ConfirmYieldInput,
   CreateReferenceRateInput,
   CreateInvestmentInput,
+  UpdateInvestmentInput,
   CreateInvestorInput,
   HistoryEntry,
   HistoryType,
@@ -69,10 +70,14 @@ export interface PortalApi {
     investors(q: PageQuery & { q?: string; active?: '' | '1' | '0' }): Promise<Paginated<AdminInvestorRow>>;
     investor(id: string): Promise<AdminInvestorDetail>;
     createInvestor(input: CreateInvestorInput): Promise<{ user_id: string }>;
-    investments(q: PageQuery & { q?: string; status?: InvestmentStatus | ''; currency?: Currency | ''; investment_type?: InvestmentType | ''; investor_id?: string }): Promise<Paginated<AdminInvestmentRow>>;
+    investments(q: PageQuery & { q?: string; status?: InvestmentStatus | ''; currency?: Currency | ''; investment_type?: InvestmentType | ''; investor_id?: string; archived?: '1' | '' }): Promise<Paginated<AdminInvestmentRow>>;
     statistics(investorId?: string): Promise<AdminStatistics>;
-    investment(id: string): Promise<InvestmentDetail & { investor_user_id: string; investor_name: string | null; notes: string | null }>;
+    investment(id: string): Promise<InvestmentDetail & { investor_user_id: string; investor_name: string | null; notes: string | null; archived_at: string | null }>;
     createInvestment(input: CreateInvestmentInput): Promise<{ investment_id: string }>;
+    updateInvestment(id: string, input: UpdateInvestmentInput): Promise<{ investment_id: string }>;
+    /** "Eliminar": archiva el contrato (se conserva con su historial y se puede restaurar). */
+    archiveInvestment(id: string): Promise<void>;
+    restoreInvestment(id: string): Promise<void>;
     yields(investmentId: string, q?: { pendingOnly?: boolean }): Promise<AdminYieldEntry[]>;
     previewYield(input: YieldPreviewInput): Promise<YieldPreview>;
     confirmYield(input: ConfirmYieldInput): Promise<{ yield_entry_id: string; is_existing: boolean; amount_cents: number }>;

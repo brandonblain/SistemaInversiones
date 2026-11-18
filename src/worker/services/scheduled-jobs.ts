@@ -30,7 +30,7 @@ export async function runScheduledMaintenance(env: Env, sender?: EmailSender): P
       .prepare(
         `SELECT i.id, i.code, i.maturity_date, i.investor_user_id, u.email
          FROM investments i JOIN users u ON u.id = i.investor_user_id
-         WHERE i.status = 'ACTIVE' AND u.is_active = 1 AND i.maturity_date >= ? AND i.maturity_date <= ?
+         WHERE i.status = 'ACTIVE' AND i.archived_at IS NULL AND u.is_active = 1 AND i.maturity_date >= ? AND i.maturity_date <= ?
            AND NOT EXISTS (
              SELECT 1 FROM notification_events n
              WHERE n.investment_id = i.id AND n.event_type = 'CONTRACT_EXPIRING_SOON'
@@ -60,7 +60,7 @@ export async function runScheduledMaintenance(env: Env, sender?: EmailSender): P
         `SELECT i.id, i.code, i.start_date, i.maturity_date, t.payout_frequency,
                 (SELECT MAX(period_end) FROM yield_entries y WHERE y.investment_id = i.id AND y.status = 'CONFIRMED' AND y.source = 'AUTO') AS last_end
          FROM investments i JOIN investment_terms t ON t.investment_id = i.id AND t.effective_to IS NULL
-         WHERE i.status = 'ACTIVE'`
+         WHERE i.status = 'ACTIVE' AND i.archived_at IS NULL`
       )
       .all<{ id: string; code: string; start_date: string; maturity_date: string; payout_frequency: PayoutFrequency; last_end: string | null }>();
 

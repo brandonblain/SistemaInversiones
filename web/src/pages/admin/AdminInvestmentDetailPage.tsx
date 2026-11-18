@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../api';
 import type { AdminPaymentRow } from '../../api/types';
+import { ArchiveInvestmentModal } from '../../components/admin/ArchiveInvestmentModal';
 import { YieldEntriesTable } from '../../components/admin/YieldEntriesTable';
 import { BalanceTiles } from '../../components/BalanceTiles';
 import { InvestmentStatusBadge } from '../../components/badges';
 import { DataTable, type Column } from '../../components/DataTable';
 import { DocumentList } from '../../components/DocumentList';
 import { Icon } from '../../components/icons';
-import { Async, Card, DefinitionList, EmptyState, LinkButton, PageHeader, Tabs } from '../../components/ui';
+import { Alert, Async, Button, Card, DefinitionList, EmptyState, errorMessage, LinkButton, PageHeader, Tabs } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
 import { formatDate, formatDateTime, formatMoney, formatRateBps } from '../../lib/format';
 import { capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeLabel, payoutFrequencyLabel, rateSummary } from '../../lib/labels';
@@ -27,6 +28,22 @@ export function AdminInvestmentDetailPage() {
   const { id = '' } = useParams();
   const [tab, setTab] = useState<TabId>('resumen');
   const inv = useAsync(() => api.admin.investment(id), [id]);
+  const navigate = useNavigate();
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const restore = async () => {
+    setRestoring(true);
+    setRestoreError(null);
+    try {
+      await api.admin.restoreInvestment(id);
+      inv.reload();
+    } catch (err) {
+      setRestoreError(errorMessage(err));
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   const back = (
     <Link to="/admin/inversiones" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
@@ -51,8 +68,28 @@ export function AdminInvestmentDetailPage() {
               <>
                 <LinkButton variant="secondary" to={`/admin/rendimientos?inversion=${d.id}`} icon="percent">Rendimientos</LinkButton>
                 <LinkButton variant="secondary" to={`/admin/pagos?inversion=${d.id}`} icon="cash">Registrar pago</LinkButton>
+                {!d.archived_at && (
+                  <>
+                    <LinkButton variant="secondary" to={`/admin/inversiones/${d.id}/editar`} icon="edit">Editar</LinkButton>
+                    <Button variant="secondary" icon="trash" className="text-bad" onClick={() => setArchiving(true)}>Eliminar</Button>
+                  </>
+                )}
               </>
             }
+          />
+          {d.archived_at && (
+            <div className="mb-4">
+              <Alert tone="warn" title="Contrato eliminado">
+                No aparece en las tablas, las estadísticas ni el portal del cliente. Su historial se conserva.
+                <Button variant="secondary" className="mt-3 block" loading={restoring} onClick={restore}>Restaurar contrato</Button>
+              </Alert>
+              {restoreError && <div className="mt-2"><Alert tone="bad">{restoreError}</Alert></div>}
+            </div>
+          )}
+          <ArchiveInvestmentModal
+            investment={archiving ? d : null}
+            onClose={() => setArchiving(false)}
+            onArchived={() => navigate('/admin/inversiones', { replace: true })}
           />
           <Tabs
             label="Secciones"

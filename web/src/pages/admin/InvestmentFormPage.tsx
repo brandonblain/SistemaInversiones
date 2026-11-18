@@ -1,19 +1,27 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api';
-import type { CapitalizationPolicy, Currency, DayCountConvention, InvestmentType, PayoutFrequency, ReferenceRateCode } from '../../api/types';
+import type { CapitalizationPolicy, Currency, DayCountConvention, InvestmentStatus, InvestmentType, PayoutFrequency, ReferenceRateCode } from '../../api/types';
 import { Alert, Async, Button, Card, cx, errorMessage, PageHeader, SelectInput, TextArea, TextInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
 import { addMonthsToDate, centsToPlainPesos, formatMoney, formatRateBps, formatSpreadBps, todayInContractZone } from '../../lib/format';
-import { activeInvestmentTypes, capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeHint, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel, referenceRateLabel } from '../../lib/labels';
+import { activeInvestmentTypes, capitalizationLabel, currencyLabel, dayCountLabel, investmentStatusLabel, investmentTypeHint, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel, referenceRateLabel } from '../../lib/labels';
 import { parsePercentToBps, parsePesosToCents, parseSignedPercentToBps } from '../../lib/parse';
 
 type Errors = Partial<Record<'type' | 'investor' | 'code' | 'capital' | 'rate' | 'spread' | 'start' | 'maturity', string>>;
 
+/** Alta de contrato, o edición si la ruta trae `:id` (/admin/inversiones/:id/editar). */
 export function InvestmentFormPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const investors = useAsync(() => api.admin.investors({ active: '1', pageSize: 50 }), []);
+  const { id } = useParams();
+  const editing = !!id;
+  // Al editar se listan también clientes deshabilitados: el contrato puede pertenecer a uno
+  const investors = useAsync(() => api.admin.investors({ active: editing ? '' : '1', pageSize: 50 }), [editing]);
+  const existing = useAsync(() => (id ? api.admin.investment(id) : Promise.resolve(null)), [id]);
+  const [loaded, setLoaded] = useState(!editing);
+  // Giro retirado del catálogo (p. ej. vehículos extranjeros) que el contrato ya tenía: se puede conservar
+  const [retiredType, setRetiredType] = useState<InvestmentType | null>(null);
 
   const [form, setForm] = useState({
     investor_user_id: params.get('cliente') ?? '',
@@ -30,8 +38,34 @@ export function InvestmentFormPage() {
     payout_frequency: 'MONTHLY' as PayoutFrequency,
     capitalization_policy: 'NONE' as CapitalizationPolicy,
     day_count_convention: 'ACT_365' as DayCountConvention,
+    status: 'ACTIVE' as InvestmentStatus,
     notes: ''
   });
+
+  useEffect(() => {
+    const d = existing.data;
+    if (!d || loaded) return;
+    const t = d.terms;
+    setForm({
+      investor_user_id: d.investor_user_id,
+      investment_type: d.investment_type,
+      currency: d.currency,
+      reference_rate_code: t.reference_rate_code ?? 'CETES_28',
+      spread: t.spread_bps !== null ? String(t.spread_bps / 100) : '-1',
+      code: d.code,
+      capital: centsToPlainPesos(d.initial_capital_cents),
+      rate: t.fixed_annual_rate_bps !== null ? String(t.fixed_annual_rate_bps / 100) : '',
+      start_date: d.start_date,
+      maturity_date: d.maturity_date,
+      payout_frequency: t.payout_frequency,
+      capitalization_policy: t.capitalization_policy,
+      day_count_convention: t.day_count_convention,
+      status: d.status,
+      notes: d.notes ?? ''
+    });
+    if (!activeInvestmentTypes.includes(d.investment_type)) setRetiredType(d.investment_type);
+    setLoaded(true);
+  }, [existing.data, loaded]);
   const [errors, setErrors] = useState<Errors>({});
   const [error, setError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -92,7 +126,7 @@ export function InvestmentFormPage() {
     setPending(true);
     setError(null);
     try {
-      const res = await api.admin.createInvestment({
+      const input = {
         investor_user_id: form.investor_user_id,
         investment_type: form.investment_type as InvestmentType,
         currency: isCetes ? 'MXN' : form.currency,
@@ -105,7 +139,8 @@ export function InvestmentFormPage() {
         capitalization_policy: form.capitalization_policy,
         day_count_convention: form.day_count_convention,
         notes: form.notes.trim() || undefined
-      });
+      };
+      const res = id ? await api.admin.updateInvestment(id, { ...input, status: form.status }) : await api.admin.createInvestment(input);
       navigate(`/admin/inversiones/${res.investment_id}`, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
@@ -115,9 +150,15 @@ export function InvestmentFormPage() {
     }
   };
 
+  if (!loaded) return <Async state={existing}>{() => null}</Async>;
+  const types = retiredType ? [...activeInvestmentTypes, retiredType] : activeInvestmentTypes;
+
   return (
     <>
-      <PageHeader title="Nuevo contrato" subtitle="Registre las condiciones tal como aparecen en el contrato firmado." />
+      <PageHeader
+        title={editing ? `Editar contrato ${existing.data?.code ?? ''}` : 'Nuevo contrato'}
+        subtitle={editing ? 'Corrija cualquier dato del contrato. El cambio queda registrado en la bitácora.' : 'Registre las condiciones tal como aparecen en el contrato firmado.'}
+      />
       <Card>
         <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
           {error && <div className="sm:col-span-2"><Alert tone="bad">{error}</Alert></div>}
@@ -125,7 +166,7 @@ export function InvestmentFormPage() {
           <fieldset className="sm:col-span-2">
             <legend className="label">Giro del contrato</legend>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup">
-              {activeInvestmentTypes.map((t) => {
+              {types.map((t) => {
                 const ref = investmentTypeReference[t];
                 const selected = form.investment_type === t;
                 return (
@@ -182,6 +223,11 @@ export function InvestmentFormPage() {
           </div>
 
           <TextInput label="Código de contrato" value={form.code} onChange={set('code')} error={errors.code} hint="Ejemplo: INV-2026-001" />
+          {editing && (
+            <SelectInput label="Estado" value={form.status} onChange={set('status')}>
+              {(Object.keys(investmentStatusLabel) as InvestmentStatus[]).map((k) => <option key={k} value={k}>{investmentStatusLabel[k]}</option>)}
+            </SelectInput>
+          )}
           <SelectInput
             label="Moneda"
             value={isCetes ? 'MXN' : form.currency}
@@ -242,13 +288,19 @@ export function InvestmentFormPage() {
                 {investmentTypeLabel[form.investment_type as InvestmentType]}: {money(capitalCents)} a{' '}
                 {isCetes ? `${referenceRateLabel[form.reference_rate_code]} ${formatSpreadBps(spreadBps)}` : `${formatRateBps(rateBps)} anual fija`}, cobro {payoutFrequencyLabel[form.payout_frequency].toLowerCase()},
                 {' '}{capitalizationLabel[form.capitalization_policy].toLowerCase()}, del {form.start_date} al {form.maturity_date}. Si todo es correcto, presione “Confirmar y guardar”.
+                {editing && (
+                  <span className="mt-2 block">
+                    Los rendimientos ya confirmados no se recalculan. Si cambió el capital o la fecha de inicio, se registrará un ajuste de capital
+                    para que los siguientes periodos se calculen con el dato nuevo.
+                  </span>
+                )}
               </Alert>
             </div>
           )}
 
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit" loading={pending}>{reviewing ? 'Confirmar y guardar' : 'Revisar'}</Button>
-            <Link to="/admin/inversiones" className="inline-flex min-h-[44px] items-center px-4 text-sm font-semibold text-ink-2">Cancelar</Link>
+            <Link to={editing ? `/admin/inversiones/${id}` : '/admin/inversiones'} className="inline-flex min-h-[44px] items-center px-4 text-sm font-semibold text-ink-2">Cancelar</Link>
           </div>
         </form>
       </Card>
