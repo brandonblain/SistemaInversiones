@@ -28,6 +28,7 @@ import { InvestmentDetailPage } from './pages/investor/InvestmentDetailPage';
 import { InvestmentsPage } from './pages/investor/InvestmentsPage';
 import { NotificationsPage } from './pages/investor/NotificationsPage';
 import { ProfilePage } from './pages/investor/ProfilePage';
+import { CotizadorPage } from './pages/public/CotizadorPage';
 import { LandingPage } from './pages/public/LandingPage';
 import { LegalDocPage, LegalIndexPage } from './pages/public/LegalPages';
 import { isPortalPath, portalHref, site } from './lib/site';
@@ -70,6 +71,8 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/legal" element={<LegalIndexPage />} />
         <Route path="/legal/:slug" element={<LegalDocPage />} />
+        {/* Herramienta privada: solo por dirección directa (sin enlaces) y no indexable */}
+        <Route path="/cotizador" element={<CotizadorPage />} />
         <Route path="*" element={<PublicFallback />} />
       </Routes>
     );
@@ -80,6 +83,7 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/legal" element={<LegalIndexPage />} />
       <Route path="/legal/:slug" element={<LegalDocPage />} />
+      <Route path="/cotizador" element={<CotizadorPage />} />
       <Route path="/recuperar" element={<ForgotPasswordPage />} />
       <Route path="/restablecer" element={<ResetPasswordPage />} />
 

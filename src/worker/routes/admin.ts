@@ -19,11 +19,11 @@ adminRoutes.use('*', authMiddleware, requireAdmin);
 
 // Giro del contrato = línea de negocio (columna business_line, migraciones 0005 y 0006). La API conserva el nombre
 // `investment_type`; la columna heredada investments.investment_type solo distingue CETES.
-// Giros para contratos nuevos. FOREIGN_VEHICLES (vehículos extranjeros) se retiró del catálogo, pero sus
-// contratos históricos se siguen leyendo; la base de datos lo conserva como valor válido.
-const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'CARGO_TRANSPORT', 'MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING', 'TECH_SOLUTIONS', 'CETES'] as const;
+// Giros para contratos nuevos. FOREIGN_VEHICLES (vehículos extranjeros) y CETES se retiraron del catálogo, pero sus
+// contratos históricos se siguen leyendo y editando; la base de datos los conserva como valores válidos.
+const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'CARGO_TRANSPORT', 'MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING', 'NATIONAL_VEHICLE_LEASING', 'TECH_SOLUTIONS'] as const;
 /** Valor para la columna heredada (su CHECK solo admite los códigos anteriores): CETES o un código no-CETES. */
-type InvestmentLine = (typeof INVESTMENT_TYPES)[number] | 'FOREIGN_VEHICLES';
+type InvestmentLine = (typeof INVESTMENT_TYPES)[number] | 'FOREIGN_VEHICLES' | 'CETES';
 const legacyInvestmentType = (line: InvestmentLine) =>
   line === 'CETES' ? 'CETES' : line === 'ELECTRIC_MOBILITY' ? 'ELECTRIC_VEHICLES' : line === 'FOOD_TRUCKS' ? 'FAST_FOOD' : 'TRANSPORT';
 const CURRENCIES = ['MXN', 'USD'] as const;

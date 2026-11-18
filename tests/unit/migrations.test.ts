@@ -41,7 +41,7 @@ describe('Migraciones D1 0001 → 0003', () => {
     // CETES solo en pesos
     await expect(db.prepare("UPDATE investments SET investment_type = 'CETES', business_line = 'CETES' WHERE id = 'inv2'").run()).rejects.toThrow(/CHECK/);
     // Línea de negocio: obligatoria, del catálogo y coherente con CETES
-    await expect(db.prepare("UPDATE investments SET business_line = 'CRYPTO' WHERE id = 'inv1'").run()).rejects.toThrow(/CHECK/);
+    await expect(db.prepare("UPDATE investments SET business_line = 'CRYPTO' WHERE id = 'inv1'").run()).rejects.toThrow(/INVALID_BUSINESS_LINE/);
     await expect(db.prepare("UPDATE investments SET business_line = 'CETES' WHERE id = 'inv1'").run()).rejects.toThrow(/INVALID_BUSINESS_LINE/);
     await expect(
       db.prepare("INSERT INTO investments (id, investor_user_id, code, investment_type, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents) VALUES ('inv3','u_inv','FICT-3','TRANSPORT','MXN','2026-01-01','2027-01-01',1,1)").run()
@@ -180,6 +180,41 @@ describe('Migración 0006 sobre una base con contratos', () => {
     expect(() => sqlite.exec("UPDATE investments SET business_line = 'CRYPTO' WHERE id = 'i_v'")).toThrow(/CHECK/);
     expect(() => sqlite.exec("UPDATE investments SET business_line = 'CETES' WHERE id = 'i_v'")).toThrow(/INVALID_BUSINESS_LINE/);
     expect(() => sqlite.exec("UPDATE investments SET business_line = NULL WHERE id = 'i_v'")).toThrow(/INVALID_BUSINESS_LINE/);
+    expect(sqlite.prepare("SELECT name FROM sqlite_master WHERE name = 'idx_investments_business_line'").get()).toBeTruthy();
+    expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+  });
+});
+
+describe('Migración 0008 sobre una base con contratos', () => {
+  it('agrega vehículos nacionales; el catálogo pasa a los triggers sin perder contratos ni archivados', async () => {
+    const { default: Database } = await import('better-sqlite3');
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const dir = join(process.cwd(), 'migrations');
+    const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    for (const f of files.filter((f) => f < '0008')) sqlite.exec(readFileSync(join(dir, f), 'utf8'));
+    sqlite.exec(`
+      INSERT INTO users (id, email, password_hash, role) VALUES ('u_adm','a@ficticio.test','x','ADMIN'), ('u_hg','h@ficticio.test','x','INVESTOR');
+      INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents, archived_at) VALUES
+        ('i_t','u_hg','NAY-0004','TRANSPORT','CARGO_TRANSPORT','MXN','2021-08-12','2027-08-12',10500000,10500000,NULL),
+        ('i_c','u_hg','FICT-C','CETES','CETES','MXN','2026-01-01','2027-01-01',1,1,'2026-11-01 10:00:00');
+      INSERT INTO capital_movements (id, investment_id, movement_type, amount_cents, effective_date, recorded_by_user_id) VALUES ('m1','i_t','INITIAL_DEPOSIT',10500000,'2021-08-12','u_adm');
+    `);
+    sqlite.exec(readFileSync(join(dir, files.find((f) => f.startsWith('0008'))!), 'utf8'));
+    expect(sqlite.prepare('SELECT code, business_line, archived_at FROM investments ORDER BY code').all()).toEqual([
+      { code: 'FICT-C', business_line: 'CETES', archived_at: '2026-11-01 10:00:00' },
+      { code: 'NAY-0004', business_line: 'CARGO_TRANSPORT', archived_at: null }
+    ]);
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM capital_movements').get()).toEqual({ n: 1 });
+    sqlite.exec("UPDATE investments SET business_line = 'NATIONAL_VEHICLE_LEASING' WHERE id = 'i_t'");
+    expect(() => sqlite.exec("UPDATE investments SET business_line = 'CRYPTO' WHERE id = 'i_t'")).toThrow(/INVALID_BUSINESS_LINE/);
+    expect(() => sqlite.exec("UPDATE investments SET business_line = NULL WHERE id = 'i_t'")).toThrow(/INVALID_BUSINESS_LINE/);
+    expect(() => sqlite.exec("UPDATE investments SET business_line = 'CETES' WHERE id = 'i_t'")).toThrow(/INVALID_BUSINESS_LINE/);
+    expect(() =>
+      sqlite.exec("INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents) VALUES ('i_x','u_hg','FICT-X','TRANSPORT','CRYPTO','MXN','2026-01-01','2027-01-01',1,1)")
+    ).toThrow(/INVALID_BUSINESS_LINE/);
     expect(sqlite.prepare("SELECT name FROM sqlite_master WHERE name = 'idx_investments_business_line'").get()).toBeTruthy();
     expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
   });

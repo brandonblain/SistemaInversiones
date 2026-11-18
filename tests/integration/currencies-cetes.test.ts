@@ -14,18 +14,15 @@ describe('Monedas, inversión a CETES − 1 punto y modalidad anual', () => {
     admin = await login(env, 'admin@ficticio.test', ADMIN_PASSWORD);
   });
 
-  const cetes = (overrides: Record<string, unknown> = {}) =>
-    createInvestment(admin, investorId, {
-      investment_type: 'CETES',
-      currency: 'MXN',
-      reference_rate_code: 'CETES_28',
-      spread_bps: -100,
-      fixed_annual_rate_bps: undefined,
-      capital_cents: 36_500_000,
-      start_date: '2026-01-01',
-      maturity_date: '2027-01-01',
-      ...overrides
-    });
+  // CETES ya no admite contratos nuevos: se simula un contrato histórico convirtiendo uno de tasa fija en la base
+  const cetes = async () => {
+    const id = await createInvestment(admin, investorId, { capital_cents: 36_500_000, start_date: '2026-01-01', maturity_date: '2027-01-01' });
+    await env.DB.batch([
+      env.DB.prepare("UPDATE investments SET investment_type = 'CETES', business_line = 'CETES' WHERE id = ?").bind(id),
+      env.DB.prepare("UPDATE investment_terms SET rate_type = 'REFERENCE', fixed_annual_rate_bps = NULL, reference_rate_code = 'CETES_28', spread_bps = -100 WHERE investment_id = ?").bind(id)
+    ]);
+    return id;
+  };
   const addRate = (date: string, bps: number, code = 'CETES_28') =>
     admin.call('POST', '/api/admin/reference-rates', { rate_code: code, effective_date: date, annual_rate_bps: bps, source: 'Banxico (FICTICIO)' });
 
@@ -72,27 +69,27 @@ describe('Monedas, inversión a CETES − 1 punto y modalidad anual', () => {
     expect((await addRate('2099-01-01', 1200)).status).toBe(400);
   });
 
-  it('catálogo de giros: rampas y cómputo disponibles; vehículos extranjeros ya no admite contratos nuevos', async () => {
-    for (const t of ['MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING']) {
+  it('catálogo de giros: rampas, cómputo y vehículos nacionales disponibles; vehículos extranjeros ya no admite contratos nuevos', async () => {
+    for (const t of ['MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING', 'NATIONAL_VEHICLE_LEASING']) {
       const id = await createInvestment(admin, investorId, { investment_type: t });
       expect((await admin.call('GET', `/api/admin/investments?investment_type=${t}`)).json.data.map((r: any) => r.id)).toEqual([id]);
     }
     await expect(createInvestment(admin, investorId, { investment_type: 'FOREIGN_VEHICLES' })).rejects.toThrow(/400/);
   });
 
-  it('CETES: solo en pesos; requiere plazo y diferencial; el inversionista ve la tasa vigente', async () => {
-    const usd = await admin.call('POST', '/api/admin/investments', {
-      investor_user_id: investorId, code: 'FICT-CETES-USD', investment_type: 'CETES', currency: 'USD', reference_rate_code: 'CETES_28', spread_bps: -100,
+  it('CETES: ya no admite contratos nuevos; un histórico conserva su cálculo, se puede editar y el inversionista ve la tasa vigente', async () => {
+    const nuevo = await admin.call('POST', '/api/admin/investments', {
+      investor_user_id: investorId, code: 'FICT-CETES-MXN', investment_type: 'CETES', currency: 'MXN', reference_rate_code: 'CETES_28', spread_bps: -100,
       start_date: '2026-01-01', maturity_date: '2027-01-01', capital_cents: 100, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
     });
-    expect(usd.status).toBe(400);
-    const noSpread = await admin.call('POST', '/api/admin/investments', {
-      investor_user_id: investorId, code: 'FICT-CETES-NS', investment_type: 'CETES', currency: 'MXN', reference_rate_code: 'CETES_28',
-      start_date: '2026-01-01', maturity_date: '2027-01-01', capital_cents: 100, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
-    });
-    expect(noSpread.status).toBe(400);
+    expect(nuevo.status).toBe(400);
 
     const id = await cetes();
+    const edit = await admin.call('PATCH', `/api/admin/investments/${id}`, {
+      investor_user_id: investorId, code: 'FICT-CETES-HIST', investment_type: 'CETES', currency: 'MXN', status: 'ACTIVE', reference_rate_code: 'CETES_28', spread_bps: -100,
+      start_date: '2026-01-01', maturity_date: '2027-01-01', capital_cents: 36_500_000, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
+    });
+    expect(edit.status).toBe(200);
     await addRate('2026-01-01', 1100);
     const victoria = await login(env, 'victoria.perez@ficticio.test', INVESTOR_PASSWORD);
     const d = (await victoria.call('GET', `/api/investor/investments/${id}`)).json.data;

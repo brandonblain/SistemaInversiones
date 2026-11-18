@@ -27,7 +27,7 @@ function Item({ i }: { i: MarketIndicator }) {
 }
 
 /**
- * Cinta de indicadores de Banco de México (divisas, UDIS, tasas, CETES e inflación).
+ * Cinta de indicadores de Banco de México (divisas, UDIS, tasas de referencia e inflación).
  * Movimiento constante → lineal (Emil Kowalski); se pausa al pasar el mouse o con el foco del teclado,
  * y con "reducir movimiento" queda fija y desplazable. Si Banxico no está disponible, no aparece.
  */

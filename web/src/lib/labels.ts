@@ -92,15 +92,24 @@ export const investmentTypeLabel: Record<InvestmentType, string> = {
   CARGO_TRANSPORT: 'Transporte de carga',
   MECHANIC_LIFTS: 'Rampas para taller mecánico',
   IT_EQUIPMENT_LEASING: 'Arrendamiento de equipo de cómputo',
+  NATIONAL_VEHICLE_LEASING: 'Arrendamiento de vehículos nacionales',
   TECH_SOLUTIONS: 'Soluciones tecnológicas y creativas',
   CETES: 'CETES'
 };
 
 /**
- * Giros del catálogo vigente (formulario de nuevo contrato y filtros). FOREIGN_VEHICLES se retiró: solo
- * conserva su etiqueta para mostrar contratos históricos.
+ * Giros del catálogo vigente (formulario de nuevo contrato y filtros). FOREIGN_VEHICLES y CETES se retiraron:
+ * solo conservan su etiqueta para mostrar y editar contratos históricos.
  */
-export const activeInvestmentTypes: InvestmentType[] = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'CARGO_TRANSPORT', 'MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING', 'TECH_SOLUTIONS', 'CETES'];
+export const activeInvestmentTypes: InvestmentType[] = [
+  'ELECTRIC_MOBILITY',
+  'FOOD_TRUCKS',
+  'CARGO_TRANSPORT',
+  'MECHANIC_LIFTS',
+  'IT_EQUIPMENT_LEASING',
+  'NATIONAL_VEHICLE_LEASING',
+  'TECH_SOLUTIONS'
+];
 
 /** Descripción breve de cada giro (formulario de nuevo contrato). */
 export const investmentTypeHint: Record<InvestmentType, string> = {
@@ -110,6 +119,7 @@ export const investmentTypeHint: Record<InvestmentType, string> = {
   CARGO_TRANSPORT: 'Camionetas de reparto con caja seca para distribución y última milla.',
   MECHANIC_LIFTS: 'Arrendamiento de elevadores y rampas para talleres mecánicos.',
   IT_EQUIPMENT_LEASING: 'Arrendamiento de computadoras y estaciones de trabajo para oficinas.',
+  NATIONAL_VEHICLE_LEASING: 'Flotillas para plataforma, reparto, mensajería o turismo.',
   TECH_SOLUTIONS: 'Software, aplicaciones, drones, video, audio y diseño.',
   CETES: 'Tasa variable: CETES más un diferencial (p. ej. − 1 punto). Solo en pesos.'
 };

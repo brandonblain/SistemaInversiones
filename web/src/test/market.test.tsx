@@ -6,7 +6,7 @@ import { ADMIN_ID, INVESTOR_ID, renderApp } from './render';
 afterEach(() => vi.restoreAllMocks());
 
 const unavailable = () =>
-  vi.spyOn(api.public, 'market').mockResolvedValue({ available: false, fx: null, cetes: {}, indicators: [], source: 'Banco de México (SIE)', fetched_at: null, stale: false });
+  vi.spyOn(api.public, 'market').mockResolvedValue({ available: false, fx: null, indicators: [], source: 'Banco de México (SIE)', fetched_at: null, stale: false });
 
 describe('Indicadores de Banxico', () => {
   it('página web sin datos de Banxico: no aparece la cinta y el resto de la página sigue igual', async () => {
@@ -16,11 +16,12 @@ describe('Indicadores de Banxico', () => {
     expect(screen.queryByRole('region', { name: 'Indicadores de Banco de México' })).not.toBeInTheDocument();
   });
 
-  it('cuenta del cliente: tipo de cambio y CETES 28 como referencia informativa', async () => {
+  it('cuenta del cliente: tipo de cambio e indicadores como referencia informativa, sin CETES', async () => {
     renderApp('/app', { loginAs: INVESTOR_ID });
     const panel = (await screen.findByRole('heading', { name: 'Indicadores de Banco de México' })).closest('section') as HTMLElement;
     expect(await within(panel).findByText('$18.4253')).toBeInTheDocument();
-    expect(within(panel).getByText('6.25 %')).toBeInTheDocument();
+    expect(within(panel).getByText('8.861350')).toBeInTheDocument();
+    expect(within(panel).queryByText(/CETES/)).not.toBeInTheDocument();
     expect(within(panel).getByText(/no modifica sus saldos/)).toBeInTheDocument();
     expect(within(panel).queryByText('Importar tasas')).not.toBeInTheDocument();
   });
@@ -32,13 +33,12 @@ describe('Indicadores de Banxico', () => {
     expect(screen.queryByRole('heading', { name: 'Indicadores de Banco de México' })).not.toBeInTheDocument();
   });
 
-  it('administración: FIX, los cuatro plazos y aviso de tasas nuevas por importar', async () => {
+  it('administración: FIX e indicadores, sin tasas CETES ni accesos a ellas', async () => {
     renderApp('/admin', { loginAs: ADMIN_ID });
     const panel = (await screen.findByRole('heading', { name: 'Indicadores de Banco de México' })).closest('section') as HTMLElement;
     expect(await within(panel).findByText('$18.4253')).toBeInTheDocument();
-    for (const rate of ['6.25 %', '6.55 %', '6.79 %', '7.11 %']) expect(within(panel).getByText(rate)).toBeInTheDocument();
-    expect(within(panel).getAllByText('Nueva en Banxico').length).toBeGreaterThan(0);
-    expect(screen.getByRole('heading', { name: 'Tasas CETES en el sistema (para cálculos)' })).toBeInTheDocument();
+    expect(within(panel).getByText('Tasa objetivo Banxico')).toBeInTheDocument();
+    expect(screen.queryByText(/CETES/)).not.toBeInTheDocument();
   });
 
   it('administración sin datos de Banxico: indica revisar el token', async () => {
@@ -53,7 +53,7 @@ describe('Indicadores de Banxico', () => {
       const ticker = await screen.findByRole('region', { name: 'Indicadores de Banco de México' });
       const [visible, copy] = ticker.querySelectorAll('ul');
       expect(copy).toHaveAttribute('aria-hidden', 'true'); // la copia del bucle no se lee dos veces
-      for (const label of ['Dólar FIX', 'Euro', 'Libra esterlina', 'UDIS', 'Tasa objetivo Banxico', 'TIIE 28 días', 'CETES 28 días', 'Inflación anual']) {
+      for (const label of ['Dólar FIX', 'Euro', 'Libra esterlina', 'UDIS', 'Tasa objetivo Banxico', 'TIIE 28 días', 'Inflación anual']) {
         expect(within(visible as HTMLElement).getByText(label)).toBeInTheDocument();
       }
       expect(within(visible as HTMLElement).getByText('$18.4253')).toBeInTheDocument();

@@ -2,12 +2,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { Async, Card, KpiTile, LoadingBlock, PageHeader } from '../../components/ui';
 import { MarketIndicators } from '../../components/MarketIndicators';
-import type { ReferenceRateCode } from '../../api/types';
-
-const PLAZO_ORDER: ReferenceRateCode[] = ['CETES_28', 'CETES_91', 'CETES_182', 'CETES_364'];
 import { useAsync } from '../../hooks/useAsync';
-import { formatDate, formatMoney, formatRateBps } from '../../lib/format';
-import { referenceRateLabel } from '../../lib/labels';
+import { formatDate, formatMoney } from '../../lib/format';
 
 export function AdminDashboardPage() {
   const summary = useAsync(() => api.admin.summary(), []);
@@ -35,26 +31,8 @@ export function AdminDashboardPage() {
               ))}
             </dl>
 
-            <MarketIndicators variant="admin" systemRates={s.reference_rates} />
+            <MarketIndicators variant="admin" />
 
-            <Card
-              title="Tasas CETES en el sistema (para cálculos)"
-              actions={<Link to="/admin/tasas" className="text-sm font-semibold text-brand hover:underline">Capturar tasas</Link>}
-            >
-              {s.reference_rates.length === 0 ? (
-                <p className="text-sm text-ink-2">No hay tasas CETES capturadas. Los contratos a CETES no se pueden calcular sin ellas.</p>
-              ) : (
-                <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  {[...s.reference_rates].sort((x, y) => PLAZO_ORDER.indexOf(x.rate_code) - PLAZO_ORDER.indexOf(y.rate_code)).map((r) => (
-                    <li key={r.rate_code} className="rounded-lg border border-line p-3">
-                      <p className="text-xs text-ink-muted">{referenceRateLabel[r.rate_code]}</p>
-                      <p className="text-lg font-bold text-ink">{formatRateBps(r.annual_rate_bps)}</p>
-                      <p className="text-xs text-ink-muted">al {formatDate(r.effective_date)}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
           </div>
         )}
       </Async>
@@ -66,14 +44,12 @@ export function AdminDashboardPage() {
             <li><Link className="font-semibold text-brand hover:underline" to="/admin/rendimientos">Calcular y confirmar rendimientos</Link></li>
             <li><Link className="font-semibold text-brand hover:underline" to="/admin/pagos">Registrar un pago externo</Link></li>
             <li><Link className="font-semibold text-brand hover:underline" to="/admin/inversiones/nueva">Dar de alta un contrato</Link></li>
-            <li><Link className="font-semibold text-brand hover:underline" to="/admin/tasas">Capturar tasa CETES</Link></li>
             <li><Link className="font-semibold text-brand hover:underline" to="/admin/documentos">Subir un documento</Link></li>
           </ul>
         </Card>
         <Card title="Recordatorio">
           <p className="text-sm text-ink-2">
-            Las convenciones de cálculo (base de días, fechas de corte, significado de “a liquidación”, reglas de reinversión y la
-            fecha de observación de CETES) siguen <strong>pendientes de aprobación por escrito</strong>. No confirme rendimientos
+            Las convenciones de cálculo (base de días, fechas de corte, significado de “a liquidación”, y reglas de reinversión) siguen <strong>pendientes de aprobación por escrito</strong>. No confirme rendimientos
             definitivos de clientes reales hasta tenerlas.
           </p>
         </Card>

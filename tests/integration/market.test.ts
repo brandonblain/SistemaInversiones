@@ -63,24 +63,23 @@ describe('Indicadores de Banxico (/api/public/market)', () => {
   it('sin token: no disponible y sin llamar a Banxico', async () => {
     const r = await getMarket(makeEnv());
     expect(r.status).toBe(200);
-    expect(r.json.data).toMatchObject({ available: false, fx: null, cetes: {} });
+    expect(r.json.data).toMatchObject({ available: false, fx: null, indicators: [] });
     expect(calls).toHaveLength(0);
   });
 
-  it('con token: una sola consulta por rango; FIX, CETES y la cinta de indicadores con su variación', async () => {
+  it('con token: una sola consulta por rango; FIX y la cinta de indicadores (sin CETES) con su variación', async () => {
     const r = await getMarket(makeEnv({ BANXICO_TOKEN: 'tok' }));
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatch(
-      /^https:\/\/www\.banxico\.org\.mx\/SieAPIRest\/service\/v1\/series\/SF43718,SF46410,SF46407,SF60632,SP68257,SF61745,SF60648,SF43936,SF43939,SF43942,SF43945,SP30578\/datos\/\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}$/
+      /^https:\/\/www\.banxico\.org\.mx\/SieAPIRest\/service\/v1\/series\/SF43718,SF46410,SF46407,SF60632,SP68257,SF61745,SF60648,SP30578\/datos\/\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}$/
     );
     const d = r.json.data;
     expect(d.available).toBe(true);
     expect(d.fx).toEqual({ rate: '18.4253', date: '2026-10-19', series_id: 'SF43718' });
-    expect(d.cetes.CETES_28).toEqual({ annual_rate_bps: 625, date: '2026-10-15', series_id: 'SF43936' });
-    expect(d.cetes.CETES_364).toBeUndefined(); // N/E
+    expect(d.cetes).toBeUndefined();
 
     const by = Object.fromEntries(d.indicators.map((i: any) => [i.key, i]));
-    expect(d.indicators.map((i: any) => i.key)).toEqual(['USD', 'EUR', 'UDIS', 'OBJETIVO', 'CETES_28', 'CETES_91', 'CETES_182', 'INFLACION']);
+    expect(d.indicators.map((i: any) => i.key)).toEqual(['USD', 'EUR', 'UDIS', 'OBJETIVO', 'INFLACION']);
     expect(by.USD).toMatchObject({ value: '18.4253', change: '+0.0312', direction: 'up', kind: 'fx' });
     expect(by.EUR).toMatchObject({ value: '20.6704', change: null, direction: null });
     expect(by.UDIS).toMatchObject({ value: '8.861350', date: '2026-10-20', direction: 'up' }); // no toma la de 2099
@@ -93,7 +92,7 @@ describe('Indicadores de Banxico (/api/public/market)', () => {
     const r = await getMarket(makeEnv({ BANXICO_TOKEN: 'tok' }));
     expect(r.json.data.fx).toBeNull();
     expect(r.json.data.indicators.some((i: any) => i.key === 'USD')).toBe(false);
-    expect(r.json.data.cetes.CETES_28.annual_rate_bps).toBe(625);
+    expect(r.json.data.indicators.some((i: any) => i.key === 'UDIS')).toBe(true);
   });
 
   it('usa la caché mientras está vigente y, si Banxico falla, el último dato bueno marcado como antiguo', async () => {

@@ -17,6 +17,9 @@ type SiteContext = Context<{ Bindings: Env; Variables: AppVariables }>;
 /** Rutas de la SPA que pertenecen al portal (mantener en sincronía con web/src/App.tsx). */
 const PORTAL_PATHS = ['/login', '/recuperar', '/restablecer', '/app', '/admin'];
 
+/** Páginas que se abren solo con la dirección directa (sin enlaces) y no se indexan. */
+const PRIVATE_PATHS = ['/cotizador'];
+
 export const isPortalPath = (path: string) => PORTAL_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
 const norm = (h?: string) => (h ?? '').trim().toLowerCase().replace(/\.$/, '');
@@ -75,11 +78,16 @@ export async function serveSite(c: SiteContext) {
   const kind = siteKind(c.env, url);
   const publicUrl = c.env.PUBLIC_HOST ? siteOrigin(url, c.env.PUBLIC_HOST) : '';
   const portalUrl = c.env.PORTAL_HOST ? siteOrigin(url, c.env.PORTAL_HOST) : '';
-  const meta = `<meta name="site" data-kind="${kind}" data-public-url="${escapeAttr(publicUrl)}" data-portal-url="${escapeAttr(portalUrl)}">`;
+  // Herramientas privadas (sin enlaces públicos): que los buscadores no las indexen ni sigan sus enlaces
+  const noindex = PRIVATE_PATHS.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`));
+  const meta =
+    `<meta name="site" data-kind="${kind}" data-public-url="${escapeAttr(publicUrl)}" data-portal-url="${escapeAttr(portalUrl)}">` +
+    (noindex ? '<meta name="robots" content="noindex, nofollow">' : '');
   const html = (await res.text()).replace('</head>', `${meta}</head>`);
 
   const headers = new Headers(res.headers);
   headers.delete('content-length');
   headers.delete('etag');
+  if (noindex) headers.set('X-Robots-Tag', 'noindex, nofollow');
   return new Response(html, { status: res.status, headers });
 }

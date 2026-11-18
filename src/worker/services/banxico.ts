@@ -125,8 +125,7 @@ export function fxRate(dato: string): string | null {
 }
 
 export type IndicatorKey =
-  | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'UDIS' | 'OBJETIVO' | 'TIIE28' | 'INFLACION'
-  | CetesCode;
+  | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'UDIS' | 'OBJETIVO' | 'TIIE28' | 'INFLACION';
 
 export interface Indicator {
   key: IndicatorKey;
@@ -156,20 +155,12 @@ const INDICATORS: Spec[] = [
   { key: 'UDIS', label: 'UDIS', id: 'SP68257', kind: 'index', decimals: 6, match: (t) => t.includes('udis') },
   { key: 'OBJETIVO', label: 'Tasa objetivo Banxico', id: 'SF61745', kind: 'rate', decimals: 2, match: (t) => t.includes('tasa objetivo') },
   { key: 'TIIE28', label: 'TIIE 28 días', id: 'SF60648', kind: 'rate', decimals: 2, match: (t) => t.includes('tiie') && /\b28 dias\b/.test(t) },
-  ...(Object.keys(BANXICO_SERIES) as CetesCode[]).map((code): Spec => ({
-    key: code,
-    label: `CETES ${BANXICO_SERIES[code].days} días`,
-    id: BANXICO_SERIES[code].id,
-    kind: 'rate',
-    decimals: 2,
-    match: (t) => isCetesTitle(t, BANXICO_SERIES[code].days)
-  })),
+  // Sin CETES: la empresa ya no ofrece ese producto (las tasas para contratos históricos se importan aparte)
   { key: 'INFLACION', label: 'Inflación anual', id: 'SP30578', kind: 'rate', decimals: 2, match: (t) => t.includes('precios al consumidor') && t.includes('anual') }
 ];
 
 export interface MarketData {
   fx: { rate: string; date: string; series_id: string } | null;
-  cetes: Partial<Record<CetesCode, { annual_rate_bps: number; date: string; series_id: string }>>;
   indicators: Indicator[];
 }
 
@@ -187,7 +178,6 @@ export async function fetchMarketData(env: Env, today: string = todayInContractZ
   const series = await sieFetch(env, `/series/${ids}/datos/${addDays(today, -100)}/${today}`);
   const indicators: Indicator[] = [];
   const fxRaw: Record<string, { dato: string; date: string }> = {};
-  const cetes: MarketData['cetes'] = {};
 
   for (const spec of INDICATORS) {
     const s = series.find((x) => x.idSerie === spec.id);
@@ -212,12 +202,8 @@ export async function fetchMarketData(env: Env, today: string = todayInContractZ
       series_id: spec.id
     });
     if (spec.key === 'USD') fxRaw.USD = { dato: last.dato, date: last.date };
-    if (spec.key in BANXICO_SERIES) {
-      const bps = percentToBps(last.dato);
-      if (bps !== null) cetes[spec.key as CetesCode] = { annual_rate_bps: bps, date: last.date, series_id: spec.id };
-    }
   }
 
   const usd = fxRaw.USD ? fxRate(fxRaw.USD.dato) : null;
-  return { fx: usd && fxRaw.USD ? { rate: usd, date: fxRaw.USD.date, series_id: 'SF43718' } : null, cetes, indicators };
+  return { fx: usd && fxRaw.USD ? { rate: usd, date: fxRaw.USD.date, series_id: 'SF43718' } : null, indicators };
 }

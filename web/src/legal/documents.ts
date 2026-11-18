@@ -173,7 +173,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
           'Pimex Fortex Capital ofrece servicios de comercialización de activos, unidades móviles y vehículos extranjeros legalizados, desarrollo de software y consultoría, operando bajo un estricto modelo comercial y corporativo, ajeno a la intermediación financiera masiva.',
           'La Plataforma tiene por objeto: (i) informar sobre los ramos de negocio de la Sociedad y las condiciones de referencia de los proyectos comerciales que estructura, y (ii) permitir a los clientes con contrato vigente consultar en línea su capital, rendimientos, pagos y avisos.',
           'La Plataforma es un medio de consulta. No permite realizar depósitos, retiros ni transferencias; las aportaciones y los pagos se realizan fuera de ella, conforme al contrato celebrado. La información publicada es de referencia: las condiciones definitivas son las del contrato que cada cliente firma.',
-          'Los indicadores de mercado (tipos de cambio, UDIS, tasas y CETES) provienen de Banco de México y se muestran con fines informativos; no modifican saldos ni contratos.'
+          'Los indicadores de mercado (tipos de cambio, UDIS, tasas e inflación) provienen de Banco de México y se muestran con fines informativos; no modifican saldos ni contratos.'
         ]
       },
       {
@@ -339,7 +339,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: 'Cláusula primera. Objeto',
         blocks: [
-          'El Cliente aporta recursos a la Empresa para participar en los ramos de negocio que se indiquen en el Anexo de Condiciones Particulares (transporte, movilidad, vehículos eléctricos, alimentos, CETES u otros), en los términos que ahí se pacten.'
+          'El Cliente aporta recursos a la Empresa para participar en los ramos de negocio que se indiquen en el Anexo de Condiciones Particulares (movilidad y vehículos eléctricos, food trucks, transporte de carga, rampas para taller mecánico, equipo de cómputo, vehículos nacionales, soluciones tecnológicas u otros), en los términos que ahí se pacten.'
         ]
       },
       {
@@ -454,7 +454,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         title: '1. Riesgos de los proyectos',
         blocks: [
-          'Los proyectos en los ramos de negocio de Pimex Fortex Capital (transporte, movilidad, vehículos eléctricos, alimentos y otros) dependen del desempeño de negocios reales y están expuestos, entre otros, a riesgos de operación, de mercado, de liquidez, de crédito, regulatorios y de tipo de cambio en operaciones en dólares. Las tasas variables referidas a CETES pueden subir o bajar.',
+          'Los proyectos en los ramos de negocio de Pimex Fortex Capital (transporte, movilidad, vehículos eléctricos, alimentos y otros) dependen del desempeño de negocios reales y están expuestos, entre otros, a riesgos de operación, de mercado, de liquidez, de crédito, regulatorios y de tipo de cambio en operaciones en dólares.',
           'Las condiciones de plazos, costos y estimaciones comerciales tienen un carácter referencial y se establecen de manera formal y definitiva en cada contrato mercantil privado.'
         ]
       },

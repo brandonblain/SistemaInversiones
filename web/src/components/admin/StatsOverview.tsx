@@ -61,7 +61,7 @@ function Tiles({ t, scope }: { t: Totals; scope: 'general' | 'cliente' }) {
       <KpiTile
         label="Tasa fija promedio ponderada"
         value={t.weighted_fixed_rate_bps === null ? '—' : formatRateBps(t.weighted_fixed_rate_bps)}
-        help="Ponderada por capital vigente; no incluye CETES."
+        help="Ponderada por capital vigente de los contratos a tasa fija."
       />
       {scope === 'general' ? (
         <KpiTile label="Clientes" value={t.investors_count} help={`Con contratos en ${t.currency}`} />

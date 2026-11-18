@@ -47,6 +47,16 @@ describe('Sitio público y portal de clientes en dominios separados', () => {
     expect(res.headers.get('strict-transport-security')).toContain('max-age=');
   });
 
+  it('cotizador privado: se abre por su dirección en el sitio público y no es indexable; el resto sí', async () => {
+    const res = await get(env, `${PUBLIC}/cotizador`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    expect(await res.text()).toContain('<meta name="robots" content="noindex, nofollow">');
+    const home = await get(env, `${PUBLIC}/`);
+    expect(home.headers.get('x-robots-tag')).toBeNull();
+    expect(await home.text()).not.toContain('name="robots"');
+  });
+
   it('dominio raíz: login, recuperación y paneles redirigen al subdominio de clientes', async () => {
     for (const path of ['/login', '/recuperar', '/restablecer?token=abc', '/app', '/app/inversiones/x', '/admin', '/admin/clientes']) {
       const res = await get(env, `${PUBLIC}${path}`);

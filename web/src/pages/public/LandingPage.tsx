@@ -26,7 +26,7 @@ const NAV = [
 ];
 
 const STATS = [
-  { value: '6', label: 'líneas de negocio' },
+  { value: '7', label: 'líneas de negocio' },
   { value: 'B2B', label: 'negocios entre empresas' },
   { value: 'S.A.S.', label: 'sociedad mercantil mexicana' }
 ];
@@ -75,6 +75,13 @@ const LINEAS = [
     // Texto del cliente, literal
     text: 'No te descapitalices al montar tu oficina o centro de negocios arrenda el equipo de computo necesario, y hazlo 100% deducible, obtendrás el beneficio actualización cuando este sea obsoleto.',
     img: '/landing/linea-computo.jpg'
+  },
+  {
+    title: 'Arrendamiento de Vehículos Nacionales',
+    kind: 'Arrendamiento',
+    // Texto del cliente, literal
+    text: 'Desarrolla la operacion de tu negocio, arrendamiento de vehiculos nacionales para plataforma, reaprto, mensajeria o turismo y hazlo 100% deducible.',
+    img: '/landing/linea-vehiculos-nacionales.jpg'
   },
   {
     title: 'Soluciones Tecnológicas y Creativas',
@@ -357,7 +364,7 @@ export function LandingPage() {
           <p className="mt-3 max-w-[62ch] text-xs leading-relaxed">
             Las condiciones comerciales se establecen de manera formal y definitiva en cada contrato mercantil privado.
             Pimex Fortex Capital S.A.S. no es una institución bancaria ni realiza actividades reguladas de intermediación financiera.
-            Indicadores (tipos de cambio, UDIS, tasas y CETES): Banco de México (SIE), con fines informativos.
+            Indicadores (tipos de cambio, UDIS, tasas e inflación): Banco de México (SIE), con fines informativos.
           </p>
         </div>
       </footer>

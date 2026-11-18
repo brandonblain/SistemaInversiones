@@ -21,6 +21,7 @@ export type InvestmentType =
   | 'CARGO_TRANSPORT'
   | 'MECHANIC_LIFTS'
   | 'IT_EQUIPMENT_LEASING'
+  | 'NATIONAL_VEHICLE_LEASING'
   | 'TECH_SOLUTIONS'
   | 'CETES';
 export type Relationship = 'SPOUSE' | 'CHILD' | 'PARENT' | 'SIBLING' | 'OTHER';
@@ -176,8 +177,7 @@ export interface MarketSnapshot {
   available: boolean;
   /** Tipo de cambio FIX en pesos por dólar, como texto exacto (p. ej. "18.4253"). */
   fx: { rate: string; date: string; series_id: string } | null;
-  cetes: Partial<Record<ReferenceRateCode, { annual_rate_bps: number; date: string; series_id: string }>>;
-  /** Cinta de indicadores: divisas, UDIS, tasas, CETES e inflación, con variación contra el dato anterior. */
+  /** Cinta de indicadores: divisas, UDIS, tasas de referencia e inflación, con variación contra el dato anterior. */
   indicators: MarketIndicator[];
   source: string;
   fetched_at: string | null;

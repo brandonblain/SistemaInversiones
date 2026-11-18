@@ -56,23 +56,21 @@ describe('Administración: CETES y dólares', () => {
     expect(screen.getByText('6.20 %')).toBeInTheDocument();
   });
 
-  it('nuevo contrato a CETES: fuerza pesos y registra el diferencial', async () => {
+  it('nuevo contrato: CETES ya no es una opción; un contrato histórico a CETES se edita conservando su tasa', async () => {
     const user = userEvent.setup();
-    renderApp('/admin/inversiones/nueva', { loginAs: ADMIN_ID });
-    await user.selectOptions(await screen.findByLabelText('Cliente'), 'usr_fict_02');
-    await user.click(screen.getByRole('radio', { name: /CETES/ }));
+    const view = renderApp('/admin/inversiones/nueva', { loginAs: ADMIN_ID });
+    await screen.findByLabelText('Cliente');
+    expect(screen.queryByRole('radio', { name: /CETES/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Arrendamiento de vehículos nacionales/ })).toBeInTheDocument();
+    view.unmount();
+
+    renderApp('/admin/inversiones/inv_fict_007/editar', { loginAs: ADMIN_ID });
+    expect(await screen.findByRole('radio', { name: /CETES/ })).toBeChecked();
     expect(screen.getByLabelText('Moneda')).toBeDisabled();
-    expect(screen.queryByLabelText('Tasa anual fija (%)')).not.toBeInTheDocument();
     expect(screen.getByText(/CETES 28 días − 1\.00 punto \(-100 pb\)/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Código de contrato'), 'FICT-CETES-01');
-    await user.type(screen.getByLabelText('Capital (MXN)'), '100,000');
-    await user.type(screen.getByLabelText('Fecha de inicio'), '2026-10-01');
-    await user.type(screen.getByLabelText('Fecha de vencimiento'), '2027-10-01');
-    await user.selectOptions(screen.getByLabelText('Cobro del rendimiento'), 'ANNUAL');
     await user.click(screen.getByRole('button', { name: 'Revisar' }));
-    expect(screen.getByText(/CETES 28 días − 1\.00 punto, cobro anual/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Confirmar y guardar' }));
-    expect(await screen.findByText('FICT-CETES-01', { selector: 'h1 *, h1' })).toBeInTheDocument();
+    expect(await screen.findByText('FICT-2026-007', { selector: 'h1 *, h1' })).toBeInTheDocument();
   });
 
   it('nuevo contrato en dólares', async () => {

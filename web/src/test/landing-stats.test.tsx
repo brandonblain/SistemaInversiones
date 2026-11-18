@@ -16,11 +16,15 @@ describe('Página web pública', () => {
     expect(screen.getByText(/somos una firma especializada en consultoría financiera y una incubadora de negocios/)).toBeInTheDocument();
     // Líneas de negocio
     expect(screen.getByRole('heading', { name: 'Nuestras líneas de negocio y soluciones' })).toBeInTheDocument();
-    for (const name of ['Movilidad y Vehículos Eléctricos', 'Food Trucks y Unidades Móviles Gastronómicas', 'Transporte de Carga', 'Rampas para Taller Mecánico', 'Arrendamiento de Equipo de Cómputo', 'Soluciones Tecnológicas y Creativas']) {
+    for (const name of ['Movilidad y Vehículos Eléctricos', 'Food Trucks y Unidades Móviles Gastronómicas', 'Transporte de Carga', 'Rampas para Taller Mecánico', 'Arrendamiento de Equipo de Cómputo', 'Arrendamiento de Vehículos Nacionales', 'Soluciones Tecnológicas y Creativas']) {
       expect(screen.getByRole('heading', { name })).toBeInTheDocument();
     }
     expect(screen.queryByRole('heading', { name: 'Vehículos Extranjeros Legalizados' })).not.toBeInTheDocument();
     expect(screen.queryByText(/vehículos extranjeros/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/CETES/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Desarrolla la operacion de tu negocio, arrendamiento de vehiculos nacionales para plataforma, reaprto, mensajeria o turismo y hazlo 100% deducible.')
+    ).toBeInTheDocument();
     // Descripciones del cliente, literales
     expect(screen.getByText('Desarrolla tu negocio al limite, no te detengas por falta de tecnologia, ni herramientas, renta y hazlo 100% deducible.')).toBeInTheDocument();
     expect(

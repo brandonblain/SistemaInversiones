@@ -3,14 +3,13 @@ import { fetchMarketData, type MarketData } from './banxico';
 
 /**
  * Indicadores de Banco de México para mostrar (página pública, cuentas de clientes y administración):
- * tipo de cambio FIX y tasas CETES más recientes. Son informativos: los cálculos de rendimientos usan
- * las tasas capturadas/importadas en reference_rates, nunca este dato en vivo.
+ * tipo de cambio FIX, divisas, UDIS, tasas de referencia e inflación. Son informativos: no cambian saldos ni contratos.
  *
  * Caché del Worker (Cache API) para no acercarse al límite de Banxico (200 consultas / 5 min):
  *  - se consulta Banxico como máximo cada FRESH_MS por centro de datos;
  *  - si Banxico falla, se sirve el último dato bueno hasta STALE_MS, marcado como stale.
  */
-const CACHE_KEY = 'https://indicadores.cache.internal/banxico/v2';
+const CACHE_KEY = 'https://indicadores.cache.internal/banxico/v3';
 const FRESH_MS = 30 * 60 * 1000;
 const STALE_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -21,7 +20,7 @@ export interface MarketSnapshot extends MarketData {
   stale: boolean;
 }
 
-const EMPTY: MarketSnapshot = { available: false, fx: null, cetes: {}, indicators: [], source: 'Banco de México (SIE)', fetched_at: null, stale: false };
+const EMPTY: MarketSnapshot = { available: false, fx: null, indicators: [], source: 'Banco de México (SIE)', fetched_at: null, stale: false };
 
 type Cached = { data: MarketData; fetched_at: string };
 
