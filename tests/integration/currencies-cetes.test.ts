@@ -72,6 +72,14 @@ describe('Monedas, inversión a CETES − 1 punto y modalidad anual', () => {
     expect((await addRate('2099-01-01', 1200)).status).toBe(400);
   });
 
+  it('catálogo de giros: rampas y cómputo disponibles; vehículos extranjeros ya no admite contratos nuevos', async () => {
+    for (const t of ['MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING']) {
+      const id = await createInvestment(admin, investorId, { investment_type: t });
+      expect((await admin.call('GET', `/api/admin/investments?investment_type=${t}`)).json.data.map((r: any) => r.id)).toEqual([id]);
+    }
+    await expect(createInvestment(admin, investorId, { investment_type: 'FOREIGN_VEHICLES' })).rejects.toThrow(/400/);
+  });
+
   it('CETES: solo en pesos; requiere plazo y diferencial; el inversionista ve la tasa vigente', async () => {
     const usd = await admin.call('POST', '/api/admin/investments', {
       investor_user_id: investorId, code: 'FICT-CETES-USD', investment_type: 'CETES', currency: 'USD', reference_rate_code: 'CETES_28', spread_bps: -100,
@@ -94,7 +102,7 @@ describe('Monedas, inversión a CETES − 1 punto y modalidad anual', () => {
 
   it('dólares: el resumen separa por moneda y nunca suma pesos con dólares', async () => {
     const mxn = await createInvestment(admin, investorId, { currency: 'MXN', capital_cents: 10_000_000 });
-    const usd = await createInvestment(admin, investorId, { currency: 'USD', capital_cents: 5_000_000, investment_type: 'FOREIGN_VEHICLES' });
+    const usd = await createInvestment(admin, investorId, { currency: 'USD', capital_cents: 5_000_000, investment_type: 'IT_EQUIPMENT_LEASING' });
     await confirmPeriod(admin, mxn, '2026-01-15', '2026-02-15');
     const yUsd = await confirmPeriod(admin, usd, '2026-01-15', '2026-02-15');
     await admin.call('POST', '/api/admin/payments', {

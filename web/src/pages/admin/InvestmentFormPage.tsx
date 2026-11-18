@@ -5,7 +5,7 @@ import type { CapitalizationPolicy, Currency, DayCountConvention, InvestmentType
 import { Alert, Async, Button, Card, cx, errorMessage, PageHeader, SelectInput, TextArea, TextInput } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
 import { addMonthsToDate, centsToPlainPesos, formatMoney, formatRateBps, formatSpreadBps, todayInContractZone } from '../../lib/format';
-import { capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeHint, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel, referenceRateLabel } from '../../lib/labels';
+import { activeInvestmentTypes, capitalizationLabel, currencyLabel, dayCountLabel, investmentTypeHint, investmentTypeLabel, investmentTypeReference, payoutFrequencyLabel, referenceRateLabel } from '../../lib/labels';
 import { parsePercentToBps, parsePesosToCents, parseSignedPercentToBps } from '../../lib/parse';
 
 type Errors = Partial<Record<'type' | 'investor' | 'code' | 'capital' | 'rate' | 'spread' | 'start' | 'maturity', string>>;
@@ -125,7 +125,7 @@ export function InvestmentFormPage() {
           <fieldset className="sm:col-span-2">
             <legend className="label">Giro del contrato</legend>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup">
-              {(Object.keys(investmentTypeLabel) as InvestmentType[]).map((t) => {
+              {activeInvestmentTypes.map((t) => {
                 const ref = investmentTypeReference[t];
                 const selected = form.investment_type === t;
                 return (

@@ -26,17 +26,17 @@ const NAV = [
 ];
 
 const STATS = [
-  { value: '5', label: 'líneas de negocio' },
+  { value: '6', label: 'líneas de negocio' },
   { value: 'B2B', label: 'negocios entre empresas' },
   { value: 'S.A.S.', label: 'sociedad mercantil mexicana' }
 ];
 
 const EMPRESA = {
-  // "Quiénes somos" del cliente, sin cambios, en tres partes para darle jerarquía visual
+  // "Quiénes somos" del cliente en tres partes para darle jerarquía visual (sin vehículos extranjeros: línea retirada)
   lead: 'En Pimex Fortex Capital somos una firma especializada en consultoría financiera y una incubadora de negocios de alta ejecución.',
   quienes:
-    'Nos enfocamos en estructurar, acelerar y consolidar proyectos comerciales rentables y de alta demanda. A través de un sólido modelo corporativo basado en la propiedad de activos estratégicos, movilidad sustentable, vehículos extranjeros legalizados, infraestructura comercial móvil y soluciones tecnológicas avanzadas, brindamos a nuestros clientes las herramientas necesarias para escalar su operación con absoluta certeza jurídica y rentabilidad.',
-  pilares: ['Propiedad de activos estratégicos', 'Movilidad sustentable', 'Vehículos extranjeros legalizados', 'Infraestructura comercial móvil', 'Soluciones tecnológicas avanzadas'],
+    'Nos enfocamos en estructurar, acelerar y consolidar proyectos comerciales rentables y de alta demanda. A través de un sólido modelo corporativo basado en la propiedad de activos estratégicos, movilidad sustentable, infraestructura comercial móvil y soluciones tecnológicas avanzadas, brindamos a nuestros clientes las herramientas necesarias para escalar su operación con absoluta certeza jurídica y rentabilidad.',
+  pilares: ['Propiedad de activos estratégicos', 'Movilidad sustentable', 'Infraestructura comercial móvil', 'Soluciones tecnológicas avanzadas'],
   mision:
     'Impulsar el desarrollo, estructuración y aceleración de negocios exitosos mediante una consultoría financiera rigurosa y la provisión de activos, unidades móviles e infraestructura tecnológica de vanguardia. Proveemos soluciones comerciales e integrales bajo estrictos estándares mercantiles, generando valor y crecimiento sostenible para nuestros clientes y aliados estratégicos.',
   vision:
@@ -57,16 +57,24 @@ const LINEAS = [
     img: '/landing/linea-food-trucks.jpg'
   },
   {
-    title: 'Vehículos Extranjeros Legalizados',
-    kind: 'Comercialización',
-    text: 'Adquisición de vehículos de procedencia extranjera debidamente legalizados mediante pedimento de importación definitiva a nombre de la empresa, listos para su venta comercial y óptima integración al mercado.',
-    img: '/landing/linea-vehiculos.jpg'
-  },
-  {
     title: 'Transporte de Carga',
     kind: 'Comercialización y Arrendamiento',
     text: 'Unidades de transporte de carga para empresas y emprendedores que mueven mercancía, con esquemas de adquisición o arrendamiento mercantil para integrarlas a su operación.',
     img: '/landing/linea-transporte-carga.jpg'
+  },
+  {
+    title: 'Rampas para Taller Mecánico',
+    kind: 'Arrendamiento',
+    // Texto del cliente, literal
+    text: 'Desarrolla tu negocio al limite, no te detengas por falta de tecnologia, ni herramientas, renta y hazlo 100% deducible.',
+    img: '/landing/linea-rampas.jpg'
+  },
+  {
+    title: 'Arrendamiento de Equipo de Cómputo',
+    kind: 'Arrendamiento',
+    // Texto del cliente, literal
+    text: 'No te descapitalices al montar tu oficina o centro de negocios arrenda el equipo de computo necesario, y hazlo 100% deducible, obtendrás el beneficio actualización cuando este sea obsoleto.',
+    img: '/landing/linea-computo.jpg'
   },
   {
     title: 'Soluciones Tecnológicas y Creativas',

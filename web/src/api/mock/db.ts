@@ -232,7 +232,7 @@ export function createMockDb(): MockDb {
         notes: 'Contrato FICTICIO de prueba', created_at: '2026-01-15T17:00:00Z'
       },
       {
-        id: 'inv_fict_002', investor_user_id: 'usr_fict_01', code: 'FICT-2025-002', investment_type: 'FOREIGN_VEHICLES', currency: 'MXN', status: 'ACTIVE',
+        id: 'inv_fict_002', investor_user_id: 'usr_fict_01', code: 'FICT-2025-002', investment_type: 'MECHANIC_LIFTS', currency: 'MXN', status: 'ACTIVE',
         start_date: '2025-11-01', maturity_date: '2027-05-01',
         initial_capital_cents: 40_000_000, current_capital_cents: 40_000_000, rate_bps: 2500,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
@@ -248,7 +248,7 @@ export function createMockDb(): MockDb {
         notes: null, created_at: '2025-01-10T17:00:00Z'
       },
       {
-        id: 'inv_fict_004', investor_user_id: 'usr_fict_02', code: 'FICT-2026-004', investment_type: 'FOREIGN_VEHICLES', currency: 'MXN', status: 'ACTIVE',
+        id: 'inv_fict_004', investor_user_id: 'usr_fict_02', code: 'FICT-2026-004', investment_type: 'IT_EQUIPMENT_LEASING', currency: 'MXN', status: 'ACTIVE',
         start_date: '2026-03-01', maturity_date: '2027-09-01',
         initial_capital_cents: 40_000_000, current_capital_cents: 40_000_000, rate_bps: 2500,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,
@@ -264,7 +264,7 @@ export function createMockDb(): MockDb {
         notes: 'Pago mensual para complementar pensión (FICTICIO)', created_at: '2026-05-01T17:00:00Z'
       },
       {
-        id: 'inv_fict_006', investor_user_id: 'usr_fict_02', code: 'FICT-2026-006', investment_type: 'FOREIGN_VEHICLES', currency: 'USD', status: 'ACTIVE',
+        id: 'inv_fict_006', investor_user_id: 'usr_fict_02', code: 'FICT-2026-006', investment_type: 'IT_EQUIPMENT_LEASING', currency: 'USD', status: 'ACTIVE',
         start_date: '2026-04-01', maturity_date: '2028-04-01',
         initial_capital_cents: 2_000_000, current_capital_cents: 2_000_000, rate_bps: 1200,
         rate_type: 'FIXED', reference_rate_code: null, spread_bps: null,

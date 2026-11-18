@@ -22,8 +22,8 @@ Abra **http://localhost:8787**: verá la **página web pública** de la empresa 
 | Usuario | Rol | Qué probar |
 |---|---|---|
 | `admin@ficticio.test` | Administración | **Estadísticas** generales, por cliente y de todas las inversiones; calcular y confirmar rendimientos, registrar pagos, dar de alta clientes con beneficiarios e inversiones por ramo, subir documentos, revisar la bitácora |
-| `hector.galeana@ficticio.test` | Cliente | Tres contratos: Movilidad eléctrica, Vehículos extranjeros con reinversión y Food trucks vencido |
-| `cesar.daniel@ficticio.test` | Cliente | Vehículos extranjeros mensual en pesos y anual en **dólares** |
+| `hector.galeana@ficticio.test` | Cliente | Tres contratos: Movilidad eléctrica, Rampas para taller con reinversión y Food trucks vencido |
+| `cesar.daniel@ficticio.test` | Cliente | Equipo de cómputo mensual en pesos y anual en **dólares** |
 | `victoria.perez@ficticio.test` | Cliente | Food trucks mensual y contrato a **CETES − 1 punto** |
 
 **Flujo sugerido:**

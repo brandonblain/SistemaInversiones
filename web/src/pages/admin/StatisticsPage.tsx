@@ -9,7 +9,7 @@ import { Async, Card, EmptyState, LoadingBlock, PageHeader, SelectInput, Tabs, T
 import { useAsync } from '../../hooks/useAsync';
 import { useDebounced } from '../../hooks/useDebounced';
 import { formatDate, formatMoney } from '../../lib/format';
-import { investmentTypeLabel, payoutFrequencyLabel, rateSummary } from '../../lib/labels';
+import { activeInvestmentTypes, investmentTypeLabel, payoutFrequencyLabel, rateSummary } from '../../lib/labels';
 
 type TabId = 'general' | 'clientes' | 'inversiones';
 
@@ -134,7 +134,7 @@ function AllInvestments() {
         </SelectInput>
         <SelectInput label="Giro" value={filters.investment_type} onChange={(e) => setFilters({ ...filters, investment_type: e.target.value as InvestmentType | '' })}>
           <option value="">Todos</option>
-          {(Object.keys(investmentTypeLabel) as InvestmentType[]).map((k) => <option key={k} value={k}>{investmentTypeLabel[k]}</option>)}
+          {activeInvestmentTypes.map((k) => <option key={k} value={k}>{investmentTypeLabel[k]}</option>)}
         </SelectInput>
       </div>
       <Async state={list}>

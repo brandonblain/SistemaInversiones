@@ -90,16 +90,26 @@ export const investmentTypeLabel: Record<InvestmentType, string> = {
   FOOD_TRUCKS: 'Food trucks y unidades móviles',
   FOREIGN_VEHICLES: 'Vehículos extranjeros legalizados',
   CARGO_TRANSPORT: 'Transporte de carga',
+  MECHANIC_LIFTS: 'Rampas para taller mecánico',
+  IT_EQUIPMENT_LEASING: 'Arrendamiento de equipo de cómputo',
   TECH_SOLUTIONS: 'Soluciones tecnológicas y creativas',
   CETES: 'CETES'
 };
+
+/**
+ * Giros del catálogo vigente (formulario de nuevo contrato y filtros). FOREIGN_VEHICLES se retiró: solo
+ * conserva su etiqueta para mostrar contratos históricos.
+ */
+export const activeInvestmentTypes: InvestmentType[] = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'CARGO_TRANSPORT', 'MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING', 'TECH_SOLUTIONS', 'CETES'];
 
 /** Descripción breve de cada giro (formulario de nuevo contrato). */
 export const investmentTypeHint: Record<InvestmentType, string> = {
   ELECTRIC_MOBILITY: 'Comercialización y arrendamiento de vehículos eléctricos ligeros.',
   FOOD_TRUCKS: 'Renta y venta de food trucks y unidades móviles comerciales.',
   FOREIGN_VEHICLES: 'Vehículos con pedimento de importación definitiva, listos para su venta.',
-  CARGO_TRANSPORT: 'Unidades para el transporte de carga y mercancía.',
+  CARGO_TRANSPORT: 'Camionetas de reparto con caja seca para distribución y última milla.',
+  MECHANIC_LIFTS: 'Arrendamiento de elevadores y rampas para talleres mecánicos.',
+  IT_EQUIPMENT_LEASING: 'Arrendamiento de computadoras y estaciones de trabajo para oficinas.',
   TECH_SOLUTIONS: 'Software, aplicaciones, drones, video, audio y diseño.',
   CETES: 'Tasa variable: CETES más un diferencial (p. ej. − 1 punto). Solo en pesos.'
 };

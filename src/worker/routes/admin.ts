@@ -17,9 +17,11 @@ import type { Env, AppVariables } from '../index';
 export const adminRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 adminRoutes.use('*', authMiddleware, requireAdmin);
 
-// Giro del contrato = línea de negocio (columna business_line, migración 0005). La API conserva el nombre
+// Giro del contrato = línea de negocio (columna business_line, migraciones 0005 y 0006). La API conserva el nombre
 // `investment_type`; la columna heredada investments.investment_type solo distingue CETES.
-const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'FOREIGN_VEHICLES', 'CARGO_TRANSPORT', 'TECH_SOLUTIONS', 'CETES'] as const;
+// Giros para contratos nuevos. FOREIGN_VEHICLES (vehículos extranjeros) se retiró del catálogo, pero sus
+// contratos históricos se siguen leyendo; la base de datos lo conserva como valor válido.
+const INVESTMENT_TYPES = ['ELECTRIC_MOBILITY', 'FOOD_TRUCKS', 'CARGO_TRANSPORT', 'MECHANIC_LIFTS', 'IT_EQUIPMENT_LEASING', 'TECH_SOLUTIONS', 'CETES'] as const;
 /** Valor para la columna heredada (su CHECK solo admite los códigos anteriores): CETES o un código no-CETES. */
 const legacyInvestmentType = (line: (typeof INVESTMENT_TYPES)[number]) =>
   line === 'CETES' ? 'CETES' : line === 'ELECTRIC_MOBILITY' ? 'ELECTRIC_VEHICLES' : line === 'FOOD_TRUCKS' ? 'FAST_FOOD' : 'TRANSPORT';

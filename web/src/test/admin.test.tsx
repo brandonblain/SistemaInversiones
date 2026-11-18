@@ -11,7 +11,10 @@ describe('Administración', () => {
     await user.selectOptions(await screen.findByLabelText('Cliente'), 'usr_fict_02');
     await user.click(screen.getByRole('button', { name: 'Revisar' }));
     expect(screen.getByText('Seleccione el giro del contrato.')).toBeInTheDocument();
-    await user.click(screen.getByRole('radio', { name: /Vehículos extranjeros/ }));
+    // Catálogo vigente: sin vehículos extranjeros, con rampas y equipo de cómputo
+    expect(screen.queryByRole('radio', { name: /Vehículos extranjeros/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Arrendamiento de equipo de cómputo/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /Rampas para taller mecánico/ }));
     await user.type(screen.getByLabelText('Código de contrato'), 'FICT-TEST-01');
     await user.type(screen.getByLabelText('Capital (MXN)'), '250,000.00');
     await user.type(screen.getByLabelText('Tasa anual fija (%)'), '12.5');
@@ -29,7 +32,7 @@ describe('Administración', () => {
     expect(screen.getByText('Revise antes de guardar')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Confirmar y guardar' }));
     expect(await screen.findByText('FICT-TEST-01')).toBeInTheDocument();
-    expect(screen.getAllByText('Vehículos extranjeros legalizados').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Rampas para taller mecánico').length).toBeGreaterThan(0);
   });
 
   it('nuevo cliente con beneficiarios: los porcentajes deben sumar 100 %', async () => {

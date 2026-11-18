@@ -148,3 +148,39 @@ describe('Migración 0005 sobre una base con contratos (caso de producción)', (
     expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
   });
 });
+
+describe('Migración 0006 sobre una base con contratos', () => {
+  it('amplía el catálogo sin perder contratos (incluidos los de vehículos extranjeros)', async () => {
+    const { default: Database } = await import('better-sqlite3');
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const dir = join(process.cwd(), 'migrations');
+    const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    for (const f of files.filter((f) => f < '0006')) sqlite.exec(readFileSync(join(dir, f), 'utf8'));
+    sqlite.exec(`
+      INSERT INTO users (id, email, password_hash, role) VALUES ('u_adm','a@ficticio.test','x','ADMIN'), ('u_hg','h@ficticio.test','x','INVESTOR');
+      INSERT INTO investments (id, investor_user_id, code, investment_type, business_line, currency, start_date, maturity_date, initial_capital_cents, current_capital_cents) VALUES
+        ('i_t','u_hg','NAY-0004','TRANSPORT','CARGO_TRANSPORT','MXN','2021-08-12','2027-08-12',10500000,10500000),
+        ('i_v','u_hg','FICT-V','TRANSPORT','FOREIGN_VEHICLES','MXN','2026-01-01','2027-01-01',1,1);
+      INSERT INTO investment_terms (id, investment_id, rate_type, fixed_annual_rate_bps, payout_frequency, effective_from) VALUES ('t1','i_t','FIXED',2500,'MONTHLY','2021-08-12');
+      INSERT INTO capital_movements (id, investment_id, movement_type, amount_cents, effective_date, recorded_by_user_id) VALUES ('m1','i_t','INITIAL_DEPOSIT',10500000,'2021-08-12','u_adm');
+    `);
+    sqlite.exec(readFileSync(join(dir, files.find((f) => f.startsWith('0006'))!), 'utf8'));
+    expect(sqlite.prepare('SELECT code, business_line FROM investments ORDER BY code').all()).toEqual([
+      { code: 'FICT-V', business_line: 'FOREIGN_VEHICLES' },
+      { code: 'NAY-0004', business_line: 'CARGO_TRANSPORT' }
+    ]);
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM investment_terms').get()).toEqual({ n: 1 });
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM capital_movements').get()).toEqual({ n: 1 });
+    // Códigos nuevos aceptados; catálogo, obligatoriedad y regla CETES siguen vigentes
+    sqlite.exec("UPDATE investments SET business_line = 'MECHANIC_LIFTS' WHERE id = 'i_v'");
+    sqlite.exec("UPDATE investments SET business_line = 'IT_EQUIPMENT_LEASING' WHERE id = 'i_v'");
+    expect(() => sqlite.exec("UPDATE investments SET business_line = 'CRYPTO' WHERE id = 'i_v'")).toThrow(/CHECK/);
+    expect(() => sqlite.exec("UPDATE investments SET business_line = 'CETES' WHERE id = 'i_v'")).toThrow(/INVALID_BUSINESS_LINE/);
+    expect(() => sqlite.exec("UPDATE investments SET business_line = NULL WHERE id = 'i_v'")).toThrow(/INVALID_BUSINESS_LINE/);
+    expect(sqlite.prepare("SELECT name FROM sqlite_master WHERE name = 'idx_investments_business_line'").get()).toBeTruthy();
+    expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+  });
+});

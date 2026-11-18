@@ -16,9 +16,16 @@ describe('Página web pública', () => {
     expect(screen.getByText(/somos una firma especializada en consultoría financiera y una incubadora de negocios/)).toBeInTheDocument();
     // Líneas de negocio
     expect(screen.getByRole('heading', { name: 'Nuestras líneas de negocio y soluciones' })).toBeInTheDocument();
-    for (const name of ['Movilidad y Vehículos Eléctricos', 'Food Trucks y Unidades Móviles Gastronómicas', 'Vehículos Extranjeros Legalizados', 'Transporte de Carga', 'Soluciones Tecnológicas y Creativas']) {
+    for (const name of ['Movilidad y Vehículos Eléctricos', 'Food Trucks y Unidades Móviles Gastronómicas', 'Transporte de Carga', 'Rampas para Taller Mecánico', 'Arrendamiento de Equipo de Cómputo', 'Soluciones Tecnológicas y Creativas']) {
       expect(screen.getByRole('heading', { name })).toBeInTheDocument();
     }
+    expect(screen.queryByRole('heading', { name: 'Vehículos Extranjeros Legalizados' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/vehículos extranjeros/i)).not.toBeInTheDocument();
+    // Descripciones del cliente, literales
+    expect(screen.getByText('Desarrolla tu negocio al limite, no te detengas por falta de tecnologia, ni herramientas, renta y hazlo 100% deducible.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No te descapitalices al montar tu oficina o centro de negocios arrenda el equipo de computo necesario, y hazlo 100% deducible, obtendrás el beneficio actualización cuando este sea obsoleto.')
+    ).toBeInTheDocument();
     expect(screen.getByText(/impulsamos a emprendedores para que desarrollen su modelo de negocios/)).toBeInTheDocument();
     // Retirados a pedido del cliente
     for (const gone of ['Alimentos', 'Ramos de negocios reales, que puedes ver y entender.', 'Giros en los que apalancamos tu inversión', 'Al cobrar tus rendimientos, puedes hacerlo así:', 'Mensual', '¿Ya eres inversionista?']) {

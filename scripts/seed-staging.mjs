@@ -25,7 +25,7 @@ const investors = [
     beneficiaries: [['Beneficiaria FICTICIA Galeana', 'SPOUSE', 6000], ['Beneficiario FICTICIO Galeana', 'CHILD', 4000]],
     investments: [
       { code: 'FICT-2026-001', type: 'ELECTRIC_MOBILITY', start: '2026-01-15', end: '2027-01-15', capital: 25_000_000, bps: 1600, freq: 'MONTHLY', cap: 'NONE' },
-      { code: 'FICT-2025-002', type: 'FOREIGN_VEHICLES', start: '2025-11-01', end: '2027-05-01', capital: 40_000_000, bps: 2500, freq: 'SEMIANNUAL', cap: 'COMPOUND_TO_CAPITAL' },
+      { code: 'FICT-2025-002', type: 'MECHANIC_LIFTS', start: '2025-11-01', end: '2027-05-01', capital: 40_000_000, bps: 2500, freq: 'SEMIANNUAL', cap: 'COMPOUND_TO_CAPITAL' },
       { code: 'FICT-2025-003', type: 'FOOD_TRUCKS', start: '2025-01-10', end: '2026-01-10', capital: 10_000_000, bps: 1300, freq: 'AT_MATURITY', cap: 'NONE', status: 'MATURED' }
     ]
   },
@@ -33,8 +33,8 @@ const investors = [
     id: 'usr_fict_02', email: 'cesar.daniel@ficticio.test', name: 'Cesar Daniel', phone: '+52 33 0000 0002', address: 'Domicilio FICTICIO, Guadalajara, Jalisco',
     beneficiaries: [['Beneficiaria FICTICIA Daniel', 'PARENT', 10000]],
     investments: [
-      { code: 'FICT-2026-004', type: 'FOREIGN_VEHICLES', start: '2026-03-01', end: '2027-09-01', capital: 40_000_000, bps: 2500, freq: 'MONTHLY', cap: 'NONE' },
-      { code: 'FICT-2026-006', type: 'FOREIGN_VEHICLES', currency: 'USD', start: '2026-04-01', end: '2028-04-01', capital: 2_000_000, bps: 1200, freq: 'ANNUAL', cap: 'NONE' }
+      { code: 'FICT-2026-004', type: 'IT_EQUIPMENT_LEASING', start: '2026-03-01', end: '2027-09-01', capital: 40_000_000, bps: 2500, freq: 'MONTHLY', cap: 'NONE' },
+      { code: 'FICT-2026-006', type: 'IT_EQUIPMENT_LEASING', currency: 'USD', start: '2026-04-01', end: '2028-04-01', capital: 2_000_000, bps: 1200, freq: 'ANNUAL', cap: 'NONE' }
     ]
   },
   {

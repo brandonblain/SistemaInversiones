@@ -23,7 +23,7 @@ describe('Área del inversionista y administración', () => {
   });
 
   it('resumen, lista y detalle con saldo desglosado y ramo', async () => {
-    const inv = await createInvestment(admin, hectorId, { investment_type: 'FOREIGN_VEHICLES', capital_cents: 40_000_000, fixed_annual_rate_bps: 2500 });
+    const inv = await createInvestment(admin, hectorId, { investment_type: 'IT_EQUIPMENT_LEASING', capital_cents: 40_000_000, fixed_annual_rate_bps: 2500 });
     const y = await confirmPeriod(admin, inv, '2026-01-15', '2026-02-15');
     await admin.call('POST', '/api/admin/payments', { investment_id: inv, amount_cents: 1000, paid_at: '2026-02-16T12:00:00Z', reference: 'SPEI-1', allocations: [{ yield_entry_id: y.id, amount_cents: 1000 }] });
 
@@ -44,10 +44,10 @@ describe('Área del inversionista y administración', () => {
 
     const list = (await hector.call('GET', '/api/investor/investments?status=ACTIVE')).json;
     expect(list.pagination.total).toBe(1);
-    expect(list.data[0]).toMatchObject({ investment_type: 'FOREIGN_VEHICLES', terms: { fixed_annual_rate_bps: 2500 }, stats: { yield_paid_cents: 1000 } });
+    expect(list.data[0]).toMatchObject({ investment_type: 'IT_EQUIPMENT_LEASING', terms: { fixed_annual_rate_bps: 2500 }, stats: { yield_paid_cents: 1000 } });
 
     const detail = (await hector.call('GET', `/api/investor/investments/${inv}`)).json.data;
-    expect(detail.investment.investment_type).toBe('FOREIGN_VEHICLES');
+    expect(detail.investment.investment_type).toBe('IT_EQUIPMENT_LEASING');
     expect(detail.investment.notes).toBeUndefined(); // notas internas solo para admin
     expect(detail.balance.yield_pending_cents).toBe(y.amount - 1000);
   });
@@ -132,10 +132,10 @@ describe('Área del inversionista y administración', () => {
     });
     expect(toAdmin.status).toBe(400);
     await createInvestment(admin, hectorId, { code: 'FICT-2026-001', investment_type: 'ELECTRIC_MOBILITY' });
-    await createInvestment(admin, cesarId, { code: 'FICT-2026-004', investment_type: 'FOREIGN_VEHICLES' });
+    await createInvestment(admin, cesarId, { code: 'FICT-2026-004', investment_type: 'IT_EQUIPMENT_LEASING' });
     const byName = (await admin.call('GET', '/api/admin/investments?q=cesar')).json;
     expect(byName.data).toHaveLength(1);
-    expect(byName.data[0]).toMatchObject({ code: 'FICT-2026-004', investment_type: 'FOREIGN_VEHICLES', investor_name: 'Cesar Daniel' });
+    expect(byName.data[0]).toMatchObject({ code: 'FICT-2026-004', investment_type: 'IT_EQUIPMENT_LEASING', investor_name: 'Cesar Daniel' });
     const dupCode = await admin.call('POST', '/api/admin/investments', {
       investor_user_id: hectorId, code: 'fict-2026-001', investment_type: 'ELECTRIC_MOBILITY', currency: 'MXN', start_date: '2026-01-15', maturity_date: '2027-01-15', capital_cents: 100,
       fixed_annual_rate_bps: 1300, payout_frequency: 'MONTHLY', day_count_convention: 'ACT_365', capitalization_policy: 'NONE'
