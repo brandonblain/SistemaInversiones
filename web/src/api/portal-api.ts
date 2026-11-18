@@ -70,6 +70,8 @@ export interface PortalApi {
     investors(q: PageQuery & { q?: string; active?: '' | '1' | '0' }): Promise<Paginated<AdminInvestorRow>>;
     investor(id: string): Promise<AdminInvestorDetail>;
     createInvestor(input: CreateInvestorInput): Promise<{ user_id: string }>;
+    /** Fija una contraseña temporal y la envía al correo registrado (y al adicional, si se indica). */
+    resetInvestorPassword(id: string, input: { password: string; extra_email?: string }): Promise<{ emails: { email: string; sent: boolean }[] }>;
     investments(q: PageQuery & { q?: string; status?: InvestmentStatus | ''; currency?: Currency | ''; investment_type?: InvestmentType | ''; investor_id?: string; archived?: '1' | '' }): Promise<Paginated<AdminInvestmentRow>>;
     statistics(investorId?: string): Promise<AdminStatistics>;
     investment(id: string): Promise<InvestmentDetail & { investor_user_id: string; investor_name: string | null; notes: string | null; archived_at: string | null }>;

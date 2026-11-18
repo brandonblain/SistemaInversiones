@@ -545,6 +545,17 @@ export const mockApi: PortalApi = {
       audit('INVESTOR_CREATED', 'USER', id, { email, full_name: input.full_name, beneficiaries_count: bens.length });
       return { user_id: id };
     },
+    async resetInvestorPassword(id, input) {
+      requireAdmin();
+      const u = db.users.find((x) => x.id === id && x.role === 'INVESTOR');
+      if (!u) return fail(404, 'NOT_FOUND', 'Cliente no encontrado.');
+      if (input.password.length < 10 || !/\d/.test(input.password)) return fail(400, 'WEAK_PASSWORD', 'La contraseña debe tener al menos 10 caracteres con letras y números.');
+      const extra = input.extra_email?.trim().toLowerCase();
+      u.password = input.password;
+      const emails = [...new Set([u.email, ...(extra ? [extra] : [])])];
+      audit('PASSWORD_RESET_BY_ADMIN', 'USER', id, { recipients: emails });
+      return { emails: emails.map((email) => ({ email, sent: true })) };
+    },
     async investments(q) {
       requireAdmin();
       const term = (q.q ?? '').trim().toLowerCase();

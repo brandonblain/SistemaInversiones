@@ -165,5 +165,26 @@ describe('Administración', () => {
     const saved = await api.admin.investment('inv_fict_002');
     expect(saved).toMatchObject({ code: 'FICT-2025-002B', status: 'MATURED', initial_capital_cents: 40_000_000 });
   });
+
+  it('restablecer contraseña del cliente: temporal sugerida y envío al correo registrado y a uno adicional', async () => {
+    const user = userEvent.setup();
+    renderApp('/admin/clientes/usr_fict_02', { loginAs: ADMIN_ID });
+    await user.click(await screen.findByRole('button', { name: 'Restablecer contraseña' }));
+    const pw = screen.getByLabelText('Contraseña temporal');
+    expect((pw as HTMLInputElement).value).toMatch(/^Pimex-[A-Z2-9]{4}-[2-9]{2}$/);
+    const extra = screen.getByLabelText('Correo adicional (opcional)');
+    await user.type(extra, 'no-es-correo');
+    await user.click(screen.getByRole('button', { name: 'Restablecer y enviar' }));
+    expect(await screen.findByText('El correo adicional no es válido.')).toBeInTheDocument();
+    await user.clear(extra);
+    await user.type(extra, 'contador@ficticio.test');
+    await user.clear(pw);
+    await user.type(pw, 'NuevaTemporal99');
+    await user.click(screen.getByRole('button', { name: 'Restablecer y enviar' }));
+    expect(await screen.findByText('Contraseña restablecida')).toBeInTheDocument();
+    expect(screen.getByText('cesar.daniel@ficticio.test', { selector: 'li strong' })).toBeInTheDocument();
+    expect(screen.getByText('contador@ficticio.test', { selector: 'li strong' })).toBeInTheDocument();
+    await expect(api.auth.login({ email: 'cesar.daniel@ficticio.test', password: 'NuevaTemporal99' })).resolves.toBeTruthy();
+  });
 });
 

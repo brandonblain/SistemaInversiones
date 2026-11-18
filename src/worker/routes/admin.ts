@@ -5,6 +5,7 @@ import { AppError, badRequest, withDb } from '../lib/errors';
 import { addDays, todayInContractZone } from '../lib/dates';
 import { assertPassword, date, dateTime, int, isEmail, likePattern, oneOf, optStr, pageParams, pagination, readJson, str, type Body } from '../lib/validate';
 import { auditStatement } from '../services/audit';
+import { sendImmediate } from '../services/notifications';
 import { generateSecureToken, hashPassword } from '../services/crypto';
 import { archiveDocument, DOCUMENT_TYPES, getDocumentForAdmin, uploadPrivateDocument } from '../services/documents';
 import { confirmYield, executeReinvestment, previewYield, recordExternalPayment, recordManualYield, reverseYieldEntry } from '../services/payment-ledger';
@@ -173,6 +174,47 @@ adminRoutes.get('/investors/:id', async (c) => {
       investments: rows.results.map((r) => toListItem(r, balances.get(r.id)))
     }
   });
+});
+
+// Restablecimiento asistido: el administrador fija una contraseña temporal y se envía al correo registrado y,
+// opcionalmente, a un correo adicional. La contraseña nunca se guarda en bitácora ni en el registro de avisos.
+adminRoutes.post('/investors/:id/reset-password', async (c) => {
+  const admin = c.get('user');
+  const id = c.req.param('id');
+  const body = await readJson(c);
+  const password = assertPassword(body.password);
+  const extra = optStr(body, 'extra_email', 'Correo adicional', 254)?.toLowerCase() ?? null;
+  if (extra && !isEmail(extra)) throw badRequest('INVALID_INPUT', 'Correo adicional no válido.', { field: 'extra_email' });
+
+  const db = c.env.DB;
+  const user = await db.prepare("SELECT id, email FROM users WHERE id = ? AND role = 'INVESTOR'").bind(id).first<{ id: string; email: string }>();
+  if (!user) throw new AppError(404, 'NOT_FOUND', 'Cliente no encontrado.');
+  const recipients = [...new Set([user.email, ...(extra ? [extra] : [])])];
+
+  await db.batch([
+    db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?").bind(await hashPassword(password), id),
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
+    db.prepare("UPDATE password_reset_tokens SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL").bind(id),
+    auditStatement(db, { userId: admin.id, action: 'PASSWORD_RESET_BY_ADMIN', entityType: 'USER', entityId: id, ipAddress: clientIp(c), newValues: { recipients } })
+  ]);
+
+  const portal = c.env.APP_BASE_URL.replace(/\/$/, '');
+  const emails = [];
+  for (const email of recipients) {
+    const result = await sendImmediate(c.env, {
+      userId: id,
+      email,
+      type: 'PASSWORD_CHANGED',
+      subject: 'Su nueva contraseña temporal del portal de clientes',
+      body: 'La administración restableció la contraseña y envió una contraseña temporal (no se guarda en este registro).',
+      secretBody:
+        `La administración restableció la contraseña de la cuenta ${user.email} en el portal de clientes.\n\n` +
+        `Correo de acceso: ${user.email}\nContraseña temporal: ${password}\n\n` +
+        `Inicie sesión en ${portal} y cámbiela de inmediato desde «Perfil» › «Cambiar contraseña». Si usted no solicitó este cambio, comuníquese con la administración.`
+    });
+    emails.push({ email, sent: result.success });
+  }
+  return c.json({ success: true, data: { emails } });
 });
 
 // ======================================================================

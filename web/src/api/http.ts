@@ -77,6 +77,7 @@ export const httpApi: PortalApi = {
     investors: (q) => requestPage(`/api/admin/investors${qs(q)}`),
     investor: (id) => request('GET', `/api/admin/investors/${encodeURIComponent(id)}`),
     createInvestor: (input) => request('POST', '/api/admin/investors', input),
+    resetInvestorPassword: (id, input) => request('POST', `/api/admin/investors/${encodeURIComponent(id)}/reset-password`, input),
     investments: (q) => requestPage(`/api/admin/investments${qs(q)}`),
     statistics: (investorId) => request('GET', `/api/admin/statistics${qs({ investor_id: investorId })}`),
     investment: async (id) =>

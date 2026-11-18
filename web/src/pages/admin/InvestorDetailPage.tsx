@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../api';
 import type { Beneficiary, InvestmentListItem } from '../../api/types';
 import { InvestmentStatusBadge } from '../../components/badges';
 import { DataTable, type Column } from '../../components/DataTable';
 import { Icon } from '../../components/icons';
+import { ResetPasswordModal } from '../../components/admin/ResetPasswordModal';
 import { StatsOverview } from '../../components/admin/StatsOverview';
-import { Async, Badge, Card, DefinitionList, EmptyState, LinkButton, LoadingBlock, PageHeader } from '../../components/ui';
+import { Async, Badge, Button, Card, DefinitionList, EmptyState, LinkButton, LoadingBlock, PageHeader } from '../../components/ui';
 import { useAsync } from '../../hooks/useAsync';
 import { formatDate, formatMoney, formatRateBps } from '../../lib/format';
 import { investmentTypeLabel, payoutFrequencyLabel, rateSummary, relationshipLabel } from '../../lib/labels';
@@ -32,6 +34,7 @@ export function InvestorDetailPage() {
   const navigate = useNavigate();
   const detail = useAsync(() => api.admin.investor(id), [id]);
   const stats = useAsync(() => api.admin.statistics(id), [id]);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const back = (
     <Link to="/admin/clientes" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline">
@@ -60,6 +63,15 @@ export function InvestorDetailPage() {
                   { label: 'Domicilio', value: d.profile?.address ?? '—' }
                 ]}
               />
+            </Card>
+            <Card title="Acceso al portal">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="max-w-xl text-sm text-ink-2">
+                  Si el cliente olvidó su contraseña, asígnele una temporal. Se enviará a su correo registrado y, si lo indica, a un correo adicional.
+                </p>
+                <Button variant="secondary" icon="shield" onClick={() => setResetOpen(true)}>Restablecer contraseña</Button>
+              </div>
+              <ResetPasswordModal open={resetOpen} client={{ id: d.user.id, email: d.user.email, name: d.profile?.full_name ?? d.user.email }} onClose={() => setResetOpen(false)} />
             </Card>
             <Card title="Beneficiarios">
               <DataTable
