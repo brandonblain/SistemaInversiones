@@ -100,4 +100,20 @@ describe('Contratos: edición y archivo ("Eliminar")', () => {
     const actions = (await admin.call('GET', '/api/admin/audit-logs')).json.data.map((l: any) => l.action);
     expect(actions).toEqual(expect.arrayContaining(['INVESTMENT_ARCHIVED', 'INVESTMENT_RESTORED']));
   });
+
+  it('solo el administrador edita o elimina; el cliente únicamente consulta su contrato', async () => {
+    const id = await createInvestment(admin, investorId, { code: 'FICT-SOLO-ADMIN' });
+    const hector = await login(env, 'hector.galeana@ficticio.test', INVESTOR_PASSWORD);
+    for (const [method, path, body] of [
+      ['PATCH', `/api/admin/investments/${id}`, full({ code: 'FICT-HACK' })],
+      ['DELETE', `/api/admin/investments/${id}`, undefined],
+      ['POST', `/api/admin/investments/${id}/restore`, undefined],
+      ['PATCH', `/api/investor/investments/${id}`, full({ code: 'FICT-HACK' })],
+      ['DELETE', `/api/investor/investments/${id}`, undefined]
+    ] as const) {
+      expect([403, 404, 405]).toContain((await hector.call(method, path, body)).status);
+    }
+    const d = (await hector.call('GET', `/api/investor/investments/${id}`)).json.data;
+    expect(d.investment?.code ?? d.code).toBe('FICT-SOLO-ADMIN');
+  });
 });

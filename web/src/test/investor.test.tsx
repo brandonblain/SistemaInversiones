@@ -43,6 +43,9 @@ describe('Área del inversionista', () => {
     expect(screen.getAllByText('16.00 % anual fija').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Semestral').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Al vencimiento (liquidación)').length).toBeGreaterThan(0);
+    // Solo consulta: editar y eliminar contratos es exclusivo de administración
+    expect(screen.queryByRole('button', { name: /editar|eliminar|restaurar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /editar|eliminar|nuevo contrato/i })).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('Estado'), 'MATURED');
     expect(await screen.findAllByText('FICT-2025-003')).not.toHaveLength(0);
